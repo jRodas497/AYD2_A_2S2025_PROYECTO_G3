@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Mockup — Estado de Orden</title>
+<style>
+  body { font-family: Arial, Helvetica, sans-serif; background:#e9ecef; margin:0; padding:40px; }
+  .frame { max-width:900px; margin:0 auto; background:#fff; border:1px solid #999; box-shadow:0 2px 6px rgba(0,0,0,.15); }
+  .topbar { background:#37474f; color:#fff; padding:12px 20px; font-size:14px; display:flex; justify-content:space-between; }
+  .content { padding:24px; }
+  .box { border:2px dashed #999; border-radius:6px; padding:16px; margin-bottom:16px; background:#fafafa; }
+  .box h3 { margin:0 0 10px 0; font-size:13px; color:#555; text-transform:uppercase; letter-spacing:.5px; }
+  .timeline { display:flex; justify-content:space-between; align-items:center; padding:10px 0; }
+  .step { flex:1; text-align:center; font-size:11px; color:#999; position:relative; }
+  .step .dot { width:18px; height:18px; border-radius:50%; background:#ccc; margin:0 auto 6px; }
+  .step.done .dot { background:#2e7d32; }
+  .step.current .dot { background:#ef6c00; box-shadow:0 0 0 4px #ffe0b2; }
+  .step.done, .step.current { color:#333; font-weight:bold; }
+  .line { position:absolute; top:9px; left:-50%; width:100%; height:2px; background:#ccc; z-index:-1; }
+  .step.done .line, .step.current .line { background:#2e7d32; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:13px; }
+  .grid div span { color:#777; font-size:11px; display:block; }
+  .response-time { text-align:right; font-size:11px; color:#2e7d32; }
+  footer.note { text-align:center; padding:14px; font-size:11px; color:#999; border-top:1px dashed #ccc; }
+</style>
+</head>
+<body>
+  <div class="frame">
+    <div class="topbar">
+      <span><strong>SGO-Logic</strong> — Estado de Orden #SGO-000482</span>
+      <span>Vista: Cliente / Centro de Atención (CDU-06)</span>
+    </div>
+    <div class="content">
+      <div class="box">
+        <h3>Línea de tiempo</h3>
+        <div class="timeline">
+          <div class="step done"><div class="dot"></div>Confirmación</div>
+          <div class="step done"><div class="line"></div><div class="dot"></div>Pago</div>
+          <div class="step current"><div class="line"></div><div class="dot"></div>Preparación</div>
+          <div class="step"><div class="line"></div><div class="dot"></div>Tránsito</div>
+          <div class="step"><div class="line"></div><div class="dot"></div>Entrega</div>
+        </div>
+        <p class="response-time">⏱ Respuesta de esta consulta: 0.8s (objetivo DC-03: &lt; 5s)</p>
+      </div>
+
+      <div class="box">
+        <h3>Vista consolidada (compra + pago + despacho + entrega)</h3>
+        <div class="grid">
+          <div><span>Canal de origen</span>App móvil → Web</div>
+          <div><span>Método de pago</span>Tarjeta (PayKlik) — aprobado</div>
+          <div><span>Punto de despacho</span>Tienda Zona 10</div>
+          <div><span>Estado logístico</span>En preparación (Logistics Service)</div>
+          <div><span>Última actualización</span>Hace 4 minutos</div>
+          <div><span>Incidencias</span>Ninguna reportada</div>
+        </div>
+      </div>
+
+      <div class="box">
+        <h3>Notificaciones enviadas (best-effort — DC-06)</h3>
+        <p style="font-size:12px; color:#666; margin:0;">✓ Confirmación de compra (SMS, entregado) &nbsp;|&nbsp; ✓ Pago aprobado (correo, entregado) &nbsp;|&nbsp; ⏳ Preparación iniciada (push, reintentando)</p>
+        <p style="font-size:11px; color:#999; margin:6px 0 0;">Una falla en el canal de notificación no bloquea ni retrasa la operación principal.</p>
+      </div>
+    </div>
+    <footer class="note">MOCKUP NO FUNCIONAL — Prototipo arquitectónico SGO-Logic, Fase 1 (Docs/Prototipo/flujo-principal.md, paso 8)</footer>
+  </div>
+</body>
+</html>

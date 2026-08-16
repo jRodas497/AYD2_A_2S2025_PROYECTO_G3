@@ -1,0 +1,84 @@
+<mxfile host="65bd71144e">
+    <diagram name="Contexto" id="contexto-sgo-logic">
+        <mxGraphModel dx="1296" dy="607" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="700" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title" value="Diagrama de Contexto — SGO-Logic (MegaStore)" style="text;html=1;fontSize=18;fontStyle=1;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="10" width="600" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="actorCliente" value="Cliente" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry y="229.2" width="180" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="actorPersonal" value="Personal de Tienda / Atención" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="10" y="620" width="180" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="sgo" value="SGO-Logic&#xa;(Sistema de interés)&#xa;Orquestación omnicanal de órdenes y logística" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="320" y="363" width="330" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="extERP" value="ERP-Core (AS/400)&#xa;Contable-fiscal" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="760" y="50" width="200" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="extPOS" value="POS (x32 tiendas)&#xa;Ventas presenciales" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="910" y="229.2" width="200" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="extPayKlik" value="PayKlik&#xa;Pasarela de pago" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="910" y="408" width="200" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="extLogi" value="LogiExpress&#xa;Logística" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="880" y="550" width="200" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="extSAT" value="SAT&#xa;Facturación electrónica" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="740" y="680" width="200" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="extNotif" value="Proveedor de Notificaciones&#xa;SMS / correo / push" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="740" y="770" width="200" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=11;" parent="1" source="actorCliente" target="sgo" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="270" y="250"/>
+                            <mxPoint x="270" y="443"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e1l" value="Compra, consulta estado,&#xa;recibe notificaciones" style="text;html=1;fontSize=11;align=center;" parent="1" vertex="1">
+                    <mxGeometry x="230" y="210" width="100" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;fontSize=11;" parent="1" source="actorPersonal" target="sgo" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="270" y="669"/>
+                            <mxPoint x="270" y="470"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e2l" value="Consulta y gestiona órdenes" style="text;html=1;fontSize=11;align=center;" parent="1" vertex="1">
+                    <mxGeometry x="240" y="680" width="100" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="e3" value="Resumen de ventas&#xa;(CSV/XML, batch 30 min)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.15;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=11;labelBackgroundColor=#ffffff;" parent="1" source="sgo" target="extERP" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e4" value="Eventos de venta/inventario&#xa;(con reintentos)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=11;labelBackgroundColor=#ffffff;" parent="1" source="sgo" target="extPOS" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e5" value="Procesa intentos de cobro" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=11;labelBackgroundColor=#ffffff;" parent="1" source="sgo" target="extPayKlik" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e6" value="Genera guías, consulta&#xa;estado de entrega" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=11;labelBackgroundColor=#ffffff;" parent="1" source="sgo" target="extLogi" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e7" value="Emite factura electrónica" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.85;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=11;labelBackgroundColor=#ffffff;" parent="1" source="sgo" target="extSAT" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e8" value="Envía notificaciones&#xa;(best-effort)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.7;exitY=1;exitDx=0;exitDy=0;fontSize=11;labelBackgroundColor=#ffffff;" parent="1" source="sgo" target="extNotif" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="551" y="810"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

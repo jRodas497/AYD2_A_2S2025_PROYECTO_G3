@@ -1,0 +1,21 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editores
+.vscode/
+*.swp
+
+# Diagram render output (keep the committed preview images, ignore stray exports)
+*.png
+*.svg
+!Docs/Prototipo/mockups/**
+!Docs/Diagramas/*.png
+!Docs/**/diagramas/*.png
+
+# Claude Code — gestionado solo en local, no se versiona
+.claude/
+CLAUDE.md
+
+# Obsidian
+.obsidian/
