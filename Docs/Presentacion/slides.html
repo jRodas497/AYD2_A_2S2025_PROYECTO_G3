@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>SGO-Logic — Presentación Ejecutiva</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; background:#525659; margin:0; padding:24px 0; }
+  .slide {
+    width: 1120px; min-height: 630px; margin: 0 auto 24px; background:#fff;
+    padding: 48px 64px; position: relative; box-shadow: 0 4px 16px rgba(0,0,0,.3);
+    page-break-after: always;
+  }
+  .slide .kicker { font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color:#78909c; font-weight:bold; margin-bottom: 6px; }
+  .slide h1 { font-size: 34px; color:#263238; margin: 0 0 20px; border-bottom: 4px solid #37474f; padding-bottom: 14px; }
+  .slide h2 { font-size: 22px; color:#37474f; margin: 22px 0 10px; }
+  .slide p, .slide li { font-size: 17px; color:#333; line-height: 1.5; }
+  .slide .num { position:absolute; bottom:20px; right:28px; font-size:12px; color:#aaa; }
+  .slide .resp { position:absolute; bottom:20px; left:64px; font-size:12px; color:#78909c; font-style:italic; }
+  .cols { display:flex; gap:36px; }
+  .col { flex:1; }
+  table { width:100%; border-collapse:collapse; font-size:15px; margin-top:10px; }
+  th { text-align:left; padding:8px 10px; background:#eceff1; border-bottom:2px solid #90a4ae; }
+  td { padding:8px 10px; border-bottom:1px solid #e0e0e0; }
+  .quote { font-size:20px; font-style:italic; color:#455a64; border-left:4px solid #90a4ae; padding:10px 20px; margin:20px 0; background:#f5f7f8; }
+  .badge { display:inline-block; padding:3px 10px; border-radius:10px; font-size:12px; font-weight:bold; }
+  .badge.red { background:#ffebee; color:#c62828; }
+  .badge.green { background:#e8f5e9; color:#2e7d32; }
+  .badge.yellow { background:#fff8e1; color:#f9a825; }
+  .center { display:flex; align-items:center; justify-content:center; height: 100%; }
+  .title-slide { text-align:center; padding-top: 140px; }
+  .title-slide h1 { border:none; font-size:46px; }
+  .title-slide .sub { font-size:20px; color:#607d8b; margin-top: 10px; }
+  .slide img.diagram { max-width:100%; max-height: 420px; display:block; margin: 10px auto 0; border:1px solid #ddd; }
+  .grid3 { display:grid; grid-template-columns: repeat(3,1fr); gap:16px; margin-top: 16px; }
+  .card { border:1px solid #cfd8dc; border-radius:8px; padding:14px; }
+  .card h3 { margin:0 0 6px; font-size:15px; color:#37474f; }
+  .card p { font-size:13px; margin:0; }
+  ul { margin: 8px 0; padding-left: 22px; }
+  .footer-note { text-align:center; color:#999; font-size:11px; padding: 6px 0 0; }
+</style>
+</head>
+<body>
+
+<!-- 1 -->
+<div class="slide title-slide">
+  <div class="kicker">AYD2 — Análisis y Diseño de Sistemas 2A · Fase 1</div>
+  <h1>SGO-Logic</h1>
+  <div class="sub">Arquitectura para la Operación Omnicanal de MegaStore</div>
+  <p style="margin-top:60px; color:#78909c;">Equipo de Arquitectura de Software — Sección A, Grupo 3</p>
+  <div class="num">1 / 22</div>
+</div>
+
+<!-- 2 -->
+<div class="slide">
+  <div class="kicker">Agenda — 45 minutos</div>
+  <h1>De qué vamos a hablar</h1>
+  <table>
+    <tr><th>Tiempo</th><th>Sección</th></tr>
+    <tr><td>5 min</td><td>Contexto de negocio</td></tr>
+    <tr><td>5 min</td><td>Stakeholders y drivers</td></tr>
+    <tr><td>10 min</td><td>Alternativas y decisión arquitectónica</td></tr>
+    <tr><td>10 min</td><td>Vistas de la arquitectura</td></tr>
+    <tr><td>5 min</td><td>Cómo se atienden los drivers críticos</td></tr>
+    <tr><td>5 min</td><td>Prototipo y evolución</td></tr>
+    <tr><td>5 min</td><td>Preguntas y defensa</td></tr>
+  </table>
+  <div class="num">2 / 22</div>
+</div>
+
+<!-- 3 -->
+<div class="slide">
+  <div class="kicker">Contexto de negocio</div>
+  <h1>MegaStore hoy</h1>
+  <div class="cols">
+    <div class="col">
+      <ul>
+        <li>25 años en Guatemala, El Salvador y Costa Rica</li>
+        <li>32 tiendas físicas, 6,500 empleados</li>
+        <li>Facturación anual: <strong>USD 450 millones</strong></li>
+        <li>E-commerce: 25% de las ventas, crece 15%/año</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h2>El problema</h2>
+      <p>Cada tienda, el e-commerce, el inventario y la logística operan como <strong>silos</strong>. Una venta puede requerir llamadas telefónicas, hojas de cálculo y conciliaciones manuales posteriores.</p>
+    </div>
+  </div>
+  <div class="num">3 / 22</div>
+</div>
+
+<!-- 4 -->
+<div class="slide">
+  <div class="kicker">Contexto de negocio</div>
+  <h1>El objetivo: SGO-Logic</h1>
+  <div class="quote">"Nuestro cliente compra desde el celular a las 10pm, desde la tienda física a las 3pm, o llama por teléfono a las 8am. La experiencia debe ser la misma. No podemos tener silos."</div>
+  <p style="text-align:right; color:#78909c;">— Directora de Comercialización</p>
+  <p>Una compra puede <strong>iniciar en un canal y terminar en otro</strong>, sin perder continuidad. SGO-Logic es la capa de orquestación que lo hace posible — sin reemplazar el ERP-Core ni los POS.</p>
+  <div class="num">4 / 22</div>
+</div>
+
+<!-- 5 -->
+<div class="slide">
+  <div class="kicker">Contexto de negocio</div>
+  <h1>Restricciones que no podemos violar</h1>
+  <div class="grid3">
+    <div class="card"><h3>Sistemas legacy</h3><p>No modificar ERP-Core (AS/400) ni los POS de tienda</p></div>
+    <div class="card"><h3>Contratos</h3><p>PayKlik y LogiExpress vigentes — no se reemplazan proveedores</p></div>
+    <div class="card"><h3>Presupuesto</h3><p>USD 150,000 inversión inicial; ≤ USD 1,200/mes de operación</p></div>
+    <div class="card"><h3>Despliegue</h3><p>On-premises obligatorio, con migración planificada a nube</p></div>
+    <div class="card"><h3>Equipo</h3><p>Domina Java/.NET y Docker básico — sin Kubernetes</p></div>
+    <div class="card"><h3>Fecha fija</h3><p>Black Friday en noviembre; ruta viable desde el primer mes</p></div>
+  </div>
+  <div class="num">5 / 22</div>
+</div>
+
+<!-- 6 -->
+<div class="slide">
+  <div class="kicker">Stakeholders y drivers</div>
+  <h1>Quiénes definen el éxito</h1>
+  <table>
+    <tr><th>Stakeholder</th><th>Preocupación principal</th></tr>
+    <tr><td>Carlos Méndez — Gerente de TI</td><td>Continuidad en picos de demanda, mantenibilidad por equipo interno</td></tr>
+    <tr><td>Ana Lucía Fuentes — Directora de Finanzas</td><td><span class="badge red">Veto</span> sobre decisiones que reduzcan trazabilidad o cumplimiento fiscal</td></tr>
+    <tr><td>Roberto Quezada — Jefe de Logística</td><td>Reducir errores de despacho en 70%</td></tr>
+    <tr><td>Junta Directiva</td><td>Presupuesto, decisión irrevocable de no tocar ERP-Core/POS</td></tr>
+    <tr><td>Cliente final</td><td>Experiencia consistente, consulta de estado &lt; 5s</td></tr>
+  </table>
+  <div class="num">6 / 22</div>
+</div>
+
+<!-- 7 -->
+<div class="slide">
+  <div class="kicker">Stakeholders y drivers</div>
+  <h1>Cómo priorizamos</h1>
+  <p>Criterios explícitos: <strong>valor, riesgo, urgencia, impacto arquitectónico</strong> (1-5 cada uno, máx. 20).</p>
+  <table>
+    <tr><th>Driver</th><th>Qué es</th><th>Prioridad</th></tr>
+    <tr><td>DC-01</td><td>Disponibilidad ante falla de PayKlik</td><td><strong>20/20</strong></td></tr>
+    <tr><td>CDU-01/08</td><td>Inventario centralizado en tiempo real</td><td>19/20</td></tr>
+    <tr><td>DC-02</td><td>Elasticidad 8x (Black Friday)</td><td>19/20</td></tr>
+    <tr><td>DC-07</td><td>Auditabilidad / trazabilidad</td><td>17/20</td></tr>
+    <tr><td>DC-05</td><td>Confiabilidad de integración</td><td>17/20</td></tr>
+  </table>
+  <div class="num">7 / 22</div>
+</div>
+
+<!-- 8 -->
+<div class="slide">
+  <div class="kicker">Alternativas y decisión arquitectónica</div>
+  <h1>El estilo elegido</h1>
+  <h2>Monolito Modular con Integración Asíncrona (ADR-0001)</h2>
+  <p>Componentes internos comunicados mayormente vía un <strong>broker de mensajería</strong> (pagos, logística, notificaciones, sincronización ERP), con llamadas síncronas solo donde se necesita consistencia inmediata (inventario, consultas).</p>
+  <p>Contenedores Docker independientes, base de datos relacional con esquemas separados — preparado para extraerse a servicios independientes sin rediseño.</p>
+  <div class="num">8 / 22</div>
+</div>
+
+<!-- 9 -->
+<div class="slide">
+  <div class="kicker">Alternativas y decisión arquitectónica</div>
+  <h1>Por qué no las otras opciones</h1>
+  <table>
+    <tr><th>Alternativa</th><th>Por qué se descartó</th></tr>
+    <tr><td>Monolito tradicional (sin separación interna)</td><td>Alto acoplamiento; dificulta aislar fallas de terceros y mantenibilidad a largo plazo</td></tr>
+    <tr><td>Microservicios completos + Kubernetes desde el inicio</td><td>El equipo no tiene esa competencia hoy; riesgo de no llegar a tiempo a Black Friday; excede presupuesto operativo</td></tr>
+    <tr><td><strong>Monolito modular + broker (elegido)</strong></td><td>Balance entre lo que el equipo puede operar hoy y la necesidad de desacoplar componentes críticos</td></tr>
+  </table>
+  <p style="margin-top:16px;">Ninguna decisión partió de una preferencia tecnológica — todas responden a un driver priorizado.</p>
+  <div class="num">9 / 22</div>
+</div>
+
+<!-- 10 -->
+<div class="slide">
+  <div class="kicker">Vistas de la arquitectura</div>
+  <h1>Diagrama de Contexto</h1>
+  <img class="diagram" src="../Diagramas/contexto.png" alt="Diagrama de Contexto">
+  <div class="num">10 / 22</div>
+</div>
+
+<!-- 11 -->
+<div class="slide">
+  <div class="kicker">Vistas de la arquitectura</div>
+  <h1>Diagrama de Componentes</h1>
+  <img class="diagram" src="../Diagramas/componentes.png" alt="Diagrama de Componentes">
+  <div class="num">11 / 22</div>
+</div>
+
+<!-- 12 -->
+<div class="slide">
+  <div class="kicker">Vistas de la arquitectura</div>
+  <h1>Diagrama de Despliegue</h1>
+  <img class="diagram" src="../Diagramas/despliegue.png" alt="Diagrama de Despliegue">
+  <p style="font-size:13px; color:#78909c;">Cada nodo anotado con el driver de calidad (DC-NN) que justifica su diseño.</p>
+  <div class="num">12 / 22</div>
+</div>
+
+<!-- 13 -->
+<div class="slide">
+  <div class="kicker">Vistas de la arquitectura</div>
+  <h1>Diagrama de Bloques</h1>
+  <img class="diagram" src="../Diagramas/bloques.png" alt="Diagrama de Bloques">
+  <div class="num">13 / 22</div>
+</div>
+
+<!-- 14 -->
+<div class="slide">
+  <div class="kicker">Cómo se atienden los drivers críticos</div>
+  <h1>Driver #1 — Resiliencia de pagos</h1>
+  <p><span class="badge red">Antecedente</span> 45 minutos de caída de PayKlik en el Black Friday anterior = <strong>USD 150,000</strong> en ventas perdidas. Se espera hasta <strong>8x</strong> el tráfico normal.</p>
+  <h2>Solución (ADR-0002)</h2>
+  <ul>
+    <li><strong>Transactional Outbox</strong> — la orden se persiste antes de intentar cobrar, nunca se pierde</li>
+    <li><strong>Circuit Breaker</strong> — deja de insistir con PayKlik si está caído</li>
+    <li>Cola de reintentos asíncronos vía el Message Broker</li>
+  </ul>
+  <div class="num">14 / 22</div>
+</div>
+
+<!-- 15 -->
+<div class="slide">
+  <div class="kicker">Cómo se atienden los drivers críticos</div>
+  <h1>Driver #2 — Auditoría y trazabilidad</h1>
+  <p>Ana Lucía Fuentes (Finanzas) tiene <span class="badge red">poder de veto</span> sobre cualquier decisión que reduzca la trazabilidad.</p>
+  <ul>
+    <li>100% de las operaciones con registro auditable</li>
+    <li>Recuperación de evidencia en <strong>&lt; 1 segundo</strong></li>
+    <li>Nunca se almacena el número completo de tarjeta (PAN) ni el CVV</li>
+  </ul>
+  <div class="num">15 / 22</div>
+</div>
+
+<!-- 16 -->
+<div class="slide">
+  <div class="kicker">Cómo se atienden los drivers críticos</div>
+  <h1>Driver #3 — No tocar ERP-Core ni POS</h1>
+  <p>Decisión irrevocable de la Junta Directiva. El ERP-Core solo acepta CSV/XML en ventanas de 30 minutos.</p>
+  <h2>Solución (ADR-0003)</h2>
+  <p>Adaptador de sincronización batch, <strong>idempotente</strong>, que agrupa eventos confirmados y expone detalle transaccional por lote — reduce la investigación manual de diferencias que existe hoy.</p>
+  <div class="num">16 / 22</div>
+</div>
+
+<!-- 17 -->
+<div class="slide">
+  <div class="kicker">Prototipo y evolución</div>
+  <h1>Flujo principal</h1>
+  <div class="cols">
+    <div class="col">
+      <img class="diagram" src="diagramas/mockup-01-carrito-unificado.png" alt="Mockup carrito unificado">
+    </div>
+    <div class="col">
+      <img class="diagram" src="diagramas/mockup-03-estado-orden.png" alt="Mockup estado de orden">
+    </div>
+  </div>
+  <p style="font-size:13px; color:#78909c; margin-top:8px;">Mockups no funcionales — carrito unificado entre canales y vista consolidada de estado de orden.</p>
+  <div class="num">17 / 22</div>
+</div>
+
+<!-- 18 -->
+<div class="slide">
+  <div class="kicker">Prototipo y evolución</div>
+  <h1>Presupuesto</h1>
+  <table>
+    <tr><th>Concepto</th><th>Límite</th><th>Cómo se respeta</th></tr>
+    <tr><td>Inversión inicial</td><td>USD 150,000</td><td>Componentes open-source (broker), sin licenciamiento comercial</td></tr>
+    <tr><td>Operación mensual</td><td>≤ USD 1,200</td><td>On-premises, sin Kubernetes ni servicios cloud administrados en Fase 1</td></tr>
+  </table>
+  <div class="num">18 / 22</div>
+</div>
+
+<!-- 19 -->
+<div class="slide">
+  <div class="kicker">Prototipo y evolución</div>
+  <h1>On-premises hoy, nube después (ADR-0005)</h1>
+  <p>Los componentes ya están desacoplados por el broker (consecuencia de ADR-0001) — migrar a nube significa <strong>reubicar contenedores</strong>, no rediseñar el sistema.</p>
+  <ul>
+    <li>Fase 1: Docker Compose/Swarm on-premises, capacidad reservada para el pico de Black Friday</li>
+    <li>Evolución futura: orquestador cloud, autoescalado real, mejor recuperación ante desastres</li>
+  </ul>
+  <div class="num">19 / 22</div>
+</div>
+
+<!-- 20 -->
+<div class="slide">
+  <div class="kicker">Prototipo y evolución</div>
+  <h1>Riesgos aceptados — con los ojos abiertos</h1>
+  <table>
+    <tr><th>Decisión</th><th>Costo aceptado</th></tr>
+    <tr><td>ADR-0002 — Pagos</td><td>Cliente puede ver "pago en proceso" unos minutos durante una falla de PayKlik</td></tr>
+    <tr><td>ADR-0003 — ERP</td><td>Reportes gerenciales nunca en tiempo real (ventana de hasta 30 min)</td></tr>
+    <tr><td>ADR-0005 — Despliegue</td><td>Sin autoescalado real en Fase 1; capacidad reservada de antemano</td></tr>
+  </table>
+  <div class="num">20 / 22</div>
+</div>
+
+<!-- 21 -->
+<div class="slide">
+  <div class="kicker">Cierre</div>
+  <h1>Lo que estamos entregando</h1>
+  <ul>
+    <li>DDA completo: 8 CUN, 12 stakeholders, 15 drivers priorizados, 8 CDU, 11 Eac, 11 restricciones</li>
+    <li>5 ADR con alternativas consideradas y descartadas</li>
+    <li>4 vistas arquitectónicas + prototipo no funcional</li>
+    <li>Trazabilidad completa: stakeholder → driver → decisión → vista → validación</li>
+  </ul>
+  <p style="margin-top:20px;"><strong>Cada decisión responde a un driver real del caso — no a una preferencia tecnológica.</strong></p>
+  <div class="num">21 / 22</div>
+</div>
+
+<!-- 22 -->
+<div class="slide title-slide">
+  <h1>Gracias</h1>
+  <div class="sub">Preguntas y defensa</div>
+  <div class="num">22 / 22</div>
+</div>
+
+</body>
+</html>
