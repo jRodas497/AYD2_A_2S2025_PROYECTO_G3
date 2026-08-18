@@ -48,7 +48,7 @@
   <h1>SGO-Logic</h1>
   <div class="sub">Arquitectura para la Operación Omnicanal de MegaStore</div>
   <p style="margin-top:60px; color:#78909c;">Equipo de Arquitectura de Software — Sección A, Grupo 3</p>
-  <div class="num">1 / 24</div>
+  <div class="num">1 / 25</div>
 </div>
 
 <!-- 2 -->
@@ -66,7 +66,7 @@
     <tr><td>5 min</td><td>Prototipo y evolución</td></tr>
     <tr><td>5 min</td><td>Preguntas y defensa</td></tr>
   </table>
-  <div class="num">2 / 24</div>
+  <div class="num">2 / 25</div>
 </div>
 
 <!-- 3 -->
@@ -87,7 +87,7 @@
       <p>Cada tienda, el e-commerce, el inventario y la logística operan como <strong>silos</strong>. Una venta puede requerir llamadas telefónicas, hojas de cálculo y conciliaciones manuales posteriores.</p>
     </div>
   </div>
-  <div class="num">3 / 24</div>
+  <div class="num">3 / 25</div>
 </div>
 
 <!-- 4 -->
@@ -97,7 +97,7 @@
   <div class="quote">"Nuestro cliente compra desde el celular a las 10pm, desde la tienda física a las 3pm, o llama por teléfono a las 8am. La experiencia debe ser la misma. No podemos tener silos."</div>
   <p style="text-align:right; color:#78909c;">— Directora de Comercialización</p>
   <p>Una compra puede <strong>iniciar en un canal y terminar en otro</strong>, sin perder continuidad. SGO-Logic es la capa de orquestación que lo hace posible — sin reemplazar el ERP-Core ni los POS.</p>
-  <div class="num">4 / 24</div>
+  <div class="num">4 / 25</div>
 </div>
 
 <!-- 5 -->
@@ -112,7 +112,7 @@
     <div class="card"><h3>Equipo</h3><p>Domina Java/.NET y Docker básico — sin Kubernetes</p></div>
     <div class="card"><h3>Fecha fija</h3><p>Black Friday en noviembre; ruta viable desde el primer mes</p></div>
   </div>
-  <div class="num">5 / 24</div>
+  <div class="num">5 / 25</div>
 </div>
 
 <!-- 6 -->
@@ -127,7 +127,7 @@
     <tr><td>Junta Directiva</td><td>Presupuesto, decisión irrevocable de no tocar ERP-Core/POS</td></tr>
     <tr><td>Cliente final</td><td>Experiencia consistente, consulta de estado &lt; 5s</td></tr>
   </table>
-  <div class="num">6 / 24</div>
+  <div class="num">6 / 25</div>
 </div>
 
 <!-- 7 -->
@@ -143,7 +143,7 @@
     <tr><td>DC-07</td><td>Auditabilidad / trazabilidad</td><td>17/20</td></tr>
     <tr><td>DC-05</td><td>Confiabilidad de integración</td><td>17/20</td></tr>
   </table>
-  <div class="num">7 / 24</div>
+  <div class="num">7 / 25</div>
 </div>
 
 <!-- 8 -->
@@ -153,7 +153,7 @@
   <h2>Monolito Modular con Integración Asíncrona (ADR-0001)</h2>
   <p>Componentes internos comunicados mayormente vía un <strong>broker de mensajería</strong> (pagos, logística, notificaciones, sincronización ERP), con llamadas síncronas solo donde se necesita consistencia inmediata (inventario, consultas).</p>
   <p>Contenedores Docker independientes, base de datos relacional con esquemas separados — preparado para extraerse a servicios independientes sin rediseño.</p>
-  <div class="num">8 / 24</div>
+  <div class="num">8 / 25</div>
 </div>
 
 <!-- 9 -->
@@ -167,10 +167,19 @@
     <tr><td><strong>Monolito modular + broker (elegido)</strong></td><td>Balance entre lo que el equipo puede operar hoy y la necesidad de desacoplar componentes críticos</td></tr>
   </table>
   <p style="margin-top:16px;">Ninguna decisión partió de una preferencia tecnológica — todas responden a un driver priorizado.</p>
-  <div class="num">9 / 24</div>
+  <div class="num">9 / 25</div>
 </div>
 
 <!-- 10 -->
+<div class="slide">
+  <div class="kicker">Casos de uso</div>
+  <h1>Diagrama Core — sistema y actores de alto nivel</h1>
+  <img class="diagram" src="../DDA/diagramas/core.png" alt="Diagrama Core: sistema y actores de alto nivel">
+  <p style="font-size:13px; color:#78909c;">SGO-Logic al centro; alrededor, todos los actores de negocio y los sistemas externos de los que depende — el mapa previo a los diagramas de casos de uso.</p>
+  <div class="num">10 / 25</div>
+</div>
+
+<!-- 11 -->
 <div class="slide">
   <div class="kicker">Casos de uso</div>
   <h1>Qué hace el sistema: de negocio a expandido</h1>
@@ -183,52 +192,52 @@
     <tr><td>CDU-05</td><td>Gestionar Devolución y Reembolso</td><td>Cliente / Atención</td></tr>
     <tr><td>CDU-08</td><td>Gestionar Inventario Centralizado</td><td>Personal de Logística</td></tr>
   </table>
-  <div class="num">10 / 24</div>
+  <div class="num">11 / 25</div>
 </div>
 
-<!-- 11 -->
+<!-- 12 -->
 <div class="slide">
   <div class="kicker">Casos de uso</div>
   <h1>Diagrama de Casos de Uso Expandidos (CDU)</h1>
   <img class="diagram" src="../DDA/diagramas/cdu.png" alt="Diagrama de Casos de Uso Expandidos CDU">
   <p style="font-size:13px; color:#78909c;">Límite del sistema SGO-Logic, con actores secundarios (PayKlik, LogiExpress, SAT, ERP-Core, POS) y relaciones «include»/«extend».</p>
-  <div class="num">11 / 24</div>
-</div>
-
-<!-- 12 -->
-<div class="slide">
-  <div class="kicker">Vistas de la arquitectura</div>
-  <h1>Diagrama de Contexto</h1>
-  <img class="diagram" src="../Diagramas/contexto.png" alt="Diagrama de Contexto">
-  <div class="num">12 / 24</div>
+  <div class="num">12 / 25</div>
 </div>
 
 <!-- 13 -->
 <div class="slide">
   <div class="kicker">Vistas de la arquitectura</div>
-  <h1>Diagrama de Componentes</h1>
-  <img class="diagram" src="../Diagramas/componentes.png" alt="Diagrama de Componentes">
-  <div class="num">13 / 24</div>
+  <h1>Diagrama de Contexto</h1>
+  <img class="diagram" src="../Diagramas/contexto.png" alt="Diagrama de Contexto">
+  <div class="num">13 / 25</div>
 </div>
 
 <!-- 14 -->
 <div class="slide">
   <div class="kicker">Vistas de la arquitectura</div>
-  <h1>Diagrama de Despliegue</h1>
-  <img class="diagram" src="../Diagramas/despliegue.png" alt="Diagrama de Despliegue">
-  <p style="font-size:13px; color:#78909c;">Cada nodo anotado con el driver de calidad (DC-NN) que justifica su diseño.</p>
-  <div class="num">14 / 24</div>
+  <h1>Diagrama de Componentes</h1>
+  <img class="diagram" src="../Diagramas/componentes.png" alt="Diagrama de Componentes">
+  <div class="num">14 / 25</div>
 </div>
 
 <!-- 15 -->
 <div class="slide">
   <div class="kicker">Vistas de la arquitectura</div>
-  <h1>Diagrama de Bloques</h1>
-  <img class="diagram" src="../Diagramas/bloques.png" alt="Diagrama de Bloques">
-  <div class="num">15 / 24</div>
+  <h1>Diagrama de Despliegue</h1>
+  <img class="diagram" src="../Diagramas/despliegue.png" alt="Diagrama de Despliegue">
+  <p style="font-size:13px; color:#78909c;">Cada nodo anotado con el driver de calidad (DC-NN) que justifica su diseño.</p>
+  <div class="num">15 / 25</div>
 </div>
 
 <!-- 16 -->
+<div class="slide">
+  <div class="kicker">Vistas de la arquitectura</div>
+  <h1>Diagrama de Bloques</h1>
+  <img class="diagram" src="../Diagramas/bloques.png" alt="Diagrama de Bloques">
+  <div class="num">16 / 25</div>
+</div>
+
+<!-- 17 -->
 <div class="slide">
   <div class="kicker">Cómo se atienden los drivers críticos</div>
   <h1>Driver #1 — Resiliencia de pagos</h1>
@@ -239,10 +248,10 @@
     <li><strong>Circuit Breaker</strong> — deja de insistir con PayKlik si está caído</li>
     <li>Cola de reintentos asíncronos vía el Message Broker</li>
   </ul>
-  <div class="num">16 / 24</div>
+  <div class="num">17 / 25</div>
 </div>
 
-<!-- 17 -->
+<!-- 18 -->
 <div class="slide">
   <div class="kicker">Cómo se atienden los drivers críticos</div>
   <h1>Driver #2 — Auditoría y trazabilidad</h1>
@@ -252,20 +261,20 @@
     <li>Recuperación de evidencia en <strong>&lt; 1 segundo</strong></li>
     <li>Nunca se almacena el número completo de tarjeta (PAN) ni el CVV</li>
   </ul>
-  <div class="num">17 / 24</div>
+  <div class="num">18 / 25</div>
 </div>
 
-<!-- 18 -->
+<!-- 19 -->
 <div class="slide">
   <div class="kicker">Cómo se atienden los drivers críticos</div>
   <h1>Driver #3 — No tocar ERP-Core ni POS</h1>
   <p>Decisión irrevocable de la Junta Directiva. El ERP-Core solo acepta CSV/XML en ventanas de 30 minutos.</p>
   <h2>Solución (ADR-0003)</h2>
   <p>Adaptador de sincronización batch, <strong>idempotente</strong>, que agrupa eventos confirmados y expone detalle transaccional por lote — reduce la investigación manual de diferencias que existe hoy.</p>
-  <div class="num">18 / 24</div>
+  <div class="num">19 / 25</div>
 </div>
 
-<!-- 19 -->
+<!-- 20 -->
 <div class="slide">
   <div class="kicker">Prototipo y evolución</div>
   <h1>Flujo principal</h1>
@@ -278,10 +287,10 @@
     </div>
   </div>
   <p style="font-size:13px; color:#78909c; margin-top:8px;">Mockups no funcionales — carrito unificado entre canales y vista consolidada de estado de orden.</p>
-  <div class="num">19 / 24</div>
+  <div class="num">20 / 25</div>
 </div>
 
-<!-- 20 -->
+<!-- 21 -->
 <div class="slide">
   <div class="kicker">Prototipo y evolución</div>
   <h1>Presupuesto</h1>
@@ -290,10 +299,10 @@
     <tr><td>Inversión inicial</td><td>USD 150,000</td><td>Componentes open-source (broker), sin licenciamiento comercial</td></tr>
     <tr><td>Operación mensual</td><td>≤ USD 1,200</td><td>On-premises, sin Kubernetes ni servicios cloud administrados en Fase 1</td></tr>
   </table>
-  <div class="num">20 / 24</div>
+  <div class="num">21 / 25</div>
 </div>
 
-<!-- 21 -->
+<!-- 22 -->
 <div class="slide">
   <div class="kicker">Prototipo y evolución</div>
   <h1>On-premises hoy, nube después (ADR-0005)</h1>
@@ -302,10 +311,10 @@
     <li>Fase 1: Docker Compose/Swarm on-premises, capacidad reservada para el pico de Black Friday</li>
     <li>Evolución futura: orquestador cloud, autoescalado real, mejor recuperación ante desastres</li>
   </ul>
-  <div class="num">21 / 24</div>
+  <div class="num">22 / 25</div>
 </div>
 
-<!-- 22 -->
+<!-- 23 -->
 <div class="slide">
   <div class="kicker">Prototipo y evolución</div>
   <h1>Riesgos aceptados — con los ojos abiertos</h1>
@@ -315,10 +324,10 @@
     <tr><td>ADR-0003 — ERP</td><td>Reportes gerenciales nunca en tiempo real (ventana de hasta 30 min)</td></tr>
     <tr><td>ADR-0005 — Despliegue</td><td>Sin autoescalado real en Fase 1; capacidad reservada de antemano</td></tr>
   </table>
-  <div class="num">22 / 24</div>
+  <div class="num">23 / 25</div>
 </div>
 
-<!-- 23 -->
+<!-- 24 -->
 <div class="slide">
   <div class="kicker">Cierre</div>
   <h1>Lo que estamos entregando</h1>
@@ -329,14 +338,14 @@
     <li>Trazabilidad completa: stakeholder → driver → decisión → vista → validación</li>
   </ul>
   <p style="margin-top:20px;"><strong>Cada decisión responde a un driver real del caso — no a una preferencia tecnológica.</strong></p>
-  <div class="num">23 / 24</div>
+  <div class="num">24 / 25</div>
 </div>
 
-<!-- 24 -->
+<!-- 25 -->
 <div class="slide title-slide">
   <h1>Gracias</h1>
   <div class="sub">Preguntas y defensa</div>
-  <div class="num">24 / 24</div>
+  <div class="num">25 / 25</div>
 </div>
 
 </body>

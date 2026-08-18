@@ -6,6 +6,14 @@
 
 MegaStore quiere que un cliente pueda **iniciar, continuar y completar una compra desde cualquier canal** (tienda física, web, app móvil, centro de atención) con una experiencia consistente, sin silos de información entre canales. La iniciativa que habilita este objetivo es **SGO-Logic**. El sistema de interés no reemplaza los sistemas legacy (ERP-Core, POS) sino que orquesta la operación omnicanal por encima de ellos.
 
+## Diagrama Core — sistema y actores de alto nivel
+
+Vista de más alto nivel del caso de negocio: SGO-Logic al centro y todos los actores que interactúan con él alrededor — tanto los actores de negocio (Cliente, Personal de Tienda/Atención, Personal de Logística, Finanzas) como los sistemas externos de los que depende (PayKlik, LogiExpress, SAT, ERP-Core, POS). Sirve como mapa previo a los diagramas de casos de uso (CUN y CDU) que detallan cómo interactúa cada actor.
+
+![Diagrama Core — Sistema y Actores de Alto Nivel](diagramas/core.png)
+
+Fuente editable: [`diagramas/core.drawio`](diagramas/core.drawio).
+
 ## Diagrama de Casos de Uso de Negocio (CUN) — alto nivel
 
 Actores de negocio identificados: **Cliente**, **Personal de Tienda/Atención**, **Personal de Logística**, **Finanzas**. Los sistemas externos (PayKlik, LogiExpress, SAT, ERP-Core) aparecen como actores secundarios porque el negocio depende de ellos pero no los controla.
