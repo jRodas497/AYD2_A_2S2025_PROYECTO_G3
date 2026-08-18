@@ -14,7 +14,7 @@ Actores de negocio identificados: **Cliente**, **Personal de Tienda/Atención**,
 
 Fuente editable: [`diagramas/cun.drawio`](diagramas/cun.drawio) (draw.io — layout jerárquico generado con Graphviz, ajustable manualmente en VS Code con la extensión `hediet.vscode-drawio`).
 
-> **Notación:** los actores y casos de uso de este diagrama llevan una diagonal en la esquina inferior izquierda — la marca estándar de modelado de negocio (UML Business Actor / Business Use Case) que distingue el nivel de negocio (CUN) del nivel de sistema (CDU, sin diagonal — ver [`04-drivers-funcionales.md`](04-drivers-funcionales.md)).
+> **Notación:** los actores y casos de uso de este diagrama llevan una diagonal en la esquina inferior derecha — la marca estándar de modelado de negocio (UML Business Actor / Business Use Case) que distingue el nivel de negocio (CUN) del nivel de sistema (CDU, sin diagonal — ver [`04-drivers-funcionales.md`](04-drivers-funcionales.md)).
 
 ## Primera descomposición
 
