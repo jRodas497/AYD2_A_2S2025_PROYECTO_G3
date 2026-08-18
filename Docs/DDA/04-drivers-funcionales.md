@@ -6,7 +6,7 @@
 
 ![Diagrama de Casos de Uso Expandidos (CDU)](diagramas/cdu.png)
 
-Fuente editable: [`diagramas/cdu.drawio`](diagramas/cdu.drawio). A diferencia del CUN (`01-caso-negocio.md`, nivel de negocio), este diagrama fija el límite del **sistema de interés** (SGO-Logic) y expande cada caso de uso con sus actores secundarios (PayKlik, LogiExpress, SAT, ERP-Core, POS).
+Fuente editable: [`diagramas/cdu.drawio`](diagramas/cdu.drawio). A diferencia del CUN (`01-caso-negocio.md`, nivel de negocio, actores y casos de uso con diagonal en la esquina inferior izquierda), este diagrama fija el límite del **sistema de interés** (SGO-Logic) con notación UML estándar (sin diagonal) y expande cada caso de uso con sus actores secundarios (PayKlik, LogiExpress, SAT, ERP-Core, POS).
 
 | CDU | Nombre | Actor principal | Drivers de calidad | Drivers de restricción | Documento completo |
 |---|---|---|---|---|---|
