@@ -2,6 +2,12 @@
 
 > Cada CDU deriva de un CUN de `01-caso-negocio.md`. La especificación completa de cada uno (actor, precondiciones, flujo principal, flujos alternativos, flujos de excepción, postcondiciones, reglas de negocio) vive como documento independiente en [`casos-de-uso/`](casos-de-uso/) — esta página es el índice de trazabilidad rápida.
 
+## Diagrama de Casos de Uso Expandidos (CDU) — Sistema SGO-Logic
+
+![Diagrama de Casos de Uso Expandidos (CDU)](diagramas/cdu.png)
+
+Fuente editable: [`diagramas/cdu.drawio`](diagramas/cdu.drawio). A diferencia del CUN (`01-caso-negocio.md`, nivel de negocio), este diagrama fija el límite del **sistema de interés** (SGO-Logic) y expande cada caso de uso con sus actores secundarios (PayKlik, LogiExpress, SAT, ERP-Core, POS).
+
 | CDU | Nombre | Actor principal | Drivers de calidad | Drivers de restricción | Documento completo |
 |---|---|---|---|---|---|
 | CDU-01 | Realizar Compra Omnicanal | Cliente | DC-02, DC-05 | DR-05, DR-10 | [casos-de-uso/CDU-01-realizar-compra-omnicanal.md](casos-de-uso/CDU-01-realizar-compra-omnicanal.md) |
