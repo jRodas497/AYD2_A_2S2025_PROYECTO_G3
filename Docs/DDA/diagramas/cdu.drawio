@@ -1,0 +1,127 @@
+<mxfile host="65bd71144e">
+    <diagram name="CDU" id="cdu-sgo-logic">
+        <mxGraphModel dx="427" dy="607" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="sysBoundary" value="Sistema: SGO-Logic" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;verticalAlign=top;align=left;fontStyle=1;fontSize=13;spacingLeft=8;spacingTop=6;" parent="1" vertex="1">
+                    <mxGeometry x="390" y="28.1" width="470" height="1124.3" as="geometry"/>
+                </mxCell>
+                <mxCell id="title" value="Diagrama de Casos de Uso Expandidos (CDU) — Sistema SGO-Logic" style="text;html=1;fontSize=18;fontStyle=1;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="20" width="800" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="Cliente" value="Cliente" style="shape=umlActor;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;verticalAlign=top;html=1;outlineConnect=0;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="300" y="791.2" width="60" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="PersonalAtencion" value="Personal de Tienda/Atención" style="shape=umlActor;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;verticalAlign=top;html=1;outlineConnect=0;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="300" y="988.3" width="60" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="PersonalLogistica" value="Personal de Logística" style="shape=umlActor;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;verticalAlign=top;html=1;outlineConnect=0;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="300" y="438.3" width="60" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="Finanzas" value="Finanzas" style="shape=umlActor;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;verticalAlign=top;html=1;outlineConnect=0;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="300" y="160.3" width="60" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="CDU01" value="CDU-01&#xa;Realizar Compra&#xa;Omnicanal" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="542.7" y="637.4" width="230" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="CDU02" value="CDU-02&#xa;Procesar Pago&#xa;de la Orden" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="542.7" y="765.7" width="230" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="CDU03" value="CDU-03&#xa;Emitir Documentación&#xa;Fiscal" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="542.7" y="98.1" width="230" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="CDU04" value="CDU-04&#xa;Gestionar Despacho&#xa;y Entrega" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="542.7" y="377.6" width="230" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="CDU05" value="CDU-05&#xa;Gestionar Devolución&#xa;y Reembolso" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="542.7" y="894" width="230" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="CDU06" value="CDU-06&#xa;Consultar Estado&#xa;de Orden" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="542.7" y="1022.4" width="230" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="CDU07" value="CDU-07&#xa;Conciliar Ventas&#xa;con ERP" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="420.00000000000006" y="240" width="230" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="CDU08" value="CDU-08&#xa;Gestionar Inventario&#xa;Centralizado" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="542.7" y="509" width="230" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="PayKlik" value="PayKlik" style="shape=umlActor;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;verticalAlign=top;html=1;outlineConnect=0;fillColor=#FFF2CC;strokeColor=#D6B656;dashed=1;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="955.4" y="760.7" width="60" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="LogiExpress" value="LogiExpress" style="shape=umlActor;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;verticalAlign=top;html=1;outlineConnect=0;fillColor=#FFF2CC;strokeColor=#D6B656;dashed=1;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="955.4" y="368.1" width="60" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="SAT" value="SAT" style="shape=umlActor;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;verticalAlign=top;html=1;outlineConnect=0;fillColor=#FFF2CC;strokeColor=#D6B656;dashed=1;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="955.4" y="90" width="60" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="ERPCore" value="ERP-Core" style="shape=umlActor;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;verticalAlign=top;html=1;outlineConnect=0;fillColor=#FFF2CC;strokeColor=#D6B656;dashed=1;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="955.4" y="229" width="60" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="POS" value="POS (tienda)" style="shape=umlActor;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;verticalAlign=top;html=1;outlineConnect=0;fillColor=#FFF2CC;strokeColor=#D6B656;dashed=1;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="955.4" y="507.1" width="60" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="e1" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="Cliente" target="CDU01" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e2" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="Cliente" target="CDU02" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e3" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="Cliente" target="CDU05" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e4" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="Cliente" target="CDU06" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e5" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="PersonalAtencion" target="CDU05" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e6" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="PersonalAtencion" target="CDU06" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e7" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="PersonalLogistica" target="CDU04" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e8" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="PersonalLogistica" target="CDU08" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e9" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="Finanzas" target="CDU07" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e10" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="Finanzas" target="CDU03" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e11" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="CDU02" target="PayKlik" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e12" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="CDU04" target="LogiExpress" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e13" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="CDU03" target="SAT" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e14" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="CDU07" target="ERPCore" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e15" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="CDU08" target="POS" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e16" value="«include»" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;dashed=1;endArrow=open;" parent="1" source="CDU01" target="CDU02" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e17" value="«include»" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;dashed=1;endArrow=open;" parent="1" source="CDU01" target="CDU08" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e18" value="«include»" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;dashed=1;endArrow=open;" parent="1" source="CDU02" target="CDU03" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e19" value="«include»" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;dashed=1;endArrow=open;" parent="1" source="CDU04" target="CDU08" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e20" value="«extend»" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;dashed=1;endArrow=open;" parent="1" source="CDU05" target="CDU02" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
