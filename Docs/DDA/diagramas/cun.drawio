@@ -1,121 +1,217 @@
 <mxfile host="65bd71144e">
     <diagram name="CUN" id="cun-sgo-logic">
-        <mxGraphModel dx="1940" dy="1975" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1400" pageHeight="700" background="#ffffff" math="0" shadow="0">
+        <mxGraphModel dx="2109" dy="2134" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1400" pageHeight="700" background="#ffffff" math="0" shadow="0">
             <root>
-                <mxCell id="0" />
-                <mxCell id="1" parent="0" />
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
                 <mxCell id="title" value="Diagrama de Casos de Uso de Negocio (CUN) — SGO-Logic" style="text;html=1;fontSize=18;fontStyle=1;align=left;" parent="1" vertex="1">
-                    <mxGeometry x="-285" y="-22" width="700" height="30" as="geometry" />
+                    <mxGeometry x="-285" y="-22" width="700" height="30" as="geometry"/>
                 </mxCell>
                 <mxCell id="Cliente" value="Cliente" style="shape=umlActor;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;verticalAlign=top;html=1;outlineConnect=0;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;" parent="1" vertex="1">
-                    <mxGeometry x="-300" y="330" width="60" height="90" as="geometry" />
+                    <mxGeometry x="-300" y="330" width="60" height="90" as="geometry"/>
                 </mxCell>
                 <mxCell id="PersonalAtencion" value="Personal de Tienda/Atención" style="shape=umlActor;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;verticalAlign=top;html=1;outlineConnect=0;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;" parent="1" vertex="1">
-                    <mxGeometry x="-310" y="500" width="60" height="90" as="geometry" />
+                    <mxGeometry x="-310" y="500" width="60" height="90" as="geometry"/>
                 </mxCell>
                 <mxCell id="PersonalLogistica" value="Personal de Logística" style="shape=umlActor;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;verticalAlign=top;html=1;outlineConnect=0;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;" parent="1" vertex="1">
-                    <mxGeometry x="-310" y="740" width="60" height="90" as="geometry" />
+                    <mxGeometry x="-310" y="740" width="60" height="90" as="geometry"/>
                 </mxCell>
                 <mxCell id="Finanzas" value="Finanzas" style="shape=umlActor;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;verticalAlign=top;html=1;outlineConnect=0;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;" parent="1" vertex="1">
-                    <mxGeometry x="-300" y="170" width="60" height="90" as="geometry" />
+                    <mxGeometry x="-300" y="170" width="60" height="90" as="geometry"/>
                 </mxCell>
-                <mxCell id="CUN01" value="CUN-01&#10;Realizar Compra Omnicanal" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" parent="1" vertex="1">
-                    <mxGeometry x="460" y="520" width="220" height="80" as="geometry" />
+                <mxCell id="CUN01" value="CUN-01&#xa;Realizar Compra Omnicanal" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="460" y="520" width="220" height="80" as="geometry"/>
                 </mxCell>
-                <mxCell id="CUN02" value="CUN-02&#10;Procesar Pago de la Orden" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" parent="1" vertex="1">
-                    <mxGeometry x="170" y="340" width="220" height="80" as="geometry" />
+                <mxCell id="CUN02" value="CUN-02&#xa;Procesar Pago de la Orden" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="170" y="340" width="220" height="80" as="geometry"/>
                 </mxCell>
-                <mxCell id="CUN03" value="CUN-03&#10;Emitir Documentación Fiscal" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" parent="1" vertex="1">
-                    <mxGeometry x="170" y="200" width="220" height="80" as="geometry" />
+                <mxCell id="CUN03" value="CUN-03&#xa;Emitir Documentación Fiscal" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="170" y="200" width="220" height="80" as="geometry"/>
                 </mxCell>
-                <mxCell id="CUN04" value="CUN-04&#10;Gestionar Despacho y Entrega" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" parent="1" vertex="1">
-                    <mxGeometry x="170" y="880" width="220" height="80" as="geometry" />
+                <mxCell id="CUN04" value="CUN-04&#xa;Gestionar Despacho y Entrega" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="170" y="880" width="220" height="80" as="geometry"/>
                 </mxCell>
-                <mxCell id="CUN05" value="CUN-05&#10;Gestionar Devolución y Reembolso" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" parent="1" vertex="1">
-                    <mxGeometry x="170" y="550" width="220" height="80" as="geometry" />
+                <mxCell id="CUN05" value="CUN-05&#xa;Gestionar Devolución y Reembolso" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="170" y="550" width="220" height="80" as="geometry"/>
                 </mxCell>
-                <mxCell id="CUN06" value="CUN-06&#10;Consultar Estado de Orden" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" parent="1" vertex="1">
-                    <mxGeometry x="-221" y="468" width="220" height="80" as="geometry" />
+                <mxCell id="CUN06" value="CUN-06&#xa;Consultar Estado de Orden" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="-221" y="468" width="220" height="80" as="geometry"/>
                 </mxCell>
-                <mxCell id="CUN07" value="CUN-07&#10;Conciliar Ventas con ERP" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" parent="1" vertex="1">
-                    <mxGeometry x="170" y="70" width="220" height="80" as="geometry" />
+                <mxCell id="CUN07" value="CUN-07&#xa;Conciliar Ventas con ERP" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="170" y="70" width="220" height="80" as="geometry"/>
                 </mxCell>
-                <mxCell id="CUN08" value="CUN-08&#10;Gestionar Inventario Centralizado" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" parent="1" vertex="1">
-                    <mxGeometry x="170" y="700" width="220" height="80" as="geometry" />
+                <mxCell id="CUN08" value="CUN-08&#xa;Gestionar Inventario Centralizado" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="170" y="700" width="220" height="80" as="geometry"/>
                 </mxCell>
                 <mxCell id="PayKlik" value="PayKlik" style="shape=umlActor;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;verticalAlign=top;html=1;outlineConnect=0;fillColor=#FFF2CC;strokeColor=#D6B656;dashed=1;fontSize=11;" parent="1" vertex="1">
-                    <mxGeometry x="770" y="360" width="60" height="90" as="geometry" />
+                    <mxGeometry x="770" y="360" width="60" height="90" as="geometry"/>
                 </mxCell>
                 <mxCell id="LogiExpress" value="LogiExpress" style="shape=umlActor;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;verticalAlign=top;html=1;outlineConnect=0;fillColor=#FFF2CC;strokeColor=#D6B656;dashed=1;fontSize=11;" parent="1" vertex="1">
-                    <mxGeometry x="770" y="530" width="60" height="90" as="geometry" />
+                    <mxGeometry x="770" y="530" width="60" height="90" as="geometry"/>
                 </mxCell>
                 <mxCell id="SAT" value="SAT" style="shape=umlActor;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;verticalAlign=top;html=1;outlineConnect=0;fillColor=#FFF2CC;strokeColor=#D6B656;dashed=1;fontSize=11;" parent="1" vertex="1">
-                    <mxGeometry x="770" y="210" width="60" height="90" as="geometry" />
+                    <mxGeometry x="770" y="210" width="60" height="90" as="geometry"/>
                 </mxCell>
                 <mxCell id="ERPCore" value="ERP-Core" style="shape=umlActor;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;verticalAlign=top;html=1;outlineConnect=0;fillColor=#FFF2CC;strokeColor=#D6B656;dashed=1;fontSize=11;" parent="1" vertex="1">
-                    <mxGeometry x="770" y="60" width="60" height="90" as="geometry" />
+                    <mxGeometry x="770" y="60" width="60" height="90" as="geometry"/>
                 </mxCell>
                 <mxCell id="e1" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="Cliente" target="CUN01" edge="1">
-                    <mxGeometry relative="1" as="geometry" />
+                    <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="e2" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="Cliente" target="CUN02" edge="1">
-                    <mxGeometry relative="1" as="geometry" />
+                    <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="e3" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="Cliente" target="CUN05" edge="1">
-                    <mxGeometry relative="1" as="geometry" />
+                    <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="e4" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="Cliente" target="CUN06" edge="1">
-                    <mxGeometry relative="1" as="geometry" />
+                    <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="e5" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="PersonalAtencion" target="CUN05" edge="1">
-                    <mxGeometry relative="1" as="geometry" />
+                    <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="e6" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="PersonalAtencion" target="CUN06" edge="1">
-                    <mxGeometry relative="1" as="geometry" />
+                    <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="e7" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="PersonalAtencion" target="CUN08" edge="1">
-                    <mxGeometry relative="1" as="geometry" />
+                    <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="e8" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="PersonalLogistica" target="CUN04" edge="1">
-                    <mxGeometry relative="1" as="geometry" />
+                    <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="e9" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="PersonalLogistica" target="CUN08" edge="1">
-                    <mxGeometry relative="1" as="geometry" />
+                    <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="e10" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="Finanzas" target="CUN07" edge="1">
-                    <mxGeometry relative="1" as="geometry" />
+                    <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="e11" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="Finanzas" target="CUN03" edge="1">
-                    <mxGeometry relative="1" as="geometry" />
+                    <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="e12" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="CUN02" target="PayKlik" edge="1">
-                    <mxGeometry relative="1" as="geometry" />
+                    <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="e13" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="CUN04" target="LogiExpress" edge="1">
-                    <mxGeometry relative="1" as="geometry" />
+                    <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="e14" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="CUN03" target="SAT" edge="1">
-                    <mxGeometry relative="1" as="geometry" />
+                    <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="e15" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;" parent="1" source="CUN07" target="ERPCore" edge="1">
-                    <mxGeometry relative="1" as="geometry" />
+                    <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="e16" value="«include»" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;dashed=1;endArrow=open;" parent="1" source="CUN01" target="CUN02" edge="1">
-                    <mxGeometry relative="1" as="geometry" />
+                    <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="e17" value="«include»" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;dashed=1;endArrow=open;" parent="1" source="CUN01" target="CUN08" edge="1">
-                    <mxGeometry relative="1" as="geometry" />
+                    <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="e18" value="«include»" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;dashed=1;endArrow=open;" parent="1" source="CUN02" target="CUN03" edge="1">
-                    <mxGeometry relative="1" as="geometry" />
+                    <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="e19" value="«include»" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;dashed=1;endArrow=open;" parent="1" source="CUN04" target="CUN08" edge="1">
-                    <mxGeometry relative="1" as="geometry" />
+                    <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="e20" value="«extend»" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;dashed=1;endArrow=open;" parent="1" source="CUN05" target="CUN02" edge="1">
-                    <mxGeometry relative="1" as="geometry" />
+                    <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-            <mxCell id="bizmark1" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1.6;rounded=0;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="-267.5" y="356.0" as="sourcePoint" /><mxPoint x="-257.4" y="340.9" as="targetPoint" /></mxGeometry></mxCell><mxCell id="bizmark2" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1.6;rounded=0;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="-277.5" y="526.0" as="sourcePoint" /><mxPoint x="-267.4" y="510.9" as="targetPoint" /></mxGeometry></mxCell><mxCell id="bizmark3" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1.6;rounded=0;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="-277.5" y="766.0" as="sourcePoint" /><mxPoint x="-267.4" y="750.9" as="targetPoint" /></mxGeometry></mxCell><mxCell id="bizmark4" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1.6;rounded=0;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="-267.5" y="196.0" as="sourcePoint" /><mxPoint x="-257.4" y="180.9" as="targetPoint" /></mxGeometry></mxCell><mxCell id="bizmark5" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1.6;rounded=0;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="605.2" y="585.6" as="sourcePoint" /><mxPoint x="649.2" y="569.6" as="targetPoint" /></mxGeometry></mxCell><mxCell id="bizmark6" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1.6;rounded=0;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="315.2" y="405.6" as="sourcePoint" /><mxPoint x="359.2" y="389.6" as="targetPoint" /></mxGeometry></mxCell><mxCell id="bizmark7" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1.6;rounded=0;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="315.2" y="265.6" as="sourcePoint" /><mxPoint x="359.2" y="249.6" as="targetPoint" /></mxGeometry></mxCell><mxCell id="bizmark8" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1.6;rounded=0;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="315.2" y="945.6" as="sourcePoint" /><mxPoint x="359.2" y="929.6" as="targetPoint" /></mxGeometry></mxCell><mxCell id="bizmark9" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1.6;rounded=0;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="315.2" y="615.6" as="sourcePoint" /><mxPoint x="359.2" y="599.6" as="targetPoint" /></mxGeometry></mxCell><mxCell id="bizmark10" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1.6;rounded=0;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="-75.8" y="533.6" as="sourcePoint" /><mxPoint x="-31.8" y="517.6" as="targetPoint" /></mxGeometry></mxCell><mxCell id="bizmark11" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1.6;rounded=0;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="315.2" y="135.6" as="sourcePoint" /><mxPoint x="359.2" y="119.6" as="targetPoint" /></mxGeometry></mxCell><mxCell id="bizmark12" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1.6;rounded=0;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="315.2" y="765.6" as="sourcePoint" /><mxPoint x="359.2" y="749.6" as="targetPoint" /></mxGeometry></mxCell><mxCell id="bizmark13" style="endArrow=none;html=1;strokeColor=#D6B656;strokeWidth=1.6;rounded=0;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="802.5" y="386.0" as="sourcePoint" /><mxPoint x="812.6" y="370.9" as="targetPoint" /></mxGeometry></mxCell><mxCell id="bizmark14" style="endArrow=none;html=1;strokeColor=#D6B656;strokeWidth=1.6;rounded=0;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="802.5" y="556.0" as="sourcePoint" /><mxPoint x="812.6" y="540.9" as="targetPoint" /></mxGeometry></mxCell><mxCell id="bizmark15" style="endArrow=none;html=1;strokeColor=#D6B656;strokeWidth=1.6;rounded=0;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="802.5" y="236.0" as="sourcePoint" /><mxPoint x="812.6" y="220.9" as="targetPoint" /></mxGeometry></mxCell><mxCell id="bizmark16" style="endArrow=none;html=1;strokeColor=#D6B656;strokeWidth=1.6;rounded=0;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="802.5" y="86.0" as="sourcePoint" /><mxPoint x="812.6" y="70.9" as="targetPoint" /></mxGeometry></mxCell></root>
+                <mxCell id="bizmark1" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1.6;rounded=0;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="-267.5" y="356" as="sourcePoint"/>
+                        <mxPoint x="-257.4" y="340.9" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="bizmark2" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1.6;rounded=0;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="-277.5" y="526" as="sourcePoint"/>
+                        <mxPoint x="-267.4" y="510.9" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="bizmark3" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1.6;rounded=0;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="-277.5" y="766" as="sourcePoint"/>
+                        <mxPoint x="-267.4" y="750.9" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="bizmark4" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1.6;rounded=0;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="-267.5" y="196" as="sourcePoint"/>
+                        <mxPoint x="-257.4" y="180.9" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="bizmark5" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1.6;rounded=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=0.613;exitY=1.005;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" edge="1" target="CUN01" source="CUN01">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="605.2" y="585.6" as="sourcePoint"/>
+                        <mxPoint x="649.2" y="569.6" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="bizmark6" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1.6;rounded=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=0.596;exitY=1.034;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" edge="1" target="CUN02" source="CUN02">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="315.2" y="405.6" as="sourcePoint"/>
+                        <mxPoint x="359.2" y="389.6" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="bizmark7" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1.6;rounded=0;exitX=0.604;exitY=0.971;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" edge="1" source="CUN03">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="315.2" y="265.6" as="sourcePoint"/>
+                        <mxPoint x="395" y="234" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="bizmark8" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1.6;rounded=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=0.653;exitY=0.992;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" edge="1" target="CUN04" source="CUN04">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="315.2" y="945.6" as="sourcePoint"/>
+                        <mxPoint x="359.2" y="929.6" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="bizmark9" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1.6;rounded=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=0.646;exitY=0.982;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" edge="1" target="CUN05" source="CUN05">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="315.2" y="615.6" as="sourcePoint"/>
+                        <mxPoint x="359.2" y="599.6" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="bizmark10" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1.6;rounded=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=0.624;exitY=0.971;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" edge="1" target="CUN06" source="CUN06">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="-75.8" y="533.6" as="sourcePoint"/>
+                        <mxPoint x="-31.8" y="517.6" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="bizmark11" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1.6;rounded=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=0.623;exitY=0.992;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" edge="1" target="CUN07" source="CUN07">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="315.2" y="135.6" as="sourcePoint"/>
+                        <mxPoint x="359.2" y="119.6" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="bizmark12" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1.6;rounded=0;entryX=0.983;entryY=0.617;entryDx=0;entryDy=0;entryPerimeter=0;exitX=0.6;exitY=1.002;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" edge="1" target="CUN08" source="CUN08">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="315.2" y="765.6" as="sourcePoint"/>
+                        <mxPoint x="359.2" y="749.6" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="bizmark13" style="endArrow=none;html=1;strokeColor=#D6B656;strokeWidth=1.6;rounded=0;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="802.5" y="386" as="sourcePoint"/>
+                        <mxPoint x="812.6" y="370.9" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="bizmark14" style="endArrow=none;html=1;strokeColor=#D6B656;strokeWidth=1.6;rounded=0;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="802.5" y="556" as="sourcePoint"/>
+                        <mxPoint x="812.6" y="540.9" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="bizmark15" style="endArrow=none;html=1;strokeColor=#D6B656;strokeWidth=1.6;rounded=0;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="802.5" y="236" as="sourcePoint"/>
+                        <mxPoint x="812.6" y="220.9" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="bizmark16" style="endArrow=none;html=1;strokeColor=#D6B656;strokeWidth=1.6;rounded=0;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="802.5" y="86" as="sourcePoint"/>
+                        <mxPoint x="812.6" y="70.9" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+            </root>
         </mxGraphModel>
     </diagram>
 </mxfile>
