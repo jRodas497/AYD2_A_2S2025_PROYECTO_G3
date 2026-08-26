@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flujo principal</title>
+<link rel="stylesheet" href="estilo-mockups.css">
+</head>
+<body>
+  <div class="volver"><a href="index.html">&larr; Índice</a></div>
+  <div class="frame">
+    <div class="topbar">
+      <span><strong>SGO-Logic</strong></span>
+      <span class="sub">Flujo principal</span>
+    </div>
+    <div class="content">
+
+      <div class="paso">
+        <div class="n">1</div>
+        <div class="cuerpo"><h4>Inicia la compra</h4><small>Tienda, web, app o centro de atención</small></div>
+        <div class="ver"><a href="01-carrito-unificado.html">Carrito</a></div>
+      </div>
+      <div class="flecha">▼</div>
+
+      <div class="paso">
+        <div class="n">2</div>
+        <div class="cuerpo"><h4>Se aparta el inventario</h4><small>Disponibilidad en tiempo real</small></div>
+        <div class="ver"><a href="09-inventario-centralizado.html">Inventario</a></div>
+      </div>
+      <div class="flecha">▼</div>
+
+      <div class="paso">
+        <div class="n">3</div>
+        <div class="cuerpo"><h4>Elige entrega y pago</h4><small>Tarjeta, transferencia, billetera o financiamiento</small></div>
+        <div class="ver"><a href="02-checkout.html">Checkout</a></div>
+      </div>
+      <div class="rama">Si la pasarela de pago no responde, la orden se confirma igual y el cobro queda en proceso — <a href="06-pago-degradado.html">ver pantalla</a></div>
+      <div class="flecha">▼</div>
+
+      <div class="paso">
+        <div class="n">4</div>
+        <div class="cuerpo"><h4>Se emite la factura</h4><small>Antes de que la orden avance</small></div>
+        <div class="ver"><a href="07-confirmacion-factura.html">Factura</a></div>
+      </div>
+      <div class="flecha">▼</div>
+
+      <div class="paso">
+        <div class="n">5</div>
+        <div class="cuerpo"><h4>Se asigna el despacho</h4><small>Centro de distribución, tienda o recogida</small></div>
+        <div class="ver"><a href="04-logistica.html">Logística</a></div>
+      </div>
+      <div class="rama">Si el transportista no genera la guía, se avisa a Logística sin detener la orden</div>
+      <div class="flecha">▼</div>
+
+      <div class="paso">
+        <div class="n">6</div>
+        <div class="cuerpo"><h4>El cliente sigue su orden</h4><small>Desde cualquier canal, con o sin notificaciones</small></div>
+        <div class="ver"><a href="03-estado-orden.html">Estado</a></div>
+      </div>
+      <div class="flecha">▼</div>
+
+      <div class="paso">
+        <div class="n">7</div>
+        <div class="cuerpo"><h4>Las ventas pasan a contabilidad</h4><small>Cada 30 minutos</small></div>
+        <div class="ver"><a href="10-conciliacion-erp.html">Conciliación</a></div>
+      </div>
+      <div class="flecha">▼</div>
+
+      <div class="paso">
+        <div class="n">8</div>
+        <div class="cuerpo"><h4>Devoluciones y reembolsos</h4><small>Ligados a la venta original</small></div>
+        <div class="ver"><a href="08-devolucion-reembolso.html">Devolución</a></div>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>

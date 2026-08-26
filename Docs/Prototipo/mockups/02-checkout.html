@@ -2,70 +2,43 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Mockup — Checkout</title>
-<style>
-  body { font-family: Arial, Helvetica, sans-serif; background:#e9ecef; margin:0; padding:40px; }
-  .frame { max-width:900px; margin:0 auto; background:#fff; border:1px solid #999; box-shadow:0 2px 6px rgba(0,0,0,.15); }
-  .topbar { background:#37474f; color:#fff; padding:12px 20px; font-size:14px; }
-  .content { padding:24px; }
-  .box { border:2px dashed #999; border-radius:6px; padding:16px; margin-bottom:16px; background:#fafafa; }
-  .box h3 { margin:0 0 10px 0; font-size:13px; color:#555; text-transform:uppercase; letter-spacing:.5px; }
-  .row { display:flex; gap:16px; }
-  .col { flex:1; }
-  .option { border:1px solid #ccc; border-radius:4px; padding:10px 12px; margin-bottom:8px; font-size:13px; background:#fff; display:flex; justify-content:space-between; }
-  .option.selected { border-color:#37474f; border-width:2px; background:#eceff1; font-weight:bold; }
-  .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:10px; background:#cfd8dc; color:#37474f; }
-  .btn { display:inline-block; padding:10px 24px; border:1px solid #37474f; border-radius:4px; background:#37474f; color:#fff; font-size:13px; }
-  .log { font-family: monospace; font-size:11px; background:#263238; color:#b2dfdb; padding:10px; border-radius:4px; }
-  footer.note { text-align:center; padding:14px; font-size:11px; color:#999; border-top:1px dashed #ccc; }
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checkout</title>
+<link rel="stylesheet" href="estilo-mockups.css">
 </head>
 <body>
+  <div class="volver"><a href="index.html">&larr; Índice</a></div>
   <div class="frame">
-    <div class="topbar"><strong>SGO-Logic</strong> — Checkout (Orden #SGO-000482)</div>
+    <div class="topbar">
+      <span><strong>MegaStore</strong></span>
+      <span class="sub">Orden SGO-000482</span>
+    </div>
     <div class="content">
       <div class="row">
         <div class="col">
-          <div class="box">
-            <h3>Método de entrega (CDU-04)</h3>
-            <div class="option">Envío desde Centro de Distribución Sur <span class="badge">2-3 días</span></div>
-            <div class="option selected">Recoger en tienda Zona 10 <span class="badge">Hoy</span></div>
-            <div class="option">Recogida por el cliente en CD <span class="badge">Mañana</span></div>
-            <p style="font-size:11px; color:#777;">El método puede cambiarse después de confirmada la compra.</p>
-          </div>
+          <h2>Entrega</h2>
+          <div class="option"><span>Envío desde CD Sur</span><span class="badge">2-3 días</span></div>
+          <div class="option selected"><span>Recoger en tienda Zona 10</span><span class="badge">Hoy</span></div>
+          <div class="option"><span>Recoger en CD Sur</span><span class="badge">Mañana</span></div>
 
-          <div class="box">
-            <h3>Método de pago (CDU-02)</h3>
-            <div class="option selected">Tarjeta de crédito/débito (PayKlik) <span class="badge">Recomendado</span></div>
-            <div class="option">Transferencia bancaria</div>
-            <div class="option">Billetera digital</div>
-            <p style="font-size:11px; color:#777;">No se almacena el número completo de tarjeta ni el CVV (DC-08).</p>
-          </div>
+          <h2>Pago</h2>
+          <div class="option selected"><span>Tarjeta de crédito o débito</span></div>
+          <div class="option"><span>Transferencia bancaria</span></div>
+          <div class="option"><span>Billetera digital</span></div>
+          <div class="option"><span>Financiamiento 3, 6 o 12 meses</span></div>
         </div>
 
-        <div class="col">
-          <div class="box">
-            <h3>Resumen</h3>
-            <p style="font-size:13px;">Subtotal: Q 5,606.00<br>Envío: Q 0.00<br><strong>Total: Q 5,606.00</strong></p>
-          </div>
-
-          <div class="box">
-            <h3>Registro de intento de cobro (DC-01, DC-07)</h3>
-            <div class="log">
-              orden=SGO-000482<br>
-              canal=web&nbsp;&nbsp;fecha=2026-08-15 14:32<br>
-              estado=<span style="color:#ffab91;">en proceso…</span><br>
-              <span style="color:#80cbc4;">// si PayKlik falla, la orden NO se pierde —</span><br>
-              <span style="color:#80cbc4;">// se reintenta vía Message Broker (ADR-0002)</span>
-            </div>
+        <div class="col" style="max-width:300px;">
+          <h2>Resumen</h2>
+          <div class="summary"><span>Subtotal</span><span>Q 5,606.00</span></div>
+          <div class="summary"><span>Envío</span><span>Q 0.00</span></div>
+          <div class="summary total"><span>Total</span><span>Q 5,606.00</span></div>
+          <div class="acciones" style="margin-top:20px;">
+            <span class="btn" style="width:100%;">Confirmar compra</span>
           </div>
         </div>
-      </div>
-      <div style="text-align:right;">
-        <span class="btn">Confirmar compra</span>
       </div>
     </div>
-    <footer class="note">MOCKUP NO FUNCIONAL — Prototipo arquitectónico SGO-Logic, Fase 1 (Docs/Prototipo/flujo-principal.md, paso 3-5)</footer>
   </div>
 </body>
 </html>

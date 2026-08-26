@@ -2,34 +2,16 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Mockup — Carrito Unificado</title>
-<style>
-  body { font-family: Arial, Helvetica, sans-serif; background:#e9ecef; margin:0; padding:40px; }
-  .frame { max-width:900px; margin:0 auto; background:#fff; border:1px solid #999; box-shadow:0 2px 6px rgba(0,0,0,.15); }
-  .topbar { background:#37474f; color:#fff; padding:12px 20px; display:flex; justify-content:space-between; align-items:center; font-size:14px; }
-  .tabs { display:flex; gap:8px; padding:10px 20px; background:#f1f3f4; border-bottom:1px solid #ccc; }
-  .tab { padding:6px 14px; border:1px solid #999; border-radius:4px 4px 0 0; background:#fff; font-size:12px; }
-  .tab.active { background:#37474f; color:#fff; border-color:#37474f; }
-  .content { padding:24px; }
-  .box { border:2px dashed #999; border-radius:6px; padding:16px; margin-bottom:16px; background:#fafafa; }
-  .box h3 { margin:0 0 8px 0; font-size:13px; color:#555; text-transform:uppercase; letter-spacing:.5px; }
-  .item { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid #ddd; }
-  .thumb { width:56px; height:56px; background:repeating-linear-gradient(45deg,#ddd,#ddd 8px,#eee 8px,#eee 16px); border:1px solid #ccc; flex-shrink:0; }
-  .item .name { flex:1; font-size:13px; }
-  .item .qty { width:60px; font-size:12px; color:#666; }
-  .item .price { width:80px; text-align:right; font-size:13px; }
-  .summary { display:flex; justify-content:space-between; font-size:13px; padding:6px 0; }
-  .summary.total { font-weight:bold; border-top:1px solid #999; margin-top:8px; padding-top:10px; }
-  .btn { display:inline-block; padding:10px 24px; border:1px solid #37474f; border-radius:4px; background:#37474f; color:#fff; font-size:13px; cursor:default; }
-  .note { font-size:12px; color:#777; margin-top:12px; }
-  footer.note { text-align:center; padding:14px; font-size:11px; color:#999; border-top:1px dashed #ccc; }
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carrito</title>
+<link rel="stylesheet" href="estilo-mockups.css">
 </head>
 <body>
+  <div class="volver"><a href="index.html">&larr; Índice</a></div>
   <div class="frame">
     <div class="topbar">
-      <span><strong>SGO-Logic</strong> — MegaStore</span>
-      <span>Cliente: Ana P. &nbsp;|&nbsp; Sesión reconocida en todos los canales</span>
+      <span><strong>MegaStore</strong></span>
+      <span class="sub">Ana P.</span>
     </div>
     <div class="tabs">
       <div class="tab">Tienda física</div>
@@ -38,40 +20,33 @@
       <div class="tab">Centro de atención</div>
     </div>
     <div class="content">
-      <div class="box">
-        <h3>Carrito (mismo contenido en cualquier canal — CDU-01)</h3>
-        <div class="item">
-          <div class="thumb"></div>
-          <div class="name">Refrigeradora 14 pies³</div>
-          <div class="qty">Cant: 1</div>
-          <div class="price">Q 4,999.00</div>
-        </div>
-        <div class="item">
-          <div class="thumb"></div>
-          <div class="name">Camisa manga larga (talla M)</div>
-          <div class="qty">Cant: 2</div>
-          <div class="price">Q 258.00</div>
-        </div>
-        <div class="item">
-          <div class="thumb"></div>
-          <div class="name">Audífonos inalámbricos</div>
-          <div class="qty">Cant: 1</div>
-          <div class="price">Q 349.00</div>
-        </div>
-        <div class="summary"><span>Disponibilidad</span><span style="color:#2e7d32;">✓ Reservado — Inventory Service (CDU-08)</span></div>
-        <div class="summary total"><span>Total</span><span>Q 5,606.00</span></div>
+      <h2>Carrito</h2>
+      <div class="item">
+        <div class="thumb"></div>
+        <div class="name">Refrigeradora 14 pies³<small>LB-1440</small></div>
+        <div class="qty">1</div>
+        <div class="price">Q 4,999.00</div>
+      </div>
+      <div class="item">
+        <div class="thumb"></div>
+        <div class="name">Camisa manga larga · M<small>RP-0221</small></div>
+        <div class="qty">2</div>
+        <div class="price">Q 258.00</div>
+      </div>
+      <div class="item">
+        <div class="thumb"></div>
+        <div class="name">Audífonos inalámbricos<small>EL-0907</small></div>
+        <div class="qty">1</div>
+        <div class="price">Q 349.00</div>
       </div>
 
-      <div class="box">
-        <h3>Continuidad de intención de compra</h3>
-        <p style="font-size:12px; color:#666; margin:0;">Este carrito se inició en la App móvil a las 10pm y continúa aquí, en Web, sin perder productos ni cantidades — es la exigencia explícita de la Directora de Comercialización: "no podemos tener silos".</p>
-      </div>
+      <div class="summary total"><span>Total</span><span>Q 5,606.00</span></div>
+      <p class="pie-dato">Apartado por 18:42</p>
 
-      <div style="text-align:right;">
-        <span class="btn">Continuar a método de entrega →</span>
+      <div class="acciones">
+        <span class="btn">Continuar</span>
       </div>
     </div>
-    <footer class="note">MOCKUP NO FUNCIONAL — Prototipo arquitectónico SGO-Logic, Fase 1 (Docs/Prototipo/flujo-principal.md, paso 1-2)</footer>
   </div>
 </body>
 </html>

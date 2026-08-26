@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conciliación</title>
+<link rel="stylesheet" href="estilo-mockups.css">
+</head>
+<body>
+  <div class="volver ancho"><a href="index.html">&larr; Índice</a></div>
+  <div class="frame ancho">
+    <div class="topbar">
+      <span><strong>MegaStore</strong> · Conciliación</span>
+      <span class="sub">Ana Lucía F.</span>
+    </div>
+    <div class="content">
+      <div class="kpi">
+        <div class="card"><div class="num">48</div><div class="label">Lotes enviados hoy</div></div>
+        <div class="card"><div class="num ok">47</div><div class="label">Aceptados</div></div>
+        <div class="card"><div class="num alerta">1</div><div class="label">Con diferencia</div></div>
+      </div>
+
+      <h2>Lotes</h2>
+      <div class="tabla-scroll">
+      <table>
+        <tr><th>Lote</th><th>Ventana</th><th class="num">Órdenes</th><th class="num">Monto</th><th>Estado</th></tr>
+        <tr><td>L-1500</td><td>15:00 – 15:30</td><td class="num">73</td><td class="num">Q 412,880.00</td><td><span class="pill espera">En curso</span></td></tr>
+        <tr><td>L-1430</td><td>14:30 – 15:00</td><td class="num">91</td><td class="num">Q 508,214.00</td><td><span class="pill ok">Aceptado</span></td></tr>
+        <tr><td>L-1400</td><td>14:00 – 14:30</td><td class="num">88</td><td class="num">Q 497,102.00</td><td><span class="pill alerta">Diferencia</span></td></tr>
+        <tr><td>L-1330</td><td>13:30 – 14:00</td><td class="num">64</td><td class="num">Q 351,940.00</td><td><span class="pill ok">Aceptado</span></td></tr>
+        <tr><td>L-1300</td><td>13:00 – 13:30</td><td class="num">77</td><td class="num">Q 430,655.00</td><td><span class="pill ok">Aceptado</span></td></tr>
+      </table>
+      </div>
+
+      <h2>Lote L-1400</h2>
+      <div class="tabla-scroll">
+      <table>
+        <tr><th>Orden</th><th class="num">Monto</th><th>Factura</th><th>Contabilidad</th></tr>
+        <tr><td>SGO-000479</td><td class="num">Q 12,340.00</td><td>7781-2026</td><td><span class="pill ok">Registrada</span></td></tr>
+        <tr><td>SGO-000481</td><td class="num">Q 3,248.00</td><td>7784-2026</td><td><span class="pill ok">Registrada</span></td></tr>
+        <tr><td>SGO-000483</td><td class="num">Q 4,999.00</td><td>7789-2026</td><td><span class="pill falla">Rechazada</span></td></tr>
+        <tr><td>SGO-000484</td><td class="num">Q 890.00</td><td>7790-2026</td><td><span class="pill ok">Registrada</span></td></tr>
+      </table>
+      </div>
+
+      <div class="acciones">
+        <span class="btn sec">Exportar</span>
+        <span class="btn">Reenviar</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

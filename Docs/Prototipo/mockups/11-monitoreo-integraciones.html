@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monitoreo</title>
+<link rel="stylesheet" href="estilo-mockups.css">
+</head>
+<body>
+  <div class="volver ancho"><a href="index.html">&larr; Índice</a></div>
+  <div class="frame ancho">
+    <div class="topbar">
+      <span><strong>MegaStore</strong> · Monitoreo</span>
+      <span class="sub">Carlos M.</span>
+    </div>
+    <div class="content">
+      <div class="kpi">
+        <div class="card"><div class="num">4,812</div><div class="label">Órdenes hoy</div></div>
+        <div class="card"><div class="num alerta">5.2×</div><div class="label">Tráfico vs. día normal</div></div>
+        <div class="card"><div class="num ok">0</div><div class="label">Órdenes perdidas</div></div>
+        <div class="card"><div class="num alerta">4</div><div class="label">Alertas abiertas</div></div>
+      </div>
+
+      <h2>Servicios externos</h2>
+      <div class="tabla-scroll">
+      <table>
+        <tr><th>Servicio</th><th>Estado</th><th class="num">Latencia</th><th class="num">Errores</th><th class="num">Pendientes</th></tr>
+        <tr><td>Pasarela de pago</td><td><span class="pill falla">Sin respuesta</span></td><td class="num">—</td><td class="num">61%</td><td class="num">1,204</td></tr>
+        <tr><td>Transportista</td><td><span class="pill ok">Activo</span></td><td class="num">1,180 ms</td><td class="num">2.1%</td><td class="num">14</td></tr>
+        <tr><td>Facturación</td><td><span class="pill ok">Activo</span></td><td class="num">1,340 ms</td><td class="num">0.4%</td><td class="num">3</td></tr>
+        <tr><td>Notificaciones</td><td><span class="pill alerta">Degradado</span></td><td class="num">420 ms</td><td class="num">8.7%</td><td class="num">338</td></tr>
+        <tr><td>Puntos de venta</td><td><span class="pill ok">Activo</span></td><td class="num">90 ms</td><td class="num">0.1%</td><td class="num">7</td></tr>
+      </table>
+      </div>
+
+      <h2>Alertas</h2>
+      <div class="tabla-scroll">
+      <table>
+        <tr><th>Hora</th><th>Alerta</th><th>Responsable</th><th>Ventas detenidas</th></tr>
+        <tr><td>14:03</td><td>Pasarela de pago sin respuesta</td><td>TI</td><td><span class="pill ok">No</span></td></tr>
+        <tr><td>13:47</td><td>2 guías sin generar</td><td>Logística</td><td><span class="pill ok">No</span></td></tr>
+        <tr><td>13:12</td><td>61 notificaciones no entregadas</td><td>—</td><td><span class="pill ok">No</span></td></tr>
+        <tr><td>12:58</td><td>Tienda Cayalá sin sincronizar</td><td>TI</td><td><span class="pill ok">No</span></td></tr>
+      </table>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
