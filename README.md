@@ -8,22 +8,22 @@ Este README consolida, en un solo lugar, todo lo que el enunciado exige entregar
 
 ## Índice
 
-1. [Resumen ejecutivo](#1-resumen-ejecutivo)
-2. [Objetivos y competencias](#2-objetivos-y-competencias)
-3. [Entregable 1 — Documento de Definición de Arquitectura (DDA)](#3-entregable-1--documento-de-definición-de-arquitectura-dda)
-4. [Entregable 2 — Diagramas arquitectónicos](#4-entregable-2--diagramas-arquitectónicos)
-5. [Entregable 3 — Presentación oral y defensa](#5-entregable-3--presentación-oral-y-defensa)
-6. [Entregable 4 — Prototipo arquitectónico](#6-entregable-4--prototipo-arquitectónico)
-7. [Tablero Kanban](#7-tablero-kanban)
-8. [Metodología y flujo de trabajo](#8-metodología-y-flujo-de-trabajo)
-9. [Equipo](#9-equipo)
-10. [Cronograma](#10-cronograma)
-11. [Integridad académica](#11-integridad-académica)
-12. [Estructura del repositorio](#12-estructura-del-repositorio)
+- [Resumen ejecutivo](#resumen-ejecutivo)
+- [Objetivos y competencias](#objetivos-y-competencias)
+- [Entregable 1 — Documento de Definición de Arquitectura (DDA)](#entregable-1--documento-de-definición-de-arquitectura-dda)
+- [Entregable 2 — Diagramas arquitectónicos](#entregable-2--diagramas-arquitectónicos)
+- [Entregable 3 — Presentación oral y defensa](#entregable-3--presentación-oral-y-defensa)
+- [Entregable 4 — Prototipo arquitectónico](#entregable-4--prototipo-arquitectónico)
+- [Tablero Kanban](#tablero-kanban)
+- [Metodología y flujo de trabajo](#metodología-y-flujo-de-trabajo)
+- [Equipo](#equipo)
+- [Cronograma](#cronograma)
+- [Integridad académica](#integridad-académica)
+- [Estructura del repositorio](#estructura-del-repositorio)
 
 ---
 
-## 1. Resumen ejecutivo
+## Resumen ejecutivo
 
 MegaStore es una cadena regional de retail con 25 años de presencia en Guatemala, El Salvador y Costa Rica: 32 tiendas físicas, 6,500 empleados, facturación anual de $450 millones, y un comercio electrónico que representa el 25% de las ventas y crece ~15% anual.
 
@@ -33,11 +33,11 @@ La iniciativa **SGO-Logic** busca que un cliente pueda iniciar, continuar y comp
 
 El detonante de mayor urgencia es cuantificado en el propio caso: en el Black Friday anterior, 45 minutos de caída de la pasarela de pago PayKlik costaron USD 150,000 en ventas perdidas; para el próximo se espera hasta **8 veces** el tráfico normal. A esto se suman metas explícitas de negocio: reducir 70% los errores de despacho (USD 25 c/u por logística inversa), recuperar evidencia de auditoría en <1s, y resolver consultas de estado en <5s — todo con un presupuesto de inversión de $150,000 y un límite operativo de $1,200/mes, desplegando inicialmente **on-premises** con una ruta planificada de evolución a nube.
 
-La arquitectura propuesta (ver [ADRs](#42-diagramas-arquitectónicos-y-justificación-de-decisiones)) es un **monolito modular con integración asíncrona vía broker de mensajería**, elegido por ser la única alternativa compatible simultáneamente con el presupuesto, las competencias del equipo interno (Java/.NET, Docker básico, sin Kubernetes), y la fecha fija del Black Friday.
+La arquitectura propuesta (ver [ADRs](#diagramas-arquitectónicos-y-justificación-de-decisiones)) es un **monolito modular con integración asíncrona vía broker de mensajería**, elegido por ser la única alternativa compatible simultáneamente con el presupuesto, las competencias del equipo interno (Java/.NET, Docker básico, sin Kubernetes), y la fecha fija del Black Friday.
 
 Análisis completo del caso: [`Docs/Analisis/analisis-caso-megastore.md`](Docs/Analisis/analisis-caso-megastore.md).
 
-## 2. Objetivos y competencias
+## Objetivos y competencias
 
 **Objetivo general:** definir y documentar la arquitectura de software para la iniciativa omnicanal de MegaStore, alineada con los drivers arquitectónicos descubiertos en el caso, para producir una propuesta viable, justificable y evolutiva.
 
@@ -48,11 +48,11 @@ Análisis completo del caso: [`Docs/Analisis/analisis-caso-megastore.md`](Docs/A
 - Modelar vistas arquitectónicas consistentes y trazables.
 - Comunicar decisiones, consecuencias y tradeoffs de manera profesional.
 
-## 3. Entregable 1 — Documento de Definición de Arquitectura (DDA)
+## Entregable 1 — Documento de Definición de Arquitectura (DDA)
 
 Fuente completa por secciones: [`Docs/DDA/`](Docs/DDA/).
 
-### 3.1 Identificación del caso de negocio
+### Identificación del caso de negocio
 
 **Objetivo estratégico:** que un cliente pueda iniciar, continuar y completar una compra desde cualquier canal con experiencia consistente. SGO-Logic **orquesta** la operación omnicanal por encima de los sistemas legacy (ERP-Core, POS); no los reemplaza.
 
@@ -81,7 +81,7 @@ Fuente completa por secciones: [`Docs/DDA/`](Docs/DDA/).
 
 Detalle completo: [`Docs/DDA/01-caso-negocio.md`](Docs/DDA/01-caso-negocio.md).
 
-### 3.2 Stakeholders y preocupaciones arquitectónicas
+### Stakeholders y preocupaciones arquitectónicas
 
 | ID | Stakeholder | Rol | Preocupación arquitectónica | Prioridad |
 |---|---|---|---|---|
@@ -98,9 +98,9 @@ Detalle completo: [`Docs/DDA/01-caso-negocio.md`](Docs/DDA/01-caso-negocio.md).
 | ST-11 | PayKlik | Proveedor con contrato | Contrato vigente 3 años; SLA ~800ms, hasta 5s en picos | Media |
 | ST-12 | LogiExpress | Proveedor con contrato | Contrato vigente 2 años; SLA ~2% timeout | Media |
 
-Los 12 stakeholders tienen al menos un driver asociado (ver [matriz de trazabilidad](#36-matrices-de-trazabilidad)). Detalle y evidencia textual: [`Docs/DDA/02-stakeholders.md`](Docs/DDA/02-stakeholders.md).
+Los 12 stakeholders tienen al menos un driver asociado (ver [matriz de trazabilidad](#matrices-de-trazabilidad)). Detalle y evidencia textual: [`Docs/DDA/02-stakeholders.md`](Docs/DDA/02-stakeholders.md).
 
-### 3.3 Características del sistema priorizadas
+### Características del sistema priorizadas
 
 Criterios (escala 1–5): **Valor**, **Riesgo**, **Urgencia**, **Impacto arquitectónico**. Total máximo 20.
 
@@ -124,7 +124,7 @@ Criterios (escala 1–5): **Valor**, **Riesgo**, **Urgencia**, **Impacto arquite
 
 Los 5 primeros drivers tienen, cada uno, al menos un ADR dedicado. Detalle: [`Docs/DDA/03-caracteristicas-priorizadas.md`](Docs/DDA/03-caracteristicas-priorizadas.md).
 
-### 3.4 Drivers funcionales — Casos de Uso Expandidos (CDU)
+### Drivers funcionales — Casos de Uso Expandidos (CDU)
 
 Cada CDU deriva de un CUN. Diagrama y descripción textual completa (actor, precondiciones, flujos principal/alternativo/excepción, postcondiciones, reglas de negocio) en documentos independientes.
 
@@ -147,9 +147,9 @@ Cada CDU deriva de un CUN. Diagrama y descripción textual completa (actor, prec
 
 Índice completo: [`Docs/DDA/04-drivers-funcionales.md`](Docs/DDA/04-drivers-funcionales.md).
 
-### 3.5 Drivers de calidad — Escenarios de Atributos de Calidad (Eac)
+### Drivers de calidad — Escenarios de Atributos de Calidad (Eac)
 
-Formato Source/Stimulus/Artifact/Environment/Response/Response Measure. Los 11 Eac están anotados en el [diagrama de despliegue](#42-diagramas-arquitectónicos-y-justificación-de-decisiones).
+Formato Source/Stimulus/Artifact/Environment/Response/Response Measure. Los 11 Eac están anotados en el [diagrama de despliegue](#diagramas-arquitectónicos-y-justificación-de-decisiones).
 
 | ID | Atributo | Medida objetivo |
 |---|---|---|
@@ -167,7 +167,7 @@ Formato Source/Stimulus/Artifact/Environment/Response/Response Measure. Los 11 E
 
 Escenarios completos (Source/Stimulus/.../Response Measure) por cada uno: [`Docs/DDA/05-drivers-calidad.md`](Docs/DDA/05-drivers-calidad.md).
 
-### 3.6 Drivers de restricción
+### Drivers de restricción
 
 | ID | Restricción | Tipo | Implicación arquitectónica |
 |---|---|---|---|
@@ -185,7 +185,7 @@ Escenarios completos (Source/Stimulus/.../Response Measure) por cada uno: [`Docs
 
 Detalle y evidencia: [`Docs/DDA/06-drivers-restriccion.md`](Docs/DDA/06-drivers-restriccion.md).
 
-### 3.7 Matrices de trazabilidad
+### Matrices de trazabilidad
 
 Consolida stakeholders → drivers → decisión (ADR) → vista → mecanismo de validación. Cobertura verificada:
 
@@ -200,11 +200,11 @@ Ejemplo de la cadena completa **driver → decisión → vista → validación**
 
 Matrices completas: [`Docs/DDA/07-matrices-trazabilidad.md`](Docs/DDA/07-matrices-trazabilidad.md).
 
-## 4. Entregable 2 — Diagramas arquitectónicos
+## Entregable 2 — Diagramas arquitectónicos
 
 Fuente editable (`.drawio`) y exportada (`.png`) de cada vista: [`Docs/Diagramas/`](Docs/Diagramas/).
 
-### 4.1 Las cuatro vistas requeridas
+### Las cuatro vistas requeridas
 
 **Diagrama de Contexto** — interacción con sistemas internos, externos y stakeholders:
 
@@ -222,7 +222,7 @@ Fuente editable (`.drawio`) y exportada (`.png`) de cada vista: [`Docs/Diagramas
 
 ![Diagrama de Bloques](Docs/Diagramas/bloques.png)
 
-### 4.2 Diagramas arquitectónicos y justificación de decisiones
+### Diagramas arquitectónicos y justificación de decisiones
 
 Las 5 decisiones arquitectónicas (ADR) que sustentan las vistas anteriores:
 
@@ -240,11 +240,11 @@ Las 5 decisiones arquitectónicas (ADR) que sustentan las vistas anteriores:
 
 Síntesis narrativa completa (para la defensa oral): [`Docs/Diagramas/justificacion-decisiones.md`](Docs/Diagramas/justificacion-decisiones.md). ADR individuales con alternativas consideradas y consecuencias completas: [`Docs/ADR/`](Docs/ADR/).
 
-### 4.3 Vistas complementarias del caso de negocio
+### Vistas complementarias del caso de negocio
 
-Además de las 4 vistas obligatorias, el DDA incluye vistas de apoyo para el caso de negocio y los casos de uso (sección [3.1](#31-identificación-del-caso-de-negocio) y [3.4](#34-drivers-funcionales--casos-de-uso-expandidos-cdu)): Diagrama Core, CUN y CDU — en [`Docs/DDA/diagramas/`](Docs/DDA/diagramas/).
+Además de las 4 vistas obligatorias, el DDA incluye vistas de apoyo para el caso de negocio y los casos de uso (secciones [Identificación del caso de negocio](#identificación-del-caso-de-negocio) y [Drivers funcionales](#drivers-funcionales--casos-de-uso-expandidos-cdu)): Diagrama Core, CUN y CDU — en [`Docs/DDA/diagramas/`](Docs/DDA/diagramas/).
 
-## 5. Entregable 3 — Presentación oral y defensa
+## Entregable 3 — Presentación oral y defensa
 
 Presentación ejecutiva de 45 minutos dirigida al comité (profesor/auxiliar), seguida de 5 minutos de preguntas. **Todos los integrantes exponen.**
 
@@ -262,7 +262,7 @@ Presentación ejecutiva de 45 minutos dirigida al comité (profesor/auxiliar), s
 | 5 min | Riesgos, costos y evolución | Presupuesto, plan on-prem → nube |
 | 5 min | Preguntas y defensa | Preparadas y practicadas de antemano |
 
-## 6. Entregable 4 — Prototipo arquitectónico
+## Entregable 4 — Prototipo arquitectónico
 
 Mockups de alto nivel **no funcionales** (no interactúan con datos reales) y flujo principal del sistema. Punto de entrada: [`Docs/Prototipo/mockups/index.html`](Docs/Prototipo/mockups/index.html) (sin dependencias externas, se abre directo en el navegador).
 
@@ -293,11 +293,11 @@ Caminos de degradación representados: pasarela de pago sin respuesta (paso 3) y
 | [Auditoría](Docs/Prototipo/mockups/05-auditoria.html) | CDU-03, CDU-05, CDU-07 |
 | [Monitoreo](Docs/Prototipo/mockups/11-monitoreo-integraciones.html) | — (preocupación de monitoreo de ST-01) |
 
-Los 8 casos de uso de la sección [3.4](#34-drivers-funcionales--casos-de-uso-expandidos-cdu) quedan cubiertos. **Fuera del prototipo:** interfaz del POS de tienda (no se modifica) y atributos no observables en una interfaz (mantenibilidad DC-09, portabilidad DC-10 — viven en el diagrama de despliegue y ADR-0005).
+Los 8 casos de uso de la sección [Drivers funcionales](#drivers-funcionales--casos-de-uso-expandidos-cdu) quedan cubiertos. **Fuera del prototipo:** interfaz del POS de tienda (no se modifica) y atributos no observables en una interfaz (mantenibilidad DC-09, portabilidad DC-10 — viven en el diagrama de despliegue y ADR-0005).
 
 Documento completo: [`Docs/Prototipo/flujo-principal.md`](Docs/Prototipo/flujo-principal.md).
 
-## 7. Tablero Kanban
+## Tablero Kanban
 
 Tablero **con foco arquitectural**, no de desarrollo tradicional: cada tarjeta representa un componente, patrón o decisión de diseño, priorizando el **Backbone** (componentes base) antes que funcionalidades cosméticas.
 
@@ -307,7 +307,7 @@ Tablero **con foco arquitectural**, no de desarrollo tradicional: cada tarjeta r
 
 Especificación completa: [`Docs/Kanban/README.md`](Docs/Kanban/README.md).
 
-## 8. Metodología y flujo de trabajo
+## Metodología y flujo de trabajo
 
 - Trabajo iterativo con foco arquitectural, priorización por valor/riesgo/impacto sobre decisiones.
 - Revisión continua del DDA y los ADR conforme aparece nueva evidencia.
@@ -316,7 +316,7 @@ Especificación completa: [`Docs/Kanban/README.md`](Docs/Kanban/README.md).
 - Herramientas: draw.io (diagramas), GitHub (versionado y revisión).
 - Duración estimada de la Fase 1: cuatro semanas.
 
-## 9. Equipo
+## Equipo
 
 | Integrante | Carné |
 |---|---|
@@ -328,7 +328,7 @@ Especificación completa: [`Docs/Kanban/README.md`](Docs/Kanban/README.md).
 
 Responsabilidades rotativas (facilitación, análisis de negocio, descubrimiento de drivers, modelado, documentación/QA) entre los 5 integrantes. Todos conservan responsabilidad conjunta sobre la coherencia del DDA y deben comprender la totalidad de la propuesta; todos exponen en la defensa oral.
 
-## 10. Cronograma
+## Cronograma
 
 | Hito | Fecha |
 |---|---|
@@ -336,11 +336,11 @@ Responsabilidades rotativas (facilitación, análisis de negocio, descubrimiento
 | Entrega Final | 26/08/2026 |
 | Calificación | 29/08/2026 |
 
-## 11. Integridad académica
+## Integridad académica
 
 El equipo se compromete a: actuar con honestidad, presentando únicamente trabajo propio; reflejar esfuerzo intelectual genuino y comprensión real de los conceptos; usar herramientas/bibliotecas/ejemplos externos de forma consciente y con reconocimiento explícito; poder explicar y justificar cada parte del trabajo ante el comité; y respetar el trabajo propio y ajeno, evitando copiar o compartir indebidamente.
 
-## 12. Estructura del repositorio
+## Estructura del repositorio
 
 | Carpeta | Contenido |
 |---|---|
