@@ -2,58 +2,36 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Mockup — Vista de Logística</title>
-<style>
-  body { font-family: Arial, Helvetica, sans-serif; background:#e9ecef; margin:0; padding:40px; }
-  .frame { max-width:960px; margin:0 auto; background:#fff; border:1px solid #999; box-shadow:0 2px 6px rgba(0,0,0,.15); }
-  .topbar { background:#37474f; color:#fff; padding:12px 20px; font-size:14px; display:flex; justify-content:space-between; }
-  .content { padding:24px; }
-  .box { border:2px dashed #999; border-radius:6px; padding:16px; margin-bottom:16px; background:#fafafa; }
-  .box h3 { margin:0 0 10px 0; font-size:13px; color:#555; text-transform:uppercase; letter-spacing:.5px; }
-  table { width:100%; border-collapse:collapse; font-size:12px; }
-  th { text-align:left; padding:8px; background:#eceff1; border-bottom:2px solid #999; }
-  td { padding:8px; border-bottom:1px solid #ddd; }
-  .pill { padding:2px 8px; border-radius:10px; font-size:10px; }
-  .pill.prep { background:#fff3e0; color:#ef6c00; }
-  .pill.ready { background:#e8f5e9; color:#2e7d32; }
-  .pill.alerta { background:#ffebee; color:#c62828; }
-  .kpi { display:flex; gap:16px; }
-  .kpi .card { flex:1; text-align:center; border:1px solid #ccc; border-radius:6px; padding:14px; background:#fff; }
-  .kpi .card .num { font-size:22px; font-weight:bold; color:#37474f; }
-  .kpi .card .label { font-size:11px; color:#777; }
-  footer.note { text-align:center; padding:14px; font-size:11px; color:#999; border-top:1px dashed #ccc; }
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logística</title>
+<link rel="stylesheet" href="estilo-mockups.css">
 </head>
 <body>
-  <div class="frame">
+  <div class="volver ancho"><a href="index.html">&larr; Índice</a></div>
+  <div class="frame ancho">
     <div class="topbar">
-      <span><strong>SGO-Logic</strong> — Panel de Logística</span>
-      <span>Usuario: Roberto Q. — Jefe de Logística</span>
+      <span><strong>MegaStore</strong> · Logística</span>
+      <span class="sub">Roberto Q.</span>
     </div>
     <div class="content">
       <div class="kpi">
-        <div class="card"><div class="num">42</div><div class="label">Órdenes por preparar hoy</div></div>
-        <div class="card"><div class="num">1.8%</div><div class="label">Errores de despacho (meta: -70% vs. línea base)</div></div>
-        <div class="card"><div class="num">98.1%</div><div class="label">Inventario centralizado sincronizado</div></div>
+        <div class="card"><div class="num">42</div><div class="label">Por preparar</div></div>
+        <div class="card"><div class="num">18</div><div class="label">En tránsito</div></div>
+        <div class="card"><div class="num alerta">2</div><div class="label">Con alerta</div></div>
       </div>
 
-      <div class="box">
-        <h3>Órdenes a despachar (CDU-04, DC-11)</h3>
-        <table>
-          <tr><th>Orden</th><th>Origen</th><th>Destinatario</th><th>Estado</th><th>Acción</th></tr>
-          <tr><td>SGO-000482</td><td>Tienda Zona 10</td><td>Ana P.</td><td><span class="pill prep">En preparación</span></td><td>Ver detalle</td></tr>
-          <tr><td>SGO-000481</td><td>CD Sur</td><td>Carlos M.</td><td><span class="pill ready">Listo para envío</span></td><td>Generar guía LogiExpress</td></tr>
-          <tr><td>SGO-000479</td><td>CD Norte</td><td>Lucía R.</td><td><span class="pill alerta">Timeout LogiExpress — reintentando</span></td><td>Ver alerta</td></tr>
-          <tr><td>SGO-000477</td><td>Tienda Zona 4</td><td>Pedro G.</td><td><span class="pill ready">Listo para envío</span></td><td>Generar guía LogiExpress</td></tr>
-        </table>
-      </div>
-
-      <div class="box">
-        <h3>Disponibilidad de inventario en tiempo real (CDU-08)</h3>
-        <p style="font-size:12px; color:#666; margin:0;">Vista única de existencias, ubicaciones y reservas de los 2 Centros de Distribución + 32 tiendas — reemplaza la confirmación telefónica actual.</p>
+      <h2>Órdenes</h2>
+      <div class="tabla-scroll">
+      <table>
+        <tr><th>Orden</th><th>Origen</th><th>Destinatario</th><th>Entrega</th><th>Estado</th></tr>
+        <tr><td>SGO-000482</td><td>Tienda Zona 10</td><td>Ana P.</td><td>Recoge en tienda</td><td><span class="pill prep">En preparación</span></td></tr>
+        <tr><td>SGO-000481</td><td>CD Sur</td><td>Carlos M.</td><td>Domicilio</td><td><span class="pill ok">Listo</span></td></tr>
+        <tr><td>SGO-000479</td><td>CD Norte</td><td>Lucía R.</td><td>Domicilio</td><td><span class="pill alerta">Sin guía</span></td></tr>
+        <tr><td>SGO-000477</td><td>Tienda Zona 4</td><td>Pedro G.</td><td>Domicilio</td><td><span class="pill ok">Listo</span></td></tr>
+        <tr><td>SGO-000474</td><td>CD Sur</td><td>Marta S.</td><td>Recoge en tienda</td><td><span class="pill espera">Reasignando</span></td></tr>
+      </table>
       </div>
     </div>
-    <footer class="note">MOCKUP NO FUNCIONAL — Prototipo arquitectónico SGO-Logic, Fase 1 (Docs/Prototipo/flujo-principal.md, paso 5-6)</footer>
   </div>
 </body>
 </html>

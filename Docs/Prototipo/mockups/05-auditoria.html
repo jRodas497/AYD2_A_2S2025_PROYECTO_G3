@@ -2,55 +2,40 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Mockup — Vista de Finanzas / Auditoría</title>
-<style>
-  body { font-family: Arial, Helvetica, sans-serif; background:#e9ecef; margin:0; padding:40px; }
-  .frame { max-width:960px; margin:0 auto; background:#fff; border:1px solid #999; box-shadow:0 2px 6px rgba(0,0,0,.15); }
-  .topbar { background:#37474f; color:#fff; padding:12px 20px; font-size:14px; display:flex; justify-content:space-between; }
-  .content { padding:24px; }
-  .box { border:2px dashed #999; border-radius:6px; padding:16px; margin-bottom:16px; background:#fafafa; }
-  .box h3 { margin:0 0 10px 0; font-size:13px; color:#555; text-transform:uppercase; letter-spacing:.5px; }
-  .search { display:flex; gap:8px; margin-bottom:14px; }
-  .search input { flex:1; padding:8px; border:1px solid #ccc; border-radius:4px; font-size:12px; }
-  .search .btn { padding:8px 16px; background:#37474f; color:#fff; border-radius:4px; font-size:12px; }
-  table { width:100%; border-collapse:collapse; font-size:12px; }
-  th { text-align:left; padding:8px; background:#eceff1; border-bottom:2px solid #999; }
-  td { padding:8px; border-bottom:1px solid #ddd; }
-  .response-time { text-align:right; font-size:11px; color:#2e7d32; margin-top:8px; }
-  .warn { font-size:11px; color:#c62828; background:#ffebee; padding:8px; border-radius:4px; margin-top:10px; }
-  footer.note { text-align:center; padding:14px; font-size:11px; color:#999; border-top:1px dashed #ccc; }
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auditoría</title>
+<link rel="stylesheet" href="estilo-mockups.css">
 </head>
 <body>
-  <div class="frame">
+  <div class="volver ancho"><a href="index.html">&larr; Índice</a></div>
+  <div class="frame ancho">
     <div class="topbar">
-      <span><strong>SGO-Logic</strong> — Auditoría y Trazabilidad</span>
-      <span>Usuario: Ana Lucía F. — Directora de Finanzas</span>
+      <span><strong>MegaStore</strong> · Auditoría</span>
+      <span class="sub">Ana Lucía F.</span>
     </div>
     <div class="content">
-      <div class="box">
-        <h3>Buscar transacción (DC-04, DC-07)</h3>
-        <div class="search">
-          <input type="text" value="SGO-000482" readonly>
-          <span class="btn">Buscar</span>
-        </div>
-        <table>
-          <tr><th>Fecha/Hora</th><th>Actor</th><th>Operación</th><th>Cambio</th></tr>
-          <tr><td>2026-08-15 14:31:02</td><td>Cliente (web)</td><td>Orden creada</td><td>Estado: pendiente de pago</td></tr>
-          <tr><td>2026-08-15 14:31:44</td><td>Payment Service</td><td>Intento de cobro #1</td><td>Resultado: aprobado (PayKlik, token •••)</td></tr>
-          <tr><td>2026-08-15 14:31:45</td><td>Invoicing Service</td><td>Factura emitida</td><td>CUI: 7788-2026, Serie: A</td></tr>
-          <tr><td>2026-08-15 14:32:10</td><td>ERP Sync Adapter</td><td>Sincronización batch</td><td>Incluida en lote 14:30-15:00</td></tr>
-        </table>
-        <p class="response-time">⏱ Tiempo de recuperación de evidencia: 0.4s (objetivo DC-04: &lt; 1s)</p>
+      <div class="buscador">
+        <span class="campo">SGO-000482</span>
+        <span class="btn">Buscar</span>
       </div>
 
-      <div class="box">
-        <h3>Cumplimiento de datos de pago (DC-08)</h3>
-        <p style="font-size:12px; color:#666; margin:0;">Método: Tarjeta terminación •••• 4471 &nbsp;|&nbsp; PAN completo: <strong>no almacenado</strong> &nbsp;|&nbsp; CVV: <strong>no almacenado</strong></p>
-        <div class="warn">Política corporativa: ningún registro del sistema contiene PAN completo ni CVV — verificable en cualquier auditoría de seguridad.</div>
+      <h2>Historial de la orden</h2>
+      <div class="tabla-scroll">
+      <table>
+        <tr><th>Fecha</th><th>Usuario</th><th>Operación</th><th>Detalle</th></tr>
+        <tr><td>15/08/2026 14:31</td><td>Ana P.</td><td>Orden creada</td><td>Canal web</td></tr>
+        <tr><td>15/08/2026 14:31</td><td>Sistema</td><td>Inventario reservado</td><td>4 unidades · Zona 10</td></tr>
+        <tr><td>15/08/2026 14:31</td><td>Sistema</td><td>Cobro aprobado</td><td>Tarjeta ···· 4471</td></tr>
+        <tr><td>15/08/2026 14:31</td><td>Sistema</td><td>Factura emitida</td><td>7788-2026 · Serie A</td></tr>
+        <tr><td>15/08/2026 14:32</td><td>Sistema</td><td>Enviada a contabilidad</td><td>Lote 14:30</td></tr>
+        <tr><td>15/08/2026 14:35</td><td>Roberto Q.</td><td>Despacho asignado</td><td>Tienda Zona 10</td></tr>
+      </table>
+      </div>
+
+      <div class="acciones">
+        <span class="btn sec">Exportar</span>
       </div>
     </div>
-    <footer class="note">MOCKUP NO FUNCIONAL — Prototipo arquitectónico SGO-Logic, Fase 1 (Docs/Prototipo/flujo-principal.md, paso 10)</footer>
   </div>
 </body>
 </html>

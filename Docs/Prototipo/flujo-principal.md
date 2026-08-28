@@ -1,28 +1,45 @@
-# Prototipo Arquitectónico — Flujo Principal
+# Prototipo Arquitectónico
 
-Entregable 4: mockups/prototipo de **alto nivel, no funcional**. Los mockups (imágenes/exports de Figma o similar) van en `Docs/Prototipo/mockups/`.
+Entregable 4: mockups de alto nivel **no funcionales** y flujo principal del sistema.
 
-## Flujo principal propuesto (a validar con el equipo)
+Punto de entrada: **[`mockups/index.html`](mockups/index.html)**. Se abren directo en el navegador, sin dependencias externas.
 
-1. Cliente inicia compra en un canal (web/app/tienda/call center).
-2. Sistema verifica disponibilidad y reserva inventario (evita doble compromiso).
-3. Cliente elige método de pago; SGO-Logic registra el intento de cobro (orden, canal, fecha, resultado).
-4. Confirmación de pago → emisión de factura electrónica a SAT (CUI, serie autorizada) antes de finalizar la orden.
-5. Orden confirmada → se determina método de despacho (CD, tienda, o pickup); puede cambiar después de confirmada.
-6. Logística recibe la orden a preparar; POS/CD reciben eventos con reintentos.
-7. Cliente recibe notificaciones (confirmación, preparación, tránsito, entrega) — best-effort, no bloqueante.
-8. Cliente/agente puede consultar estado de la orden en cualquier momento (< 5s) desde cualquier canal.
-9. Sincronización batch con ERP-Core cada 30 min.
-10. En caso de devolución: se vincula a la venta original y se reconstruye el historial completo para auditoría.
+## Flujo principal
 
-## Pantallas/mockups (no funcionales)
+Versión navegable: **[`mockups/flujo-principal.html`](mockups/flujo-principal.html)**.
 
-Wireframes HTML estáticos — abrir directo en el navegador, sin dependencias. Son **borrador de trabajo**: sirven para la defensa oral y como base si el equipo prefiere rehacerlos en Figma/otra herramienta.
+1. El cliente inicia la compra desde cualquier canal y recupera su carrito.
+2. Se verifica disponibilidad y se aparta el inventario; la reserva vence a los 20 minutos.
+3. El cliente elige entrega y pago; el intento de cobro se registra antes de llamar a la pasarela.
+4. Con el pago confirmado se emite la factura electrónica antes de que la orden avance.
+5. Se asigna el punto de despacho: centro de distribución, tienda o recogida.
+6. El cliente consulta el estado de su orden desde cualquier canal.
+7. Las ventas pasan a contabilidad en lotes de 30 minutos.
+8. Una devolución se resuelve ligada a la venta original.
 
-- [x] [Carrito unificado](mockups/01-carrito-unificado.html) — mismo estado visible en cualquier canal (CDU-01)
-- [x] [Checkout](mockups/02-checkout.html) — método de entrega, método de pago, registro de intento de cobro (CDU-02, CDU-04)
-- [x] [Estado de orden](mockups/03-estado-orden.html) — vista consolidada para cliente y centro de atención (CDU-06)
-- [x] [Vista de logística](mockups/04-logistica.html) — qué preparar, desde dónde, para quién (CDU-04, CDU-08)
-- [x] [Vista de finanzas/auditoría](mockups/05-auditoria.html) — historial de una transacción, cumplimiento de datos de pago (CDU-03, CDU-05)
+Caminos de degradación representados: pasarela de pago sin respuesta (paso 3) y guía de transporte no generada (paso 5).
 
-_(Cada mockup referencia en pantalla el CDU y los DC-NN que justifica — ver `Docs/DDA/04-drivers-funcionales.md`.)_
+## Pantallas
+
+| Pantalla | Caso de uso |
+|---|---|
+| [Carrito](mockups/01-carrito-unificado.html) | CDU-01 |
+| [Checkout](mockups/02-checkout.html) | CDU-02, CDU-04 |
+| [Pago en proceso](mockups/06-pago-degradado.html) | CDU-02 |
+| [Factura](mockups/07-confirmacion-factura.html) | CDU-03 |
+| [Estado de orden](mockups/03-estado-orden.html) | CDU-06 |
+| [Devolución](mockups/08-devolucion-reembolso.html) | CDU-05 |
+| [Logística](mockups/04-logistica.html) | CDU-04 |
+| [Inventario](mockups/09-inventario-centralizado.html) | CDU-08 |
+| [Conciliación](mockups/10-conciliacion-erp.html) | CDU-07 |
+| [Auditoría](mockups/05-auditoria.html) | CDU-03, CDU-05, CDU-07 |
+| [Monitoreo](mockups/11-monitoreo-integraciones.html) | — |
+
+Los 8 casos de uso de [`Docs/DDA/04-drivers-funcionales.md`](../DDA/04-drivers-funcionales.md) quedan cubiertos. La pantalla de monitoreo no deriva de un caso de uso: responde a la preocupación de monitoreo del Gerente de TI (ST-01).
+
+Los identificadores de casos de uso y drivers viven en esta tabla, no dentro de los mockups: las pantallas se presentan como las vería un usuario.
+
+## Fuera del prototipo
+
+- **Interfaz del POS de tienda.** Los POS no se modifican ni se reemplazan (DR-04, DR-05); solo reciben eventos.
+- **Mantenibilidad (DC-09) y portabilidad a nube (DC-10).** No son observables en una interfaz; viven en el diagrama de despliegue y en ADR-0005.
