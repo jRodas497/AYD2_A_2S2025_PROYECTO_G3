@@ -1,0 +1,101 @@
+<mxfile host="65bd71144e">
+    <diagram name="CDU-08" id="cdu-08-uc">
+        <mxGraphModel dx="638" dy="929" grid="0" gridSize="10" guides="0" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1310" pageHeight="642" background="#F8FAFC" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="c2" value="" style="rounded=1;arcSize=60;whiteSpace=wrap;html=1;fillColor=#6D28D9;strokeColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="-46" width="8" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="c3" value="CDU-08 — Gestionar Inventario Centralizado" style="text;html=1;fontSize=20;fontStyle=1;align=left;fontColor=#0F172A;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="-46" width="900" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="c4" value="Diagrama de casos de uso expandido — flujo principal, alternativo y de excepción" style="text;html=1;fontSize=12;fontStyle=2;align=left;fontColor=#64748B;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="-16" width="900" height="24" as="geometry"/>
+                </mxCell>
+                <mxCell id="c5" value="Sistema: SGO-Logic" style="rounded=1;arcSize=4;whiteSpace=wrap;html=1;fillColor=#F5F3FF;strokeColor=#C4B5FD;strokeWidth=1.5;verticalAlign=top;align=left;fontStyle=1;fontSize=13;fontColor=#6D28D9;spacingLeft=8;spacingTop=6;" parent="1" vertex="1">
+                    <mxGeometry x="260" y="40" width="850" height="422" as="geometry"/>
+                </mxCell>
+                <mxCell id="c6" value="CDU-01&#xa;Realizar Compra&#xa;Omnicanal" style="ellipse;whiteSpace=wrap;html=1;fillColor=#14B8A6;gradientColor=#0F766E;strokeColor=#115E59;strokeWidth=1.5;fontColor=#FFFFFF;fontStyle=1;fontSize=11;shadow=1;" parent="1" vertex="1">
+                    <mxGeometry x="448.33333333333326" y="70" width="190" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="e7" value="«include»" style="edgeStyle=none;rounded=0;html=1;dashed=1;endArrow=open;strokeColor=#0F766E;strokeWidth=1.5;fontColor=#0F766E;labelBackgroundColor=#F8FAFC;" parent="1" source="c6" target="MAIN" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="c8" value="CDU-04&#xa;Gestionar Despacho&#xa;y Entrega" style="ellipse;whiteSpace=wrap;html=1;fillColor=#14B8A6;gradientColor=#0F766E;strokeColor=#115E59;strokeWidth=1.5;fontColor=#FFFFFF;fontStyle=1;fontSize=11;shadow=1;" parent="1" vertex="1">
+                    <mxGeometry x="731.6666666666666" y="70" width="190" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="e9" value="«include»" style="edgeStyle=none;rounded=0;html=1;dashed=1;endArrow=open;strokeColor=#0F766E;strokeWidth=1.5;fontColor=#0F766E;labelBackgroundColor=#F8FAFC;" parent="1" source="c8" target="MAIN" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="MAIN" value="CDU-08&#xa;Gestionar Inventario&#xa;Centralizado" style="ellipse;whiteSpace=wrap;html=1;fillColor=#8B5CF6;gradientColor=#6D28D9;strokeColor=#4C1D95;strokeWidth=2.5;fontColor=#FFFFFF;fontStyle=1;fontSize=13;shadow=1;" parent="1" vertex="1">
+                    <mxGeometry x="524" y="202" width="230" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="c10" value="1a&#xa;Evento POS falla al entregarse:&#xa;reintentar con adaptador" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FBBF24;gradientColor=#D97706;strokeColor=#92400E;strokeWidth=1.5;fontColor=#78350F;fontStyle=1;fontSize=11;shadow=1;" parent="1" vertex="1">
+                    <mxGeometry x="309" y="344" width="210" height="78" as="geometry"/>
+                </mxCell>
+                <mxCell id="e11" value="«extend»" style="edgeStyle=none;rounded=0;html=1;dashed=1;endArrow=open;strokeColor=#B45309;strokeWidth=1.5;fontColor=#92400E;labelBackgroundColor=#F8FAFC;" parent="1" source="c10" target="MAIN" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="c12" value="E1&#xa;Dos canales compiten por&#xa;la unidad: reserva atómica" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FB7185;gradientColor=#E11D48;strokeColor=#881337;strokeWidth=1.5;fontColor=#FFFFFF;fontStyle=1;fontSize=11;shadow=1;" parent="1" vertex="1">
+                    <mxGeometry x="850" y="210" width="210" height="78" as="geometry"/>
+                </mxCell>
+                <mxCell id="e13" value="«extend»" style="edgeStyle=none;rounded=0;html=1;dashed=1;endArrow=open;strokeColor=#BE123C;strokeWidth=1.5;fontColor=#9F1239;labelBackgroundColor=#F8FAFC;" parent="1" source="c12" target="MAIN" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="c14" value="E2&#xa;POS contradice el estado&#xa;centralizado: acepta y audita" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FB7185;gradientColor=#E11D48;strokeColor=#881337;strokeWidth=1.5;fontColor=#FFFFFF;fontStyle=1;fontSize=11;shadow=1;" parent="1" vertex="1">
+                    <mxGeometry x="850" y="314" width="210" height="78" as="geometry"/>
+                </mxCell>
+                <mxCell id="e15" value="«extend»" style="edgeStyle=none;rounded=0;html=1;dashed=1;endArrow=open;strokeColor=#BE123C;strokeWidth=1.5;fontColor=#9F1239;labelBackgroundColor=#F8FAFC;" parent="1" source="c14" target="MAIN" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="c16" value="Personal de Logística" style="shape=umlActor;verticalLabelPosition=bottom;labelBackgroundColor=#F8FAFC;verticalAlign=top;html=1;outlineConnect=0;fillColor=#DBEAFE;strokeColor=#1D4ED8;strokeWidth=2;fontColor=#1E3A8A;fontStyle=1;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="130" y="211" width="60" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="e17" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;strokeColor=#60A5FA;strokeWidth=1.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="c16" target="MAIN" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="c18" value="POS (tienda)" style="shape=umlActor;verticalLabelPosition=bottom;labelBackgroundColor=#F8FAFC;verticalAlign=top;html=1;outlineConnect=0;fillColor=#FDE68A;strokeColor=#B45309;strokeWidth=2;dashed=1;fontColor=#92400E;fontStyle=1;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="1180" y="211" width="60" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="e19" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=none;fontSize=10;dashed=1;strokeColor=#F59E0B;strokeWidth=1.5;exitX=0.75;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="MAIN" target="c18" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="742.5" y="195"/>
+                            <mxPoint x="1150" y="195"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="c20" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#6D28D9;strokeColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="130" y="492" width="16" height="16" as="geometry"/>
+                </mxCell>
+                <mxCell id="c21" value="Flujo principal (caso de uso base)" style="text;html=1;fontSize=11;align=left;verticalAlign=middle;fontColor=#334155;" parent="1" vertex="1">
+                    <mxGeometry x="154" y="488" width="420" height="24" as="geometry"/>
+                </mxCell>
+                <mxCell id="c22" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#D97706;strokeColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="130" y="516" width="16" height="16" as="geometry"/>
+                </mxCell>
+                <mxCell id="c23" value="Flujo alternativo («extend»)" style="text;html=1;fontSize=11;align=left;verticalAlign=middle;fontColor=#334155;" parent="1" vertex="1">
+                    <mxGeometry x="154" y="512" width="420" height="24" as="geometry"/>
+                </mxCell>
+                <mxCell id="c24" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E11D48;strokeColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="130" y="540" width="16" height="16" as="geometry"/>
+                </mxCell>
+                <mxCell id="c25" value="Flujo de excepción («extend»)" style="text;html=1;fontSize=11;align=left;verticalAlign=middle;fontColor=#334155;" parent="1" vertex="1">
+                    <mxGeometry x="154" y="536" width="420" height="24" as="geometry"/>
+                </mxCell>
+                <mxCell id="c26" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#0F766E;strokeColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="130" y="564" width="16" height="16" as="geometry"/>
+                </mxCell>
+                <mxCell id="c27" value="Relación con otro CDU («include»/«extend»)" style="text;html=1;fontSize=11;align=left;verticalAlign=middle;fontColor=#334155;" parent="1" vertex="1">
+                    <mxGeometry x="154" y="560" width="420" height="24" as="geometry"/>
+                </mxCell>
+                <mxCell id="c28" value="Vista expandida derivada de este mismo documento (flujo principal/alternativo/excepción) y del diagrama consolidado Docs/DDA/diagramas/cdu.drawio." style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#FEFCE8;strokeColor=#EAB308;strokeWidth=1.2;fontSize=10;fontStyle=2;fontColor=#78350F;align=left;spacingLeft=8;spacingTop=4;" parent="1" vertex="1">
+                    <mxGeometry x="130" y="602" width="1110" height="40" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

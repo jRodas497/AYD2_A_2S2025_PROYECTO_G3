@@ -12,6 +12,10 @@
 
 Genera y envía la factura electrónica correspondiente a una orden confirmada, conservando el CUI y la serie autorizada exigidos por la SAT, antes de que la orden pueda continuar hacia el despacho. Ninguna orden se despacha sin respaldo fiscal.
 
+## Diagrama de actividad
+
+![Diagrama de actividad — CDU-03](diagramas/CDU-03-diagrama.png)
+
 ## Precondiciones
 
 - El pago de la orden está confirmado (CDU-02 completado con éxito).

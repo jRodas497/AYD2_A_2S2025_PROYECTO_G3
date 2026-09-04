@@ -126,7 +126,7 @@ Los 5 primeros drivers tienen, cada uno, al menos un ADR dedicado. Detalle: [`Do
 
 ### Drivers funcionales — Casos de Uso Expandidos (CDU)
 
-Cada CDU deriva de un CUN. Diagrama y descripción textual completa (actor, precondiciones, flujos principal/alternativo/excepción, postcondiciones, reglas de negocio) en documentos independientes.
+Cada CDU deriva de un CUN. Además del UML de casos de uso consolidado de abajo, cada CDU tiene su propio **diagrama de actividad** (flujo principal, alternativo y de excepción) y descripción textual completa (actor, precondiciones, postcondiciones, reglas de negocio) en su documento independiente — ver `Docs/DDA/casos-de-uso/diagramas/`.
 
 **Diagrama de Casos de Uso Expandidos (CDU):**
 

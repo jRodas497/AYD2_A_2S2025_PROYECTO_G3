@@ -12,6 +12,10 @@
 
 Permite resolver una devolución o cambio referenciando la venta original, con visibilidad completa e inmediata de compra, pago, despacho y entrega — sin llamadas telefónicas ni conciliación manual, que es como se maneja hoy y por lo que tarda hasta 7 días hábiles.
 
+## Diagrama de actividad
+
+![Diagrama de actividad — CDU-05](diagramas/CDU-05-diagrama.png)
+
 ## Precondiciones
 
 - Existe una orden entregada, o parcialmente entregada, asociada al cliente.
