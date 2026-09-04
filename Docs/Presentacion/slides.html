@@ -149,10 +149,10 @@
 <!-- 8 -->
 <div class="slide">
   <div class="kicker">Alternativas y decisión arquitectónica</div>
-  <h1>El estilo elegido</h1>
-  <h2>Monolito Modular con Integración Asíncrona (ADR-0001)</h2>
-  <p>Componentes internos comunicados mayormente vía un <strong>broker de mensajería</strong> (pagos, logística, notificaciones, sincronización ERP), con llamadas síncronas solo donde se necesita consistencia inmediata (inventario, consultas).</p>
-  <p>Contenedores Docker independientes, base de datos relacional con esquemas separados — preparado para extraerse a servicios independientes sin rediseño.</p>
+  <h1>Los estilos elegidos</h1>
+  <h2>Monolítico + Event-Driven (broker) + Orientado a datos (ADR-0001)</h2>
+  <p><strong>Monolítico</strong> (despliegue): componentes por dominio en contenedores Docker independientes, sin orquestador de microservicios. <strong>Event-Driven/broker</strong> (integración asíncrona): pagos, logística, notificaciones y sincronización ERP se comunican vía colas/eventos. <strong>Orientado a datos</strong> (integración síncrona): inventario y consulta de estado usan llamadas directas sobre una base de datos relacional compartida, con esquemas separados por componente.</p>
+  <p>Fronteras de componente ya desacopladas por el broker — preparado para extraerse a servicios independientes sin rediseño.</p>
   <div class="num">8 / 25</div>
 </div>
 
@@ -164,7 +164,7 @@
     <tr><th>Alternativa</th><th>Por qué se descartó</th></tr>
     <tr><td>Monolito tradicional (sin separación interna)</td><td>Alto acoplamiento; dificulta aislar fallas de terceros y mantenibilidad a largo plazo</td></tr>
     <tr><td>Microservicios completos + Kubernetes desde el inicio</td><td>El equipo no tiene esa competencia hoy; riesgo de no llegar a tiempo a Black Friday; excede presupuesto operativo</td></tr>
-    <tr><td><strong>Monolito modular + broker (elegido)</strong></td><td>Balance entre lo que el equipo puede operar hoy y la necesidad de desacoplar componentes críticos</td></tr>
+    <tr><td><strong>Monolítico + EDA (broker) + orientado a datos (elegido)</strong></td><td>Balance entre lo que el equipo puede operar hoy y la necesidad de desacoplar componentes críticos</td></tr>
   </table>
   <p style="margin-top:16px;">Ninguna decisión partió de una preferencia tecnológica — todas responden a un driver priorizado.</p>
   <div class="num">9 / 25</div>

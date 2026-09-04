@@ -7,7 +7,7 @@
 - **Valor:** impacto en el objetivo estratégico de omnicanalidad / continuidad de negocio.
 - **Riesgo:** probabilidad e impacto de que NO abordarlo cause una falla ya observada en el caso (ej. caída de pagos, doble venta).
 - **Urgencia:** relación con la fecha fija de Black Friday (noviembre) y la exigencia de "ruta viable en el primer mes".
-- **Impacto arquitectónico:** cuánto restringe o habilita el estilo/patrón arquitectónico elegido.
+- **Impacto arquitectónico:** cuánto restringe o habilita los estilos arquitectónicos elegidos (monolítico + Event-Driven/broker + orientado a datos, ADR-0001) o los patrones de diseño que los instancian (ADR-0002 a 0004).
 
 **Total = Valor + Riesgo + Urgencia + Impacto arquitectónico** (máximo 20). Se usa solo para ordenar de forma inicial — la prioridad final la decide el equipo, no el número.
 

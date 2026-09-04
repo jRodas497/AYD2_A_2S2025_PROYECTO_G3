@@ -33,7 +33,7 @@ La iniciativa **SGO-Logic** busca que un cliente pueda iniciar, continuar y comp
 
 El detonante de mayor urgencia es cuantificado en el propio caso: en el Black Friday anterior, 45 minutos de caída de la pasarela de pago PayKlik costaron USD 150,000 en ventas perdidas; para el próximo se espera hasta **8 veces** el tráfico normal. A esto se suman metas explícitas de negocio: reducir 70% los errores de despacho (USD 25 c/u por logística inversa), recuperar evidencia de auditoría en <1s, y resolver consultas de estado en <5s — todo con un presupuesto de inversión de $150,000 y un límite operativo de $1,200/mes, desplegando inicialmente **on-premises** con una ruta planificada de evolución a nube.
 
-La arquitectura propuesta (ver [ADRs](#diagramas-arquitectónicos-y-justificación-de-decisiones)) es un **monolito modular con integración asíncrona vía broker de mensajería**, elegido por ser la única alternativa compatible simultáneamente con el presupuesto, las competencias del equipo interno (Java/.NET, Docker básico, sin Kubernetes), y la fecha fija del Black Friday.
+La arquitectura propuesta (ver [ADRs](#diagramas-arquitectónicos-y-justificación-de-decisiones)) combina tres estilos arquitectónicos complementarios — **monolítico** (despliegue por componentes en contenedores, sin orquestador de microservicios), **Event-Driven Architecture / broker de mensajería** (integración asíncrona para pagos, logística, notificaciones y ERP) y **orientado a datos / base de datos compartida** (integración síncrona para inventario y consulta de estado) —, elegidos por ser la combinación compatible simultáneamente con el presupuesto, las competencias del equipo interno (Java/.NET, Docker básico, sin Kubernetes), y la fecha fija del Black Friday.
 
 Análisis completo del caso: [`Docs/Analisis/analisis-caso-megastore.md`](Docs/Analisis/analisis-caso-megastore.md).
 
@@ -218,7 +218,7 @@ Fuente editable (`.drawio`) y exportada (`.png`) de cada vista: [`Docs/Diagramas
 
 ![Diagrama de Despliegue](Docs/Diagramas/despliegue.png)
 
-**Diagrama de Bloques** — arquitectura completa del sistema para stakeholders de alto nivel; expresa el estilo arquitectónico (monolito modular + integración asíncrona vía broker):
+**Diagrama de Bloques** — arquitectura completa del sistema para stakeholders de alto nivel; expresa los estilos arquitectónicos (monolítico + Event-Driven/broker + orientado a datos):
 
 ![Diagrama de Bloques](Docs/Diagramas/bloques.png)
 
@@ -228,13 +228,13 @@ Las 5 decisiones arquitectónicas (ADR) que sustentan las vistas anteriores:
 
 | ADR | Decisión | Driver(s) que la origina | Stakeholder que más la exige |
 |---|---|---|---|
-| [ADR-0001](Docs/ADR/0001-estilo-arquitectonico-monolito-modular-con-broker.md) | Monolito modular con integración asíncrona vía broker de mensajería | DC-01, DC-02, DC-05, DC-06, DC-09, DC-10 | Carlos Méndez (mantenibilidad, continuidad) |
+| [ADR-0001](Docs/ADR/0001-estilo-arquitectonico-monolito-modular-con-broker.md) | Estilos arquitectónicos: monolítico + Event-Driven (broker) + orientado a datos | DC-01, DC-02, DC-05, DC-06, DC-09, DC-10 | Carlos Méndez (mantenibilidad, continuidad) |
 | [ADR-0002](Docs/ADR/0002-resiliencia-pagos-payklik.md) | Resiliencia de pagos: Transactional Outbox + Circuit Breaker + reintentos | DC-01, DC-02, DC-06, DC-07, DC-08 | Jefe de Operaciones ($150K), Ana Lucía Fuentes |
 | [ADR-0003](Docs/ADR/0003-integracion-batch-erp-core.md) | Adaptador de sincronización batch (CSV/XML) con ERP-Core, idempotente | DC-05, DC-07, DR-04 | Junta Directiva, Ana Lucía Fuentes |
 | [ADR-0004](Docs/ADR/0004-tolerancia-fallas-terceros.md) | Desacoplamiento asíncrono diferenciado por criticidad (LogiExpress vs. notificaciones) | DC-06, DC-11 | Roberto Quezada (errores de despacho) |
 | [ADR-0005](Docs/ADR/0005-despliegue-on-premises-evolucion-nube.md) | Despliegue on-premises (Docker Compose/Swarm) con evolución planificada a nube | DC-02, DC-09, DC-10, DR-09, DR-10, DR-11 | Junta Directiva, Carlos Méndez |
 
-**El hilo conductor:** ADR-0001 fija el molde (monolito modular + broker) que hace posibles las demás decisiones sin exceder presupuesto ni competencias del equipo. ADR-0002, 0003 y 0004 son la misma estrategia de resiliencia (desacoplar vía broker, proteger con circuit breaker, nunca bloquear el flujo principal) aplicada a los tres puntos de falla documentados con cifras concretas en el caso: PayKlik ($150K), LogiExpress (2% timeout) y ERP-Core (ventana fija de 30 min). ADR-0005 es la salida: como los componentes ya están desacoplados por el broker, la migración futura a nube no exige rediseño, solo reubicar contenedores.
+**El hilo conductor:** ADR-0001 fija el molde (monolítico + Event-Driven/broker + orientado a datos) que hace posibles las demás decisiones sin exceder presupuesto ni competencias del equipo. ADR-0002, 0003 y 0004 son la misma estrategia de resiliencia (desacoplar vía broker, proteger con circuit breaker, nunca bloquear el flujo principal) aplicada a los tres puntos de falla documentados con cifras concretas en el caso: PayKlik ($150K), LogiExpress (2% timeout) y ERP-Core (ventana fija de 30 min). ADR-0005 es la salida: como los componentes ya están desacoplados por el broker, la migración futura a nube no exige rediseño, solo reubicar contenedores.
 
 **Qué NO se decidió (para anticipar preguntas del comité):** no se eligió un segundo proveedor de pagos (multi-PSP) — certificación PCI y costo incompatibles con el presupuesto y el plazo antes de Black Friday. No se eligió Kubernetes desde el inicio — el equipo no tiene esa competencia hoy. DC-03/DC-04 no tienen ADR dedicado porque se resuelven con decisiones de implementación, no un tradeoff arquitectónico.
 
