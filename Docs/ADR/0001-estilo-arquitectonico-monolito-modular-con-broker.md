@@ -1,4 +1,4 @@
-# ADR-0001: Estilo arquitectónico — Monolito modular con integración asíncrona vía broker de mensajería
+# ADR-0001: Estilos arquitectónicos — Monolítico + Event-Driven (broker) + orientado a datos
 
 **Estado:** Propuesta
 **Fecha:** 2026-08-13
@@ -10,7 +10,11 @@ SGO-Logic debe soportar 8x el tráfico normal en Black Friday (DC-02), no perder
 
 ## Decisión
 
-Adoptamos un **monolito modular orientado a componentes**, con los componentes internos comunicándose mayormente a través de un **broker de mensajería** (colas/eventos) para las operaciones que requieren desacoplamiento y tolerancia a fallas (pagos, logística, notificaciones, sincronización con ERP), y llamadas síncronas directas (in-process) para operaciones que requieren consistencia inmediata (verificación y reserva de inventario, consulta de estado). Los componentes se despliegan como contenedores Docker independientes que comparten una base de datos relacional con esquemas separados por componente, preparando una futura extracción a servicios independientes sin necesidad de rediseño (ver ADR-0005).
+Adoptamos una combinación de tres estilos arquitectónicos complementarios, cada uno resolviendo una preocupación distinta — no un único estilo llamado "monolito modular" (monolito es una estrategia de despliegue/granularidad y modular es un principio de diseño interno, ninguno de los dos es por sí solo un estilo de integración):
+
+- **Monolítico** (estilo de despliegue): los componentes se organizan internamente por dominio (pagos, inventario, logística, facturación, etc.) pero se despliegan como contenedores Docker independientes dentro de un mismo backbone, sin orquestador de microservicios. Prepara una futura extracción a servicios independientes sin necesidad de rediseño (ver ADR-0005).
+- **Event-Driven Architecture / Broker** (estilo de integración asíncrona): los componentes se comunican mayormente a través de un **broker de mensajería** (colas/eventos) para las operaciones que requieren desacoplamiento y tolerancia a fallas — pagos, logística, notificaciones, sincronización con ERP.
+- **Orientado a datos / Shared Database** (estilo de integración síncrona): para operaciones que requieren consistencia inmediata (verificación y reserva de inventario, consulta de estado) los componentes usan llamadas directas in-process sobre una **base de datos relacional compartida, con esquemas separados por componente**.
 
 ## Alternativas consideradas
 
@@ -18,7 +22,7 @@ Adoptamos un **monolito modular orientado a componentes**, con los componentes i
 |---|---|---|---|
 | Monolito tradicional sin separación interna | Más simple de construir inicialmente | Mezcla responsabilidades (pagos, inventario, facturación); dificulta mantenibilidad y evolución hacia microservicios | No atiende DC-09 (mantenibilidad a largo plazo) ni DC-10 (evolutividad); alto acoplamiento hace más difícil aislar fallas de terceros (DC-06) |
 | Microservicios completos desde el inicio (con orquestador tipo Kubernetes) | Máxima escalabilidad y aislamiento de fallas por diseño | Requiere competencias de orquestación que el equipo no tiene (DR-09); alto costo operativo y de aprendizaje incompatible con DR-01/DR-02; riesgo de no estar listo antes de Black Friday (DR-03) | Viola restricciones de presupuesto, capacidad del equipo y tiempo disponible |
-| Monolito modular + broker de mensajería (elegido) | Balance entre lo que el equipo puede operar hoy (Docker básico, sin K8s) y la necesidad de desacoplar componentes críticos de fallas externas; costo de un broker open-source (ej. RabbitMQ) es compatible con DR-02; permite evolución futura a servicios independientes | Requiere disciplina de diseño para no degradar a monolito acoplado; el broker es un componente adicional a operar | Es la opción que mejor equilibra los drivers priorizados sin violar ninguna restricción dura |
+| Monolítico + EDA (broker) + orientado a datos (elegido) | Balance entre lo que el equipo puede operar hoy (Docker básico, sin K8s) y la necesidad de desacoplar componentes críticos de fallas externas; costo de un broker open-source (ej. RabbitMQ) es compatible con DR-02; permite evolución futura a servicios independientes | Requiere disciplina de diseño para no degradar a monolito acoplado; el broker es un componente adicional a operar | Es la opción que mejor equilibra los drivers priorizados sin violar ninguna restricción dura |
 
 ## Consecuencias
 

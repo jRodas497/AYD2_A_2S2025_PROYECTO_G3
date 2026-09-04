@@ -8,7 +8,7 @@ Ninguna decisión se tomó desde una preferencia tecnológica. Todas responden a
 
 | Decisión | Driver(s) que la origina | Stakeholder que más la exige |
 |---|---|---|
-| ADR-0001 — Estilo arquitectónico | DC-01, DC-02, DC-05, DC-06, DC-09, DC-10 | Carlos Méndez (mantenibilidad, continuidad) |
+| ADR-0001 — Estilos arquitectónicos (monolítico + EDA/broker + orientado a datos) | DC-01, DC-02, DC-05, DC-06, DC-09, DC-10 | Carlos Méndez (mantenibilidad, continuidad) |
 | ADR-0002 — Resiliencia de pagos | DC-01, DC-02, DC-06, DC-07, DC-08 | Jefe de Operaciones (incidente $150K), Ana Lucía Fuentes (auditabilidad) |
 | ADR-0003 — Integración batch ERP | DC-05, DC-07, DR-04 | Junta Directiva (no tocar ERP-Core), Ana Lucía Fuentes |
 | ADR-0004 — Tolerancia a fallas de terceros | DC-06, DC-11 | Roberto Quezada (errores de despacho) |
@@ -16,7 +16,7 @@ Ninguna decisión se tomó desde una preferencia tecnológica. Todas responden a
 
 ## El hilo conductor: por qué estas 5 decisiones son una sola arquitectura, no 5 sueltas
 
-1. **ADR-0001 fija el molde:** un monolito modular con un broker de mensajería como columna vertebral. Esta decisión no es un fin en sí misma — es la que hace *posibles* a las otras 4 sin exceder el presupuesto ($150K / $1,200 mensual) ni las competencias del equipo (Java/.NET/Docker, sin Kubernetes).
+1. **ADR-0001 fija el molde:** tres estilos combinados — despliegue **monolítico** por componentes, integración asíncrona **Event-Driven** vía broker de mensajería para lo que debe desacoplarse, e integración síncrona **orientada a datos** (BD relacional compartida, esquemas separados) para lo que exige consistencia inmediata. Esta decisión no es un fin en sí misma — es la que hace *posibles* a las otras 4 sin exceder el presupuesto ($150K / $1,200 mensual) ni las competencias del equipo (Java/.NET/Docker, sin Kubernetes).
 2. **ADR-0002, 0003 y 0004 son instancias del mismo patrón** (desacoplar vía el broker, proteger con circuit breaker, nunca bloquear el flujo principal) aplicado a los tres puntos de falla que el caso documenta con cifras concretas: PayKlik (45 min de caída, $150K), LogiExpress (2% de timeouts), y el ERP-Core (ventana fija de 30 min, inmodificable). No son tres soluciones distintas — es la misma estrategia de resiliencia aplicada consistentemente.
 3. **ADR-0005 es la salida:** una vez que los componentes ya están desacoplados por el broker (consecuencia de ADR-0001), la migración futura a nube no requiere rediseñar nada — solo reubicar contenedores. Esto es lo que permite prometer "on-premises ahora, nube después" sin que sea una promesa vacía.
 
@@ -24,7 +24,7 @@ Ninguna decisión se tomó desde una preferencia tecnológica. Todas responden a
 
 El driver #1 en `03-caracteristicas-priorizadas.md` es **DC-01 (disponibilidad ante falla de PayKlik, prioridad 20/20)**. La cadena de decisiones que lo resuelve, en orden:
 
-- ADR-0001 decide que exista un broker de mensajería como mecanismo de desacoplamiento general.
+- ADR-0001 decide que exista un broker de mensajería (estilo Event-Driven) como mecanismo de desacoplamiento general.
 - ADR-0002 lo instancia específicamente para pagos: *Transactional Outbox* (la orden se persiste antes de intentar cobrar, nunca se pierde) + *Circuit Breaker* (deja de insistir con PayKlik si está caído) + cola de reintentos asíncronos.
 - El diagrama de despliegue (`Docs/Diagramas/despliegue.drawio`) muestra dónde vive físicamente ese mecanismo (Host Docker — Servicios de Integración Externa) y lo anota explícitamente con `DC-01`.
 - La matriz de trazabilidad (`Docs/DDA/07-matrices-trazabilidad.md`, tabla 7.2.a) documenta el mecanismo de validación: una prueba de caos que simula la caída de PayKlik y verifica 0 órdenes perdidas.
