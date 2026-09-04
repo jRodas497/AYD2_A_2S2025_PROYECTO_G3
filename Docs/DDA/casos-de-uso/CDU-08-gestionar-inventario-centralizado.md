@@ -12,6 +12,10 @@
 
 Consolida en una sola vista las existencias, ubicaciones, reservas, entradas y salidas de los 2 centros de distribución y las 32 tiendas, reemplazando la confirmación telefónica manual que existe hoy, y garantizando que ninguna unidad se comprometa a más de un cliente a la vez.
 
+## Diagrama de actividad
+
+![Diagrama de actividad — CDU-08](diagramas/CDU-08-diagrama.png)
+
 ## Precondiciones
 
 - Existen movimientos de inventario reportados desde al menos un POS de tienda o un centro de distribución.

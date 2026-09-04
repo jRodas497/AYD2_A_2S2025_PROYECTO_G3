@@ -12,6 +12,10 @@
 
 Registra y confirma el cobro de una orden con cualquiera de los métodos aceptados (tarjeta, transferencia, billetera digital), garantizando que la orden nunca se pierda aunque falle el proveedor de pago, y que cada intento —exitoso o no— quede auditado. Es la instancia concreta de la estrategia de resiliencia de pagos (ADR-0002).
 
+## Diagrama de actividad
+
+![Diagrama de actividad — CDU-02](diagramas/CDU-02-diagrama.png)
+
 ## Precondiciones
 
 - La orden existe en estado "pendiente de pago" con inventario reservado (post-CDU-01).

@@ -12,6 +12,10 @@
 
 Determina desde dónde despachar cada orden (centro de distribución, tienda o recogida por el cliente), coordina con LogiExpress cuando aplica, y mantiene el estado de entrega actualizado — incluso si el cliente cambia el método de entrega después de confirmada la compra.
 
+## Diagrama de actividad
+
+![Diagrama de actividad — CDU-04](diagramas/CDU-04-diagrama.png)
+
 ## Precondiciones
 
 - La orden está facturada (CDU-03 completado).

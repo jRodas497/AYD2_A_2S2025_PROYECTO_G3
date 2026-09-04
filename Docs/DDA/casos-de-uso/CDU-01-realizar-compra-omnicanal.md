@@ -12,6 +12,10 @@
 
 Permite que un cliente inicie, continúe y complete una compra cruzando de un canal a otro sin perder el contenido de su carrito ni la disponibilidad reservada de los productos. Es el caso de uso central de la operación omnicanal — resuelve directamente la exigencia de "no tener silos" entre canales.
 
+## Diagrama de actividad
+
+![Diagrama de actividad — CDU-01](diagramas/CDU-01-diagrama.png)
+
 ## Precondiciones
 
 - El cliente está identificado o es identificable en el canal (sesión, número de teléfono, cuenta).

@@ -12,6 +12,10 @@
 
 Entrega una vista consolidada y de solo lectura del estado completo de una orden (compra, pago, despacho, entrega, incidencias) en menos de 5 segundos, sin importar desde qué canal se consulte, y sin depender de que las notificaciones proactivas hayan funcionado.
 
+## Diagrama de actividad
+
+![Diagrama de actividad — CDU-06](diagramas/CDU-06-diagrama.png)
+
 ## Precondiciones
 
 - La orden existe en el sistema (fue creada al menos vía CDU-01).

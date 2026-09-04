@@ -12,6 +12,10 @@
 
 Sincroniza las ventas confirmadas con el ERP-Core mediante archivos CSV/XML en las ventanas de 30 minutos que el sistema legado puede procesar, sin modificar el ERP-Core, y dejando trazabilidad suficiente para que una diferencia de conciliación se investigue sin el esfuerzo manual actual.
 
+## Diagrama de actividad
+
+![Diagrama de actividad — CDU-07](diagramas/CDU-07-diagrama.png)
+
 ## Precondiciones
 
 - Existen órdenes facturadas (post-CDU-03) pendientes de sincronizar con el ERP-Core.
