@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram name="CDU Expandido - Auditoria" id="cdu-auditoria">
-        <mxGraphModel dx="788" dy="1957" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" background="#ffffff" math="0" shadow="0">
+        <mxGraphModel dx="1010" dy="2224" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" background="#ffffff" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -37,12 +37,12 @@
                 <mxCell id="au-e2" value="" style="endArrow=none;html=1;rounded=0;" parent="1" source="au-actor-admin" target="au-uc-trazabilidad" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="au-e3" value="" style="endArrow=none;html=1;rounded=0;" parent="1" source="au-actor-regulador" edge="1">
+                <mxCell id="au-e3" value="" style="endArrow=none;html=1;rounded=0;" parent="1" edge="1">
                     <mxGeometry relative="1" as="geometry">
                         <mxPoint x="214.67521553865504" y="373.687806997129" as="targetPoint"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="au-e4" value="" style="endArrow=none;html=1;rounded=0;" parent="1" source="au-actor-regulador" edge="1">
+                <mxCell id="au-e4" value="" style="endArrow=none;html=1;rounded=0;" parent="1" edge="1">
                     <mxGeometry relative="1" as="geometry">
                         <mxPoint x="467.2602130484702" y="471.9073241950782" as="targetPoint"/>
                     </mxGeometry>
