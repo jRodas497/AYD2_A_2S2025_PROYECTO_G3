@@ -1,0 +1,70 @@
+<mxfile host="65bd71144e">
+    <diagram name="CDU Expandido - Configuracion" id="cdu-configuracion">
+        <mxGraphModel dx="985" dy="2154" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" background="#ffffff" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="2" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="100" y="-30" width="830" height="650" as="geometry"/>
+                </mxCell>
+                <mxCell id="cf-title" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;CDU Expandido: Configuración del Sistema&lt;/font&gt;&lt;div&gt;&lt;span style=&quot;font-size: 24px;&quot;&gt;RF&lt;/span&gt;&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;labelBackgroundColor=none;fontColor=#1D3557;" parent="1" vertex="1">
+                    <mxGeometry x="10" y="-120" width="800" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="cf-sysname" value="&lt;span&gt;Sistema SGO-Logic&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;labelBackgroundColor=none;fontColor=#1D3557;fontSize=19;" parent="1" vertex="1">
+                    <mxGeometry x="150" y="-20" width="236" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="cf-actor-admin" value="Administrador" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontSize=14;labelBackgroundColor=none;fillColor=#A8DADC;strokeColor=#457B9D;fontColor=#1D3557;" parent="1" vertex="1">
+                    <mxGeometry x="10" y="250" width="80" height="105" as="geometry"/>
+                </mxCell>
+                <mxCell id="cf-uc-usuarios" value="Gestionar Usuarios y Roles" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#A8DADC;fontColor=#1D3557;strokeColor=#457B9D;labelBackgroundColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="250" y="40" width="190" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="cf-uc-autenticar" value="Autenticar Usuario" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#A8DADC;fontColor=#1D3557;strokeColor=#457B9D;labelBackgroundColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="630" y="20" width="170" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="cf-uc-parametros" value="Configurar Parámetros del Sistema" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#A8DADC;fontColor=#1D3557;strokeColor=#457B9D;labelBackgroundColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="210" y="210" width="210" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="cf-uc-tasas" value="Configurar Tasas e Impuestos por País" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#A8DADC;fontColor=#1D3557;strokeColor=#457B9D;labelBackgroundColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="600" y="170" width="240" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="cf-uc-catalogo" value="Configurar Catálogo de Productos" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#A8DADC;fontColor=#1D3557;strokeColor=#457B9D;labelBackgroundColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="210" y="360" width="210" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="cf-uc-promociones" value="Configurar Promociones" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#A8DADC;fontColor=#1D3557;strokeColor=#457B9D;labelBackgroundColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="630" y="320" width="180" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="cf-uc-integracion" value="Configurar Integración con ERP/POS" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#A8DADC;fontColor=#1D3557;strokeColor=#457B9D;labelBackgroundColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="200" y="480" width="220" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="cf-uc-error-sync" value="Registrar Error de Sincronización" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#A8DADC;fontColor=#1D3557;strokeColor=#457B9D;labelBackgroundColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="650" y="460" width="210" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="cf-e1" value="" style="endArrow=none;html=1;rounded=0;" parent="1" source="cf-actor-admin" target="cf-uc-usuarios" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="cf-e2" value="" style="endArrow=none;html=1;rounded=0;" parent="1" source="cf-actor-admin" target="cf-uc-parametros" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="cf-e3" value="" style="endArrow=none;html=1;rounded=0;" parent="1" source="cf-actor-admin" target="cf-uc-catalogo" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="cf-e4" value="" style="endArrow=none;html=1;rounded=0;" parent="1" source="cf-actor-admin" target="cf-uc-integracion" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="cf-e5" value="&amp;lt;&amp;lt;Include&amp;gt;&amp;gt;" style="endArrow=open;endSize=12;dashed=1;html=1;rounded=0;" parent="1" source="cf-uc-usuarios" target="cf-uc-autenticar" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="cf-e6" value="&amp;lt;&amp;lt;Include&amp;gt;&amp;gt;" style="endArrow=open;endSize=12;dashed=1;html=1;rounded=0;" parent="1" source="cf-uc-parametros" target="cf-uc-tasas" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="cf-e7" value="&amp;lt;&amp;lt;Include&amp;gt;&amp;gt;" style="endArrow=open;endSize=12;dashed=1;html=1;rounded=0;" parent="1" source="cf-uc-catalogo" target="cf-uc-promociones" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="cf-e8" value="&amp;lt;&amp;lt;Extend&amp;gt;&amp;gt;" style="endArrow=open;endSize=12;dashed=1;html=1;rounded=0;" parent="1" source="cf-uc-integracion" target="cf-uc-error-sync" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
