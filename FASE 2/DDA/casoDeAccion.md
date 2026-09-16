@@ -114,3 +114,9 @@ La arquitectura combina tres estilos complementarios — **monolítico** (despli
 - Se disminuye la dependencia de sistemas aislados.
 - Se reduce el riesgo de pérdida de clientes por experiencias fragmentadas.
 - Se asegura continuidad operativa frente a cambios en volumen de transacciones.
+
+## Diagrama de despliegue — Fase 2
+
+La [vista de despliegue](diagrama-de-despliegue.md) ubica los componentes de fase 2 en hosts locales con Docker, base de datos compartida y mensajería persistente, conservando las integraciones externas.
+
+[Draw.io editable](../DRAWIO/Diagrama-Despliegue-SGO-Logic-Fase2.drawio) · [Imagen](../image/Diagrama-Despliegue-SGO-Logic-Fase2.png).
