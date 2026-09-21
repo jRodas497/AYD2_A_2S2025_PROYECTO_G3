@@ -47,6 +47,21 @@ Datos de conexión para desarrollo: `localhost:5432`, base `sgologic`, usuario `
 
 `V2__datos_de_prueba.sql` carga 2 centros de distribución, 32 tiendas, 12 productos con su stock, 100 clientes y los tres valores de `config`. Son datos de ejemplo. El tiempo de reserva de 15 minutos es un valor por defecto que se puede cambiar.
 
+## Cargar órdenes de prueba
+
+Las migraciones dejan el catálogo, el stock y los clientes, pero ninguna orden. Con la base levantada, este script agrega órdenes y todo lo que las rodea: reservas, cobros, facturas, envíos, notificaciones, outbox, eventos del POS, lotes del ERP y auditoría.
+
+```
+./db/scripts/cargar-datos-de-prueba.sh          # 200 órdenes
+./db/scripts/cargar-datos-de-prueba.sh 5000     # la cantidad que quieras
+```
+
+Las órdenes salen en todos los estados, desde pendientes de pago hasta devueltas, y con las fallas que el sistema tiene que tolerar: cobros de PayKlik con timeout y su reintento en el outbox, guías de LogiExpress sin número, mensajes que no salieron y eventos del POS sin entregar. Además hay clientes con un carrito abierto.
+
+El stock sigue cuadrando con los movimientos. Si una tienda no tiene unidades para tantas ventas, el script registra una reposición antes de venderlas.
+
+Cada corrida suma datos, no borra los anteriores. Como la auditoría y los cobros no se pueden borrar, para limpiar hay que empezar de cero con `docker compose down -v`. Con 20 000 órdenes tarda unos 16 segundos.
+
 ## Cuando el backend use Flyway
 
 Los archivos ya siguen el nombre que Flyway espera (`V1__...`). Ese día hay que quitar el montaje de `docker-entrypoint-initdb.d` del compose para que las migraciones no corran dos veces.
