@@ -60,7 +60,17 @@ Las órdenes salen en todos los estados, desde pendientes de pago hasta devuelta
 
 El stock sigue cuadrando con los movimientos. Si una tienda no tiene unidades para tantas ventas, el script registra una reposición antes de venderlas.
 
-Cada corrida suma datos, no borra los anteriores. Como la auditoría y los cobros no se pueden borrar, para limpiar hay que empezar de cero con `docker compose down -v`. Con 20 000 órdenes tarda unos 16 segundos.
+Cada corrida suma datos, no borra los anteriores. Con 20 000 órdenes tarda unos 16 segundos.
+
+## Empezar de cero
+
+La auditoría y los cobros no se pueden borrar, así que para limpiar la base hay que crearla de nuevo. Este script borra todo, levanta la base otra vez desde las migraciones y espera a que esté lista:
+
+```
+./db/scripts/reiniciar-base.sh          # pregunta antes de borrar
+./db/scripts/reiniciar-base.sh -y       # sin preguntar
+./db/scripts/reiniciar-base.sh -y 500   # sin preguntar y con 500 órdenes de prueba
+```
 
 ## Cuando el backend use Flyway
 
