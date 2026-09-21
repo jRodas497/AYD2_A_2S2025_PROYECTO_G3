@@ -23,16 +23,16 @@ Datos de conexión para desarrollo: `localhost:5432`, base `sgologic`, usuario `
 
 | Esquema | Contenido |
 |---|---|
-| `config` | Valores configurables: tiempo de reserva, intervalo del ERP, límite de latencia de PayKlik |
-| `catalog` | Productos |
+| `config` | Valores configurables (tiempo de reserva, intervalo del ERP, límite de latencia de PayKlik) y los canales de venta |
+| `catalog` | Productos y sus categorías |
 | `customers` | Clientes |
 | `inventory` | Centros de distribución y tiendas, stock, movimientos y reservas temporales |
 | `orders` | Carrito, órdenes, sus ítems e incidencias |
-| `payments` | Cada intento de cobro |
+| `payments` | Cada intento de cobro, y la vista `payment_audit` con el canal de la orden para Finanzas |
 | `invoicing` | Facturas XML y la respuesta de la SAT |
 | `logistics` | Envíos y eventos de rastreo de LogiExpress |
 | `notifications` | Avisos por SMS, correo y push |
-| `integration` | Outbox, eventos hacia el POS y lotes para el ERP |
+| `integration` | Outbox, eventos hacia el POS y lotes para el ERP, con la vista `erp_batch_summary` que cuenta sus órdenes y suma su monto |
 | `audit` | Registro de auditoría |
 
 ## Reglas que hace cumplir la base
@@ -42,6 +42,18 @@ Datos de conexión para desarrollo: `localhost:5432`, base `sgologic`, usuario `
 - No existe ninguna columna para el número de tarjeta ni para el CVV. De la tarjeta solo se guarda la referencia de PayKlik y los últimos 4 dígitos.
 - Una orden entra en un solo lote del ERP, así no se manda la misma venta dos veces.
 - Un cliente solo puede tener un carrito activo, sin importar el canal.
+- Solo se puede reservar un producto que la orden realmente lleva.
+- El POS solo recibe eventos de tiendas, nunca de un centro de distribución.
+
+## Normalización
+
+La estructura está en tercera forma normal: cada dato vive en un solo lugar y las demás tablas lo consultan por su llave. Por eso los canales y las categorías tienen su propia tabla, el carrito no guarda precios (salen del catálogo hasta que se crea la orden), el intento de cobro no repite el canal (se toma de la orden) y la cantidad y el monto de cada lote del ERP se calculan en una vista en lugar de guardarse.
+
+Hay copias que se dejaron a propósito:
+
+- `inventory.stock` guarda `on_hand` y `reserved` como contadores, para reservar de forma atómica sin recorrer todos los movimientos. Los movimientos y las reservas siguen ahí para poder cuadrarlos.
+- `orders.purchase_order` guarda `total` y `delivery_address` tal como se acordaron al comprar. Si después cambia el precio o la dirección del cliente, la orden no cambia. Por lo mismo `orders.order_item` guarda el `unit_price` del momento y `notifications.notification` guarda el destinatario al que se mandó el aviso.
+- `audit.audit_log` repite el canal y usa referencias sin llave foránea (`entity_type`, `entity_id`, `order_id`), para no depender de otras tablas y consultarse en menos de 1 segundo. `integration.outbox` usa el mismo tipo de referencia.
 
 ## Datos de prueba
 
