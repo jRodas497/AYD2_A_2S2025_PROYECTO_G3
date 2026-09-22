@@ -2,7 +2,15 @@
 
 ![Diagrama entidad-relación](../image/Diagrama-Entidad-Relacion-SGO-Logic-Fase2.png)
 
-[Archivo editable](../DRAWIO/Diagrama-Entidad-Relacion-SGO-Logic-Fase2.drawio). Muestra las 24 tablas de datos agrupadas por esquema, con sus columnas, sus llaves y las líneas reales de relación entre ellas. Las 17 tablas de referencia se muestran compactas (un recuadro punteado por esquema); sus valores están en la sección "Tablas de referencia" de este documento.
+[Fuente editable](Diagrama-Entidad-Relacion-SGO-Logic-Fase2.dot). Muestra las 24 tablas de datos, con sus columnas, sus llaves y las líneas reales de relación entre ellas. Las 17 tablas de referencia no se dibujan aparte: se anotan en gris junto a la llave foránea que las usa (por ejemplo `· category_id → product_category` dentro de `product`); sus valores están en la sección "Tablas de referencia" de este documento.
+
+Está hecho con [Graphviz](https://graphviz.org/) en vez de drawio, porque el layout (dónde va cada tabla y por dónde pasa cada línea) lo calcula la herramienta, no a mano. Para regenerarlo después de cambiar el modelo:
+
+```
+dot -Tpng -Gdpi=150 db/Diagrama-Entidad-Relacion-SGO-Logic-Fase2.dot -o image/Diagrama-Entidad-Relacion-SGO-Logic-Fase2.png
+```
+
+Se instala con `brew install graphviz`. El archivo `.dot` se edita a mano (es texto plano); no hay una app gráfica para este formato como sí la hay para drawio.
 
 PostgreSQL 16 con una sola base, `sgologic`, y un esquema por componente, como se decidió en el ADR-0001. La base es compartida, pero cada componente escribe solo en su esquema.
 
