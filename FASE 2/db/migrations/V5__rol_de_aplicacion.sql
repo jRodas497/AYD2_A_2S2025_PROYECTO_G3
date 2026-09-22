@@ -40,9 +40,10 @@ grant insert, delete on config.user_role to sgologic_app;
 grant insert, update, delete on catalog.product to sgologic_app;
 grant insert, update, delete on customers.customer to sgologic_app;
 
--- Inventario
+-- Inventario. insert en stock es para dar existencia inicial a un producto nuevo en una
+-- ubicación (Configurar Catálogo de Productos); no es para abrir tiendas o centros nuevos.
 grant update on inventory.location to sgologic_app;
-grant update on inventory.stock to sgologic_app;
+grant insert, update on inventory.stock to sgologic_app;
 grant insert on inventory.stock_movement to sgologic_app;
 grant insert, update on inventory.reservation to sgologic_app;
 
