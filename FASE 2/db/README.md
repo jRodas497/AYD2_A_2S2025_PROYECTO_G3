@@ -113,7 +113,7 @@ Por tabla, `sgologic_app` tiene:
 - Insertar y nada más en `payments.payment_attempt` y `audit.audit_log`. Ni siquiera tiene el permiso de `UPDATE` o `DELETE`, así que la regla de solo-inserción no depende únicamente del trigger.
 - Insertar, actualizar y a veces borrar en las tablas donde el negocio lo necesita (el carrito, por ejemplo, se borra; una orden ya creada no).
 
-El detalle completo está en `V5__rol_de_aplicacion.sql`. Si se agrega una tabla en una migración nueva, hay que agregar también su permiso ahí; si no, `sgologic_app` solo podrá leerla.
+El detalle completo está en `V5__rol_de_aplicacion.sql`, y el porqué en [ADR-0006](../DDA/ADR/0006-rol-de-aplicacion-sin-privilegios-de-superusuario.md). Si se agrega una tabla en una migración nueva, hay que agregar también su permiso ahí; si no, `sgologic_app` solo podrá leerla.
 
 **Números de tarjeta fuera de las columnas de pago.** No tener una columna para el PAN no alcanza: un número podría colarse en el motivo de rechazo de un cobro, en el detalle de una incidencia o en el payload de un evento. `audit.has_card_number()` busca de 13 a 19 dígitos, juntos o separados por espacio o guion, que además pasen la verificación de Luhn (el dígito de control que usan las tarjetas reales), y una restricción la aplica en `payment_attempt`, `audit_log`, `outbox`, `pos_event`, `notification`, `invoice`, `incident`, `stock_movement` y `tracking_event`. Pedir que pase Luhn reduce que una referencia interna larga se marque por error, aunque no lo elimina del todo: una referencia de PayKlik que por casualidad pase Luhn se rechazaría igual, y ahí toca ajustar el formato de esa referencia, no la regla.
 
