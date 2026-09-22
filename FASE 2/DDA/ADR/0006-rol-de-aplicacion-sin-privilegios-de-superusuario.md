@@ -39,4 +39,5 @@ El backend, y cualquier herramienta de uso diario (incluido quien solo consulta 
 ## Vistas afectadas
 
 - `FASE 2/db/migrations/V5__rol_de_aplicacion.sql`
+- `FASE 2/db/migrations/V6__contrasena_de_la_app.sh`
 - `FASE 2/db/README.md`, sección "Seguridad"
