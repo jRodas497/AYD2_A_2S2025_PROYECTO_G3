@@ -16,6 +16,7 @@ do $$ begin perform setseed(0.42); end $$;
 
 -- Órdenes: estado, canal, cliente y lugar desde donde se despacha.
 -- Las órdenes abiertas son de los últimos 10 minutos para que su reserva siga vigente.
+-- Aquí estado y canal van como código; se convierten a id al insertar en las tablas reales.
 create temp table t_order on commit drop as
 with base as (
     select n,
@@ -53,8 +54,8 @@ ranged as (
                  ('CANCELLED', 0, 604800)) as r (status, lo, hi)
       on r.status = t.status
 )
-select n + (select coalesce(max(id), 0) from orders.purchase_order) as id,
-       n + (select coalesce(max(id), 0) from orders.cart) as cart_id,
+select n + (select coalesce(max(id), 0) from purchase_order) as id,
+       n + (select coalesce(max(id), 0) from cart) as cart_id,
        n, status, channel,
        status in ('PAID', 'INVOICED', 'IN_DISPATCH', 'DELIVERED', 'RETURNED') as is_paid,
        status in ('INVOICED', 'IN_DISPATCH', 'DELIVERED', 'RETURNED') as is_invoiced,
@@ -68,9 +69,13 @@ select n + (select coalesce(max(id), 0) from orders.purchase_order) as id,
        1 + floor(random() * 3)::int as items_count,
        now() - make_interval(secs => lo + r_time * (hi - lo)) as created_at
 from ranged
-cross join (select array_agg(id order by id) as ids from customers.customer) cu
-cross join (select array_agg(id order by id) as ids from inventory.location where type = 'DISTRIBUTION_CENTER') cds
-cross join (select array_agg(id order by id) as ids from inventory.location where type = 'STORE') st;
+cross join (select array_agg(id order by id) as ids from customer) cu
+cross join (select array_agg(l.id order by l.id) as ids
+            from location l join location_type t on t.id = l.type_id
+            where t.code = 'DISTRIBUTION_CENTER') cds
+cross join (select array_agg(l.id order by l.id) as ids
+            from location l join location_type t on t.id = l.type_id
+            where t.code = 'STORE') st;
 
 alter table t_order add column total numeric(12,2);
 
@@ -80,7 +85,7 @@ select o.id as order_id, p.id as product_id, p.price as unit_price,
        1 + floor(random() * 2)::int as quantity
 from t_order o
 cross join lateral (
-    select id, price from catalog.product where active order by random() limit o.items_count
+    select id, price from product where active order by random() limit o.items_count
 ) p;
 
 update t_order o
@@ -99,73 +104,80 @@ group by o.origin_id, i.product_id;
 with need as (
     select u.location_id, u.product_id, u.sold + s.reserved + u.held - s.on_hand as restock
     from t_use u
-    join inventory.stock s on s.location_id = u.location_id and s.product_id = u.product_id
+    join stock s on s.location_id = u.location_id and s.product_id = u.product_id
     where u.sold + s.reserved + u.held > s.on_hand
 ),
 moved as (
-    insert into inventory.stock_movement (location_id, product_id, kind, quantity, reason)
-    select location_id, product_id, 'IN', restock, 'Reposición para los datos de prueba' from need
+    insert into stock_movement (location_id, product_id, type_id, quantity, reason)
+    select n.location_id, n.product_id, m.id, n.restock, 'Reposición para los datos de prueba'
+    from need n
+    cross join (select id from movement_type where code = 'IN') m
 )
-update inventory.stock s
+update stock s
 set on_hand = s.on_hand + n.restock, updated_at = now()
 from need n
 where s.location_id = n.location_id and s.product_id = n.product_id;
 
-update inventory.stock s
+update stock s
 set on_hand = s.on_hand - u.sold, reserved = s.reserved + u.held, updated_at = now()
 from t_use u
 where s.location_id = u.location_id and s.product_id = u.product_id;
 
 -- Carritos convertidos, órdenes y sus ítems
 
-insert into orders.cart (id, customer_id, last_channel, status, created_at, updated_at)
+insert into cart (id, customer_id, last_channel_id, status_id, created_at, updated_at)
 overriding system value
-select cart_id, customer_id, channel, 'CONVERTED', created_at - interval '5 minutes', created_at
-from t_order;
+select o.cart_id, o.customer_id, ch.id, cs.id, o.created_at - interval '5 minutes', o.created_at
+from t_order o
+join channel ch on ch.code = o.channel
+cross join (select id from cart_status where code = 'CONVERTED') cs;
 
-insert into orders.cart_item (cart_id, product_id, quantity)
+insert into cart_item (cart_id, product_id, quantity)
 select o.cart_id, i.product_id, i.quantity
 from t_item i
 join t_order o on o.id = i.order_id;
 
-insert into orders.purchase_order
-    (id, cart_id, customer_id, channel, status, total, delivery_address, created_at, updated_at)
+insert into purchase_order
+    (id, cart_id, customer_id, channel_id, status_id, total, delivery_address, created_at, updated_at)
 overriding system value
-select o.id, o.cart_id, o.customer_id, o.channel, o.status, o.total, c.address, o.created_at,
+select o.id, o.cart_id, o.customer_id, ch.id, s.id, o.total, c.address, o.created_at,
        least(now(), o.created_at + case
            when o.status in ('DELIVERED', 'RETURNED') then interval '1 day'
            when o.status = 'IN_DISPATCH' then interval '2 hours'
            when o.status = 'INVOICED' then interval '10 minutes'
            else interval '1 minute' end)
 from t_order o
-join customers.customer c on c.id = o.customer_id;
+join customer c on c.id = o.customer_id
+join channel ch on ch.code = o.channel
+join order_status s on s.code = o.status;
 
-insert into orders.order_item (order_id, product_id, quantity, unit_price)
+insert into order_item (order_id, product_id, quantity, unit_price)
 select order_id, product_id, quantity, unit_price from t_item;
 
-insert into inventory.stock_movement (location_id, product_id, kind, quantity, reason, order_id, created_at)
-select o.origin_id, i.product_id, 'OUT', i.quantity, 'Venta', o.id, o.created_at
+insert into stock_movement (location_id, product_id, type_id, quantity, reason, order_id, created_at)
+select o.origin_id, i.product_id, m.id, i.quantity, 'Venta', o.id, o.created_at
 from t_item i
 join t_order o on o.id = i.order_id
+cross join (select id from movement_type where code = 'OUT') m
 where o.is_paid;
 
 do $$
 begin
-    perform setval(pg_get_serial_sequence('orders.cart', 'id'), (select max(id) from orders.cart));
-    perform setval(pg_get_serial_sequence('orders.purchase_order', 'id'), (select max(id) from orders.purchase_order));
+    perform setval(pg_get_serial_sequence('cart', 'id'), (select max(id) from cart));
+    perform setval(pg_get_serial_sequence('purchase_order', 'id'), (select max(id) from purchase_order));
 end $$;
 
 -- Reservas. Las órdenes abiertas la tienen activa; las pagadas, confirmada;
 -- las canceladas, vencida o liberada.
-insert into inventory.reservation (order_id, location_id, product_id, quantity, status, created_at, expires_at, closed_at)
-select o.id, o.origin_id, i.product_id, i.quantity, r.status, o.created_at, r.expires_at,
+insert into reservation (order_id, location_id, product_id, quantity, status_id, created_at, expires_at, closed_at)
+select o.id, o.origin_id, i.product_id, i.quantity, rs.id, o.created_at, r.expires_at,
        case r.status
            when 'ACTIVE' then null
            when 'EXPIRED' then r.expires_at
            else o.created_at + interval '20 seconds' end
 from t_item i
 join t_order o on o.id = i.order_id
-cross join (select coalesce((select value::int from config.setting where key = 'reservation.ttl_minutes'), 15) as ttl) t
+cross join (select coalesce((select value::int from setting where key = 'reservation.ttl_minutes'), 15) as ttl) t
 cross join lateral (
     select case when o.is_open then 'ACTIVE'
                 when o.is_paid then 'CONFIRMED'
@@ -173,7 +185,8 @@ cross join lateral (
                 when o.n % 2 = 0 then 'EXPIRED'
                 else 'RELEASED' end as status,
            o.created_at + make_interval(mins => t.ttl) as expires_at
-) r;
+) r
+join reservation_status rs on rs.code = r.status;
 
 -- Intentos de cobro. Algunos pagos tardan más de 5 segundos: primero un timeout y luego el reintento aprobado.
 with plan as (
@@ -198,21 +211,21 @@ with plan as (
            interval '5 seconds'
     from t_order o where o.status = 'PAYMENT_FAILED'
 )
-insert into payments.payment_attempt
-    (order_id, attempt_number, result, amount, provider_reference, card_last4, failure_reason, latency_ms, attempted_at)
-select o.id, p.num, p.result, o.total,
+insert into payment_attempt
+    (order_id, attempt_number, result_id, amount, provider_reference, card_last4, failure_reason, latency_ms, attempted_at)
+select o.id, p.num, r.id, o.total,
        case when p.result = 'APPROVED' then 'PK-' || lpad(o.id::text, 8, '0') end,
        lpad(((o.id * 7919) % 10000)::text, 4, '0'),
        p.reason, p.latency, least(now(), o.created_at + p.delay)
 from plan p
-join t_order o on o.id = p.order_id;
+join t_order o on o.id = p.order_id
+join payment_result r on r.code = p.result;
 
 -- Facturas. Las que aún esperan a la SAT quedan en GENERATED o SENT.
-insert into invoicing.invoice (order_id, cui, series, xml, status, sat_response, generated_at, answered_at)
-select o.id, x.cui, 'FACT-A',
+insert into invoice (order_id, status_id, cui, series, xml, sat_response, generated_at, answered_at)
+select o.id, s.id, x.cui, 'FACT-A',
        format('<?xml version="1.0" encoding="UTF-8"?><factura><cui>%s</cui><serie>FACT-A</serie><orden>%s</orden><total>%s</total></factura>',
               x.cui, o.id, o.total),
-       x.status,
        case when x.status = 'ACCEPTED' then 'Documento aprobado por la SAT' end,
        o.created_at + interval '30 seconds',
        case when x.status = 'ACCEPTED' then least(now(), o.created_at + interval '50 seconds') end
@@ -224,34 +237,39 @@ cross join lateral (
                 when o.n % 10 < 5 then 'SENT'
                 else 'ACCEPTED' end as status
 ) x
+join invoice_status s on s.code = x.status
 where o.is_invoiced;
 
 -- Envíos. Cerca del 2% de las guías en despacho quedan sin número porque LogiExpress no respondió.
-insert into logistics.shipment
-    (order_id, origin_location_id, tracking_number, status, created_at, updated_at)
-select o.id, o.origin_id,
+insert into shipment
+    (order_id, origin_location_id, carrier_id, status_id, tracking_number, created_at, updated_at)
+select o.id, o.origin_id, cr.id, s.id,
        case when g.guide_failed then null else 'LX-' || lpad(o.id::text, 8, '0') end,
-       case when g.guide_failed then 'GUIDE_REQUESTED'
-            when o.status = 'IN_DISPATCH' then case when o.n % 2 = 0 then 'IN_TRANSIT' else 'GUIDE_ISSUED' end
-            else 'DELIVERED' end,
        o.created_at + interval '2 minutes',
        least(now(), o.created_at + case when o.status = 'IN_DISPATCH' then interval '10 minutes' else interval '1 day' end)
 from t_order o
 cross join lateral (select o.status = 'IN_DISPATCH' and o.n % 50 = 0 as guide_failed) g
+cross join lateral (
+    select case when g.guide_failed then 'GUIDE_REQUESTED'
+                when o.status = 'IN_DISPATCH' then case when o.n % 2 = 0 then 'IN_TRANSIT' else 'GUIDE_ISSUED' end
+                else 'DELIVERED' end as status
+) st
+join shipment_status s on s.code = st.status
+cross join (select id from carrier where code = 'LOGIEXPRESS') cr
 where o.is_shipped;
 
-insert into logistics.tracking_event (shipment_id, status, detail, occurred_at)
-select s.id, 'GUIDE_ISSUED', 'Guía emitida por LogiExpress', s.created_at + interval '1 minute'
-from logistics.shipment s
-where s.order_id in (select id from t_order) and s.tracking_number is not null
-union all
-select s.id, 'IN_TRANSIT', 'El paquete salió hacia su destino', least(now(), s.created_at + interval '3 hours')
-from logistics.shipment s
-where s.order_id in (select id from t_order) and s.status in ('IN_TRANSIT', 'DELIVERED')
-union all
-select s.id, 'DELIVERED', 'Entregado al cliente', s.updated_at
-from logistics.shipment s
-where s.order_id in (select id from t_order) and s.status = 'DELIVERED';
+insert into tracking_event (shipment_id, status_id, detail, occurred_at)
+select s.id, ts.id, e.detail, e.happened_at
+from shipment s
+join shipment_status ss on ss.id = s.status_id
+cross join lateral (
+    values ('GUIDE_ISSUED', 'Guía emitida por LogiExpress', s.created_at + interval '1 minute', s.tracking_number is not null),
+           ('IN_TRANSIT', 'El paquete salió hacia su destino', least(now(), s.created_at + interval '3 hours'),
+                ss.code in ('IN_TRANSIT', 'DELIVERED')),
+           ('DELIVERED', 'Entregado al cliente', s.updated_at, ss.code = 'DELIVERED')
+) as e (status, detail, happened_at, applies)
+join shipment_status ts on ts.code = e.status
+where s.order_id in (select id from t_order) and e.applies;
 
 -- Notificaciones. Una de cada veinte falla porque el proveedor de mensajería no responde.
 with msg as (
@@ -268,29 +286,29 @@ with msg as (
     select o.id, format('No pudimos procesar el pago de tu orden #%s', o.id), o.created_at + interval '10 seconds'
     from t_order o where o.status = 'PAYMENT_FAILED'
 )
-insert into notifications.notification
-    (order_id, channel, recipient, message, status, attempts, last_error, created_at, sent_at)
-select m.order_id,
-       case o.channel when 'WEB' then 'EMAIL' when 'MOBILE' then 'PUSH' else 'SMS' end,
+insert into notification
+    (order_id, channel_id, status_id, recipient, message, attempts, last_error, created_at, sent_at)
+select m.order_id, nc.id, ds.id,
        case o.channel when 'WEB' then c.email when 'MOBILE' then 'dispositivo-' || c.id else c.phone end,
        m.message,
-       case when o.n % 20 = 0 then 'FAILED' else 'SENT' end,
        case when o.n % 20 = 0 then 3 else 1 end,
        case when o.n % 20 = 0 then 'Proveedor de mensajería no disponible' end,
        m.ts,
        case when o.n % 20 <> 0 then m.ts + interval '2 seconds' end
 from msg m
 join t_order o on o.id = m.order_id
-join customers.customer c on c.id = o.customer_id;
+join customer c on c.id = o.customer_id
+join notification_channel nc on nc.code = case o.channel when 'WEB' then 'EMAIL' when 'MOBILE' then 'PUSH' else 'SMS' end
+join delivery_status ds on ds.code = case when o.n % 20 = 0 then 'FAILED' else 'DELIVERED' end;
 
 -- Incidencias: toda orden devuelta y una de cada 25 entregadas.
-insert into orders.incident (order_id, kind, description, status, created_at, resolved_at)
-select o.id, x.kind, x.description, x.status,
+insert into incident (order_id, type_id, status_id, description, created_at, resolved_at)
+select o.id, it.id, ist.id, x.description,
        least(now(), o.created_at + interval '1 day'),
        case when x.status = 'RESOLVED' then least(now(), o.created_at + interval '30 hours') end
 from t_order o
 cross join lateral (
-    select case when o.status = 'RETURNED' or o.n % 2 = 1 then 'RETURN' else 'EXCHANGE' end as kind,
+    select case when o.status = 'RETURNED' or o.n % 2 = 1 then 'RETURN' else 'EXCHANGE' end as type,
            case o.n % 3 when 0 then 'Producto con defecto de fábrica'
                         when 1 then 'No era lo que el cliente esperaba'
                         else 'Llegó con el empaque dañado' end as description,
@@ -299,39 +317,49 @@ cross join lateral (
                 when o.n % 3 = 1 then 'IN_PROCESS'
                 else 'RESOLVED' end as status
 ) x
+join incident_type it on it.code = x.type
+join incident_status ist on ist.code = x.status
 where o.status = 'RETURNED' or (o.status = 'DELIVERED' and o.n % 25 = 0);
 
 -- Outbox: cobros por reintentar y eventos de órdenes pagadas ya procesados.
-insert into integration.outbox
-    (aggregate_type, aggregate_id, event_type, payload, status, attempts, next_attempt_at, last_error, created_at, processed_at)
-select 'order', o.id, 'PAYMENT_RETRY',
-       jsonb_build_object('orderId', o.id, 'amount', o.total, 'attempt', 2),
-       'PENDING', 1, now() + interval '1 minute', 'Latencia mayor a 5 segundos', o.created_at, null
-from t_order o where o.status = 'PAYMENT_IN_PROGRESS'
-union all
-select 'order', o.id, 'ORDER_PAID',
-       jsonb_build_object('orderId', o.id, 'total', o.total, 'channel', o.channel),
-       'PROCESSED', 1, o.created_at, null, o.created_at, least(now(), o.created_at + interval '5 seconds')
-from t_order o where o.is_paid;
+insert into outbox
+    (aggregate_type, aggregate_id, event_type, payload, status_id, attempts, next_attempt_at, last_error, created_at, processed_at)
+select x.aggregate_type, x.aggregate_id, x.event_type, x.payload, ds.id, x.attempts,
+       x.next_attempt_at, x.last_error, x.created_at, x.processed_at
+from (
+    select 'order' as aggregate_type, o.id as aggregate_id, 'PAYMENT_RETRY' as event_type,
+           jsonb_build_object('orderId', o.id, 'amount', o.total, 'attempt', 2) as payload,
+           'PENDING' as status, 1 as attempts, now() + interval '1 minute' as next_attempt_at,
+           'Latencia mayor a 5 segundos' as last_error, o.created_at, null::timestamptz as processed_at
+    from t_order o where o.status = 'PAYMENT_IN_PROGRESS'
+    union all
+    select 'order', o.id, 'ORDER_PAID',
+           jsonb_build_object('orderId', o.id, 'total', o.total, 'channel', o.channel),
+           'DELIVERED', 1, o.created_at, null, o.created_at, least(now(), o.created_at + interval '5 seconds')
+    from t_order o where o.is_paid
+) x
+join delivery_status ds on ds.code = x.status;
 
 -- Eventos hacia el POS de las tiendas que despachan. Algunos no llegaron por fallas de red.
-insert into integration.pos_event
-    (store_id, event_type, payload, status, attempts, next_attempt_at, last_error, created_at, delivered_at)
+insert into pos_event
+    (store_id, event_type, payload, status_id, attempts, next_attempt_at, last_error, created_at, delivered_at)
 select o.origin_id, 'SALE_CONFIRMED',
        jsonb_build_object('orderId', o.id, 'total', o.total),
-       s.status,
-       case s.status when 'DEAD' then 5 when 'PENDING' then 2 else 1 end,
+       ds.id,
+       case s.status when 'FAILED' then 5 when 'PENDING' then 2 else 1 end,
        case s.status when 'PENDING' then now() + interval '2 minutes' else o.created_at end,
        case when s.status <> 'DELIVERED' then 'Sin conexión con la tienda' end,
        o.created_at,
        case when s.status = 'DELIVERED' then o.created_at + interval '3 seconds' end
 from t_order o
-join inventory.location l on l.id = o.origin_id and l.type = 'STORE'
+join location l on l.id = o.origin_id
+join location_type lt on lt.id = l.type_id and lt.code = 'STORE'
 cross join lateral (
-    select case when o.n % 25 = 0 then 'DEAD'
+    select case when o.n % 25 = 0 then 'FAILED'
                 when o.n % 10 = 1 and o.created_at > now() - interval '2 hours' then 'PENDING'
                 else 'DELIVERED' end as status
 ) s
+join delivery_status ds on ds.code = s.status
 where o.is_paid;
 
 -- Lotes del ERP: una orden pagada entra al lote de su ventana de 30 minutos, solo si esa ventana ya cerró.
@@ -344,73 +372,87 @@ where o.is_paid;
 delete from t_erp where window_start + interval '30 minutes' > now();
 
 with batch as (
-    insert into integration.erp_batch as b
-        (window_start, window_end, format, file_name, status, created_at, sent_at)
-    select w.window_start, w.window_start + interval '30 minutes', 'CSV',
+    insert into erp_batch as b
+        (window_start, window_end, format_id, status_id, file_name, created_at, sent_at)
+    select w.window_start, w.window_start + interval '30 minutes', f.id, ds.id,
            'ventas_' || to_char(w.window_start at time zone 'UTC', 'YYYYMMDD_HH24MI') || '.csv',
-           'SENT',
            least(now(), w.window_start + interval '31 minutes'),
            least(now(), w.window_start + interval '32 minutes')
     from (select distinct window_start from t_erp) w
+    cross join (select id from file_format where code = 'CSV') f
+    cross join (select id from delivery_status where code = 'DELIVERED') ds
     on conflict (window_start, window_end) do update
         set window_end = excluded.window_end
     returning b.id, b.window_start
 )
-insert into integration.erp_batch_order (order_id, batch_id)
+insert into erp_batch_order (order_id, batch_id)
 select e.order_id, batch.id
 from t_erp e
 join batch on batch.window_start = e.window_start;
 
 -- Auditoría de todo lo anterior, con el orden y el canal para poder consultarla rápido.
-insert into audit.audit_log (occurred_at, actor, action, entity_type, entity_id, order_id, channel, details)
+insert into audit_log (occurred_at, actor, action, entity_type, entity_id, order_id, channel_id, details)
 select o.created_at,
        case when o.channel = 'CALL_CENTER' then 'agente-' || (1 + o.n % 5) else 'cliente-' || o.customer_id end,
-       'ORDER_CREATED', 'order', o.id::text, o.id, o.channel,
+       'ORDER_CREATED', 'order', o.id::text, o.id, ch.id,
        jsonb_build_object('total', o.total, 'items', o.items_count)
 from t_order o
+join channel ch on ch.code = o.channel
 union all
-select r.created_at, 'inventory-service', 'STOCK_RESERVED', 'reservation', r.id::text, r.order_id, o.channel,
+select r.created_at, 'inventory-service', 'STOCK_RESERVED', 'reservation', r.id::text, r.order_id, ch.id,
        jsonb_build_object('productId', r.product_id, 'locationId', r.location_id, 'quantity', r.quantity)
-from inventory.reservation r
+from reservation r
 join t_order o on o.id = r.order_id
+join channel ch on ch.code = o.channel
 union all
-select a.attempted_at, 'payment-service', 'PAYMENT_' || a.result, 'payment_attempt', a.id::text, a.order_id, o.channel,
+select a.attempted_at, 'payment-service', 'PAYMENT_' || pr.code, 'payment_attempt', a.id::text, a.order_id, ch.id,
        jsonb_build_object('attempt', a.attempt_number, 'amount', a.amount, 'latencyMs', a.latency_ms,
                           'reference', a.provider_reference)
-from payments.payment_attempt a
+from payment_attempt a
 join t_order o on o.id = a.order_id
+join channel ch on ch.code = o.channel
+join payment_result pr on pr.id = a.result_id
 union all
-select i.generated_at, 'invoicing-service', 'INVOICE_' || i.status, 'invoice', i.id::text, i.order_id, o.channel,
+select i.generated_at, 'invoicing-service', 'INVOICE_' || s.code, 'invoice', i.id::text, i.order_id, ch.id,
        jsonb_build_object('cui', i.cui, 'series', i.series)
-from invoicing.invoice i
+from invoice i
 join t_order o on o.id = i.order_id
+join channel ch on ch.code = o.channel
+join invoice_status s on s.id = i.status_id
 union all
-select s.created_at, 'logistics-service', 'SHIPMENT_' || s.status, 'shipment', s.id::text, s.order_id, o.channel,
-       jsonb_build_object('originLocationId', s.origin_location_id, 'tracking', s.tracking_number)
-from logistics.shipment s
-join t_order o on o.id = s.order_id
+select sh.created_at, 'logistics-service', 'SHIPMENT_' || s.code, 'shipment', sh.id::text, sh.order_id, ch.id,
+       jsonb_build_object('originLocationId', sh.origin_location_id, 'tracking', sh.tracking_number)
+from shipment sh
+join t_order o on o.id = sh.order_id
+join channel ch on ch.code = o.channel
+join shipment_status s on s.id = sh.status_id
 union all
-select n.created_at, 'notification-service', 'NOTIFICATION_' || n.status, 'notification', n.id::text, n.order_id, o.channel,
-       jsonb_build_object('channel', n.channel)
-from notifications.notification n
-join t_order o on o.id = n.order_id;
+select n.created_at, 'notification-service', 'NOTIFICATION_' || s.code, 'notification', n.id::text, n.order_id, ch.id,
+       jsonb_build_object('channel', nc.code)
+from notification n
+join t_order o on o.id = n.order_id
+join channel ch on ch.code = o.channel
+join delivery_status s on s.id = n.status_id
+join notification_channel nc on nc.id = n.channel_id;
 
 -- Algunos clientes con carrito abierto, de un canal cualquiera, para probar el carrito unificado.
 with c as (
-    insert into orders.cart (customer_id, last_channel, status, created_at, updated_at)
-    select cu.id, (array['WEB', 'MOBILE', 'CALL_CENTER'])[1 + floor(random() * 3)::int], 'OPEN',
-           now() - random() * interval '2 hours', now()
-    from customers.customer cu
+    insert into cart (customer_id, last_channel_id, status_id, created_at, updated_at)
+    select cu.id, ch.id, cs.id, now() - random() * interval '2 hours', now()
+    from customer cu
+    cross join (select id from cart_status where code = 'OPEN') cs
+    cross join lateral (select id from channel where cu.id is not null order by random() limit 1) ch
     where random() < 0.15
-      and not exists (select 1 from orders.cart k
-                      where k.customer_id = cu.id and k.status in ('OPEN', 'IN_CHECKOUT'))
+      and not exists (select 1 from cart k
+                      join cart_status ks on ks.id = k.status_id
+                      where k.customer_id = cu.id and ks.code in ('OPEN', 'IN_CHECKOUT'))
     returning id
 )
-insert into orders.cart_item (cart_id, product_id, quantity)
+insert into cart_item (cart_id, product_id, quantity)
 select c.id, p.id, 1 + floor(random() * 2)::int
 from c
 cross join lateral (
-    select id from catalog.product where active order by random() limit 1 + (c.id % 3)
+    select id from product where active order by random() limit 1 + (c.id % 3)
 ) p;
 
 \echo 'Datos cargados en esta corrida:'
