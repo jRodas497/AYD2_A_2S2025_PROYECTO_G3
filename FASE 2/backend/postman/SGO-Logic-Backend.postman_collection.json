@@ -1,0 +1,184 @@
+{
+  "info": {
+    "name": "SGO-Logic — Backend núcleo comercial",
+    "description": "Catálogo, clientes, inventario y carrito/órdenes. Ver FASE 2/backend/API.md para el detalle de cada endpoint. Usar el entorno 'SGO-Logic Local' (baseUrl = http://localhost:8080).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "customerId", "value": "1" },
+    { "key": "productId", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Catálogo",
+      "item": [
+        {
+          "name": "Listar productos",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/products", "host": ["{{baseUrl}}"], "path": ["api", "products"] }
+          }
+        },
+        {
+          "name": "Ver un producto",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products", "{{productId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Clientes",
+      "item": [
+        {
+          "name": "Ver un cliente",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/customers/{{customerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customers", "{{customerId}}"]
+            }
+          }
+        },
+        {
+          "name": "Crear cliente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('customerId', pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/customers", "host": ["{{baseUrl}}"], "path": ["api", "customers"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Cliente de prueba (Postman)\",\n  \"email\": \"postman@example.com\",\n  \"phone\": \"50200000000\",\n  \"address\": \"Zona 1, Ciudad de Guatemala\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Modificar cliente",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/customers/{{customerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customers", "{{customerId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Cliente actualizado\",\n  \"email\": \"actualizado@example.com\",\n  \"phone\": \"50299999999\",\n  \"address\": \"Zona 15, Ciudad de Guatemala\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventario",
+      "item": [
+        {
+          "name": "Disponibilidad de un producto",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/products/{{productId}}/availability",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "products", "{{productId}}", "availability"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Carrito",
+      "item": [
+        {
+          "name": "Ver carrito activo",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/customers/{{customerId}}/cart",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customers", "{{customerId}}", "cart"]
+            }
+          }
+        },
+        {
+          "name": "Agregar ítem al carrito",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/customers/{{customerId}}/cart/items",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customers", "{{customerId}}", "cart", "items"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": {{productId}},\n  \"quantity\": 1,\n  \"channel\": \"WEB\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Órdenes",
+      "item": [
+        {
+          "name": "Checkout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('lastOrderId', pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/orders/checkout", "host": ["{{baseUrl}}"], "path": ["api", "orders", "checkout"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": {{customerId}},\n  \"deliveryAddress\": \"Zona 10, Ciudad de Guatemala\"\n}"
+            }
+          },
+          "description": "Necesita que el carrito del cliente ya tenga al menos un ítem (correr antes 'Agregar ítem al carrito'). Guarda el id de la orden creada en {{lastOrderId}}."
+        },
+        {
+          "name": "Consultar estado de una orden",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{lastOrderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "{{lastOrderId}}"]
+            }
+          },
+          "description": "Usa {{lastOrderId}}, la orden que dejó el checkout anterior. Se puede cambiar a mano por cualquier otro id."
+        }
+      ]
+    }
+  ]
+}
