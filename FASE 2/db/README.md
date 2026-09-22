@@ -1,5 +1,9 @@
 # Base de datos
 
+![Diagrama entidad-relación](../image/Diagrama-Entidad-Relacion-SGO-Logic-Fase2.png)
+
+[Archivo editable](../DRAWIO/Diagrama-Entidad-Relacion-SGO-Logic-Fase2.drawio). Muestra las 24 tablas de datos agrupadas por esquema, con sus columnas, sus llaves y las líneas reales de relación entre ellas. Las 17 tablas de referencia se muestran compactas (un recuadro punteado por esquema); sus valores están en la sección "Tablas de referencia" de este documento.
+
 PostgreSQL 16 con una sola base, `sgologic`, y un esquema por componente, como se decidió en el ADR-0001. La base es compartida, pero cada componente escribe solo en su esquema.
 
 ## Cómo levantarla
@@ -164,4 +168,6 @@ La auditoría y los cobros no se pueden borrar, así que para limpiar la base ha
 
 ## Cuando el backend use Flyway
 
-Los archivos ya siguen el nombre que Flyway espera (`V1__...`). Ese día hay que quitar el montaje de `docker-entrypoint-initdb.d` del compose para que las migraciones no corran dos veces.
+Los archivos `.sql` ya siguen el nombre que Flyway espera (`V1__...`). Ese día hay que quitar el montaje de `docker-entrypoint-initdb.d` del compose para que las migraciones no corran dos veces.
+
+`V6__contrasena_de_la_app.sh` es la excepción: es un script de shell, y Flyway no ejecuta `.sh` como migración. Ese paso —fijar la contraseña real de `sgologic_app` desde una variable de entorno— hay que resolverlo aparte (una migración con callback, o un paso del despliegue), no simplemente renombrándolo a `.sql`.
