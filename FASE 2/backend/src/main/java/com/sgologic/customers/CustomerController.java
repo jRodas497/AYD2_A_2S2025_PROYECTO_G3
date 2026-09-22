@@ -1,11 +1,13 @@
 package com.sgologic.customers;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -39,9 +41,27 @@ public class CustomerController {
         return customers.save(c);
     }
 
+    /** Modificar Datos de Cliente (CDU expandido de Gestionar Clientes). */
+    @PutMapping("/{id}")
+    public Customer update(@PathVariable Long id, @Valid @RequestBody UpdateCustomer body) {
+        Customer c = get(id);
+        c.setFullName(body.fullName());
+        c.setEmail(body.email());
+        c.setPhone(body.phone());
+        c.setAddress(body.address());
+        return customers.save(c);
+    }
+
     public record NewCustomer(
             @NotBlank String fullName,
-            String email,
+            @Email String email,
+            String phone,
+            String address) {
+    }
+
+    public record UpdateCustomer(
+            @NotBlank String fullName,
+            @Email String email,
             String phone,
             String address) {
     }
