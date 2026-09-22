@@ -1,5 +1,10 @@
 server:
   port: 8080
+  error:
+    # Sin esto, un 404/400 normal no trae "message" y solo el 409 de sin-stock lo tenía
+    # (por un manejador propio). Frontend necesita el mismo formato en todos los errores.
+    include-message: always
+    include-binding-errors: always
 
 spring:
   application:
