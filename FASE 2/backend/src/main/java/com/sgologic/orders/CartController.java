@@ -5,6 +5,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,7 +34,15 @@ public class CartController {
     @PostMapping("/items")
     public CartView addItem(@PathVariable Long customerId, @Valid @RequestBody AddItem body) {
         Channel channel = body.channel() == null ? Channel.WEB : body.channel();
-        cartService.addItem(customerId, channel, body.productId(), body.quantity());
+        // Dos altas simultáneas del primer carrito de un mismo cliente pueden chocar contra el
+        // índice único "un carrito activo por cliente" (RC03: alto volumen de órdenes
+        // simultáneas). Quien pierde la carrera reintenta una vez y encuentra el carrito que
+        // ya ganó la otra petición, en vez de responder un error al cliente.
+        try {
+            cartService.addItem(customerId, channel, body.productId(), body.quantity());
+        } catch (DataIntegrityViolationException e) {
+            cartService.addItem(customerId, channel, body.productId(), body.quantity());
+        }
         Cart cart = cartService.getOrCreateActiveCart(customerId, channel);
         return CartView.of(cart, cartService.items(cart.getId()));
     }
