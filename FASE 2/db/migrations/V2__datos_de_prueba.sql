@@ -1,5 +1,7 @@
 -- Datos de ejemplo para desarrollo y para la demo. No son datos reales.
 
+set search_path = config, catalog, customers, inventory, orders, payments, invoicing, logistics, notifications, integration, audit;
+
 insert into setting (key, value, description) values
     ('reservation.ttl_minutes', '15', 'Minutos que dura una reserva de stock si la compra no se concreta'),
     ('erp.batch_interval_minutes', '30', 'Cada cuántos minutos se genera el archivo para el ERP AS/400'),

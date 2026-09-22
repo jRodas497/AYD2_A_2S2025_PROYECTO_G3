@@ -10,6 +10,8 @@
 \endif
 \set ON_ERROR_STOP on
 
+set search_path = config, catalog, customers, inventory, orders, payments, invoicing, logistics, notifications, integration, audit;
+
 begin;
 
 do $$ begin perform setseed(0.42); end $$;
@@ -163,8 +165,8 @@ where o.is_paid;
 
 do $$
 begin
-    perform setval(pg_get_serial_sequence('cart', 'id'), (select max(id) from cart));
-    perform setval(pg_get_serial_sequence('purchase_order', 'id'), (select max(id) from purchase_order));
+    perform setval(pg_get_serial_sequence('orders.cart', 'id'), (select max(id) from cart));
+    perform setval(pg_get_serial_sequence('orders.purchase_order', 'id'), (select max(id) from purchase_order));
 end $$;
 
 -- Reservas. Las órdenes abiertas la tienen activa; las pagadas, confirmada;
