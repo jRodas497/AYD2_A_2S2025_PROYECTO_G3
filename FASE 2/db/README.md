@@ -12,7 +12,16 @@ docker compose up -d db
 
 La primera vez, Postgres ejecuta los archivos de `db/migrations` en orden. Los datos quedan en un volumen, así que al reiniciar no se pierde nada.
 
-Datos de conexión para desarrollo: `localhost:5432`, base `sgologic`, usuario `sgologic`, clave `sgologic_dev`. La clave se puede cambiar con la variable `DB_PASSWORD`.
+El puerto solo se publica en `127.0.0.1`, así que la base no queda visible para el resto de la red.
+
+Hay dos usuarios. `sgologic` es el dueño de la base: lo usan las migraciones y quien administra. El backend y cualquier herramienta que solo use la base (DBeaver incluido) deben conectarse con `sgologic_app`, que no puede cambiar la estructura ni saltarse las reglas de la sección de abajo.
+
+| Usuario | Clave por defecto | Variable para cambiarla | Uso |
+|---|---|---|---|
+| `sgologic` | `sgologic_dev` | `DB_PASSWORD` | Migraciones, administración |
+| `sgologic_app` | `sgologic_app_dev` | `DB_APP_PASSWORD` | Backend, consultas del día a día |
+
+Estas claves son solo para desarrollo local. En cualquier entorno real hay que cambiarlas.
 
 ## Qué guarda cada esquema
 
@@ -29,6 +38,8 @@ Datos de conexión para desarrollo: `localhost:5432`, base `sgologic`, usuario `
 | `notifications` | `notification` |
 | `integration` | `outbox`, `pos_event`, `erp_batch`, `erp_batch_order` |
 | `audit` | `audit_log` |
+
+`config` también tiene `app_user`, `user_role` y `role`: son el personal que usa el sistema (administradores, empleados de tienda, logística, Finanzas), no los clientes finales. Los clientes son datos de negocio y viven en `customers.customer`.
 
 Además hay tablas de referencia, que se explican abajo, y 3 vistas de lectura.
 
@@ -60,6 +71,7 @@ Cada tabla de referencia está en el esquema del componente que la usa. Las que 
 | `logistics.shipment_status` | ASSIGNED, GUIDE_REQUESTED, GUIDE_ISSUED, IN_TRANSIT, DELIVERED, FAILED |
 | `notifications.notification_channel` | SMS, EMAIL, PUSH |
 | `integration.file_format` | CSV, XML |
+| `config.role` | ADMIN, STORE_EMPLOYEE, STORE_MANAGER, CALL_CENTER_AGENT, LOGISTICS, FINANCE |
 
 `config.delivery_status` la comparte todo lo que se envía con reintentos: `outbox`, `notification`, `pos_event` y `erp_batch`. `FAILED` significa que se agotaron los reintentos, y en un lote del ERP `PENDING` significa generado pero aún no enviado.
 
@@ -82,12 +94,32 @@ Como las tablas guardan ids, hay tres vistas que devuelven los códigos ya resue
 ## Reglas que hace cumplir la base
 
 - No se puede reservar más stock del que hay (`reserved <= on_hand`), aunque falle la lógica de la aplicación.
-- `audit.audit_log` y `payments.payment_attempt` solo aceptan inserciones. Un `UPDATE`, `DELETE` o `TRUNCATE` da error.
+- `audit.audit_log` y `payments.payment_attempt` solo aceptan inserciones. Un `UPDATE`, `DELETE` o `TRUNCATE` da error, incluso conectado como `sgologic`.
 - No existe ninguna columna para el número de tarjeta ni para el CVV. De la tarjeta solo se guarda la referencia de PayKlik y los últimos 4 dígitos.
+- La base rechaza un número que parezca de tarjeta si se cuela en un texto libre o en un `jsonb` (ver la sección de seguridad).
+- Las contraseñas de `config.app_user` tienen que venir ya cifradas por el backend; la base rechaza una que parezca texto plano.
 - Una orden entra en un solo lote del ERP, así no se manda la misma venta dos veces.
 - Un cliente solo puede tener un carrito activo, sin importar el canal.
 - Solo se puede reservar un producto que la orden realmente lleva.
 - El POS solo recibe eventos de tiendas, nunca de un centro de distribución.
+
+## Seguridad
+
+**El backend nunca se conecta como `sgologic`.** Ese usuario es dueño de las tablas y puede alterar cualquier cosa, incluida la estructura. `sgologic_app` no es dueño de nada: solo tiene los permisos que necesita para operar, tabla por tabla, y eso es lo que de verdad evita que una conexión de la aplicación desactive el trigger de auditoría, agregue una columna o borre una tabla. Lo comprobé a propósito: con `sgologic_app` conectado, intentar `ALTER TABLE ... DISABLE TRIGGER` o `ALTER TABLE ... ADD COLUMN` sobre `audit_log` o `payment_attempt` da "must be owner of table".
+
+Por tabla, `sgologic_app` tiene:
+
+- Solo lectura en las 17 tablas de referencia: se cargan y cambian por migración, nunca desde la aplicación.
+- Insertar y nada más en `payments.payment_attempt` y `audit.audit_log`. Ni siquiera tiene el permiso de `UPDATE` o `DELETE`, así que la regla de solo-inserción no depende únicamente del trigger.
+- Insertar, actualizar y a veces borrar en las tablas donde el negocio lo necesita (el carrito, por ejemplo, se borra; una orden ya creada no).
+
+El detalle completo está en `V5__rol_de_aplicacion.sql`. Si se agrega una tabla en una migración nueva, hay que agregar también su permiso ahí; si no, `sgologic_app` solo podrá leerla.
+
+**Números de tarjeta fuera de las columnas de pago.** No tener una columna para el PAN no alcanza: un número podría colarse en el motivo de rechazo de un cobro, en el detalle de una incidencia o en el payload de un evento. `audit.has_card_number()` busca de 13 a 19 dígitos, juntos o separados por espacio o guion, que además pasen la verificación de Luhn (el dígito de control que usan las tarjetas reales), y una restricción la aplica en `payment_attempt`, `audit_log`, `outbox`, `pos_event`, `notification`, `invoice`, `incident`, `stock_movement` y `tracking_event`. Pedir que pase Luhn reduce que una referencia interna larga se marque por error, aunque no lo elimina del todo: una referencia de PayKlik que por casualidad pase Luhn se rechazaría igual, y ahí toca ajustar el formato de esa referencia, no la regla.
+
+**Identidad, sin usuarios de ejemplo.** `config.app_user` guarda el hash de la contraseña, nunca la contraseña; una restricción rechaza un valor que no tenga la forma de un hash de bcrypt, argon2, pbkdf2 o scrypt. También lleva el conteo de intentos fallidos y un bloqueo temporal (`locked_until`), para que el backend pueda implementar el bloqueo por intentos sin inventar esa lógica en otro lado. No se cargan usuarios de prueba a propósito: crearlos y fijarles una contraseña le toca al backend cuando exista el login.
+
+**Lo que sigue sin resolver en la base**, porque le corresponde a otra capa: cifrar la conexión con TLS (se decide al desplegar, no en el esquema) y que las claves de producción no sean las de este README (hoy son para desarrollo local).
 
 ## Normalización
 
