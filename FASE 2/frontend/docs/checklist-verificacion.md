@@ -53,6 +53,17 @@ Plantilla por pantalla: marcar cada RF de su historia y el RNF aplicable antes d
 - [x] El formulario nunca conserva el número completo de tarjeta ni el CVV en su estado tras enviar el intento (DC-08/RC06)
 - [x] RNF: mientras el pago está "en proceso", `OrderStatusPage` sondea sin bloquear la UI (no hay spinner de pantalla completa)
 
+## Mis órdenes (`/mis-ordenes`) — adelanto de PB-038
+
+- [x] Lista las órdenes del cliente, ordenadas por fecha (RF PB-038.1)
+- [x] Cada una abre su estado consolidado (RF PB-038.2, vía `/ordenes/:id`)
+- [x] Solo muestra órdenes del cliente identificado (RF PB-038.3)
+- Nota: esta pantalla se adelantó desde Sprint 2 porque, sin ella, no había forma de recuperar una orden tras recargar la página — ver hallazgo corregido abajo. El resto de PB-038 (detalle ampliado) sigue pendiente.
+
+## Hallazgos corregidos
+
+- **Órdenes y pagos se perdían al recargar la página.** `orderRepository` y `paymentRepository` guardaban todo en un array en memoria (como `ChannelTabs`, pero peor: sin persistencia alguna). Ahora ambos usan `localStorage`, igual que el carrito. Una orden en "pago en proceso" además se resuelve sola al leerla si ya pasó el tiempo de espera — así, si recargas antes de que el temporizador en memoria dispare, no se queda "en proceso" para siempre.
+
 ## Hallazgos pendientes de este plan
 
 - La sugerencia de producto/tienda alternativa en PB-003 es un texto fijo de demo — falta contrato real del backend para dato dinámico (ver `docs/contratos-api/catalog-service.md`).
