@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { Pill } from '../../../shared/components/Pill'
 import { BackLink } from '../../../shared/components/BackLink'
+import { Button } from '../../../shared/components/Button'
 import { mockOrderRepository } from '../api/orderRepository.mock'
 import type { Order } from '../types'
 
@@ -11,11 +12,14 @@ const ETIQUETA_ENTREGA: Record<Order['metodoEntrega'], string> = {
   recogida: 'Recogida',
 }
 
-const ETIQUETA_ESTADO: Record<Order['estado'], { texto: string; tono: 'ok' | 'alerta' | 'falla' }> = {
+const ETIQUETA_ESTADO: Record<Order['estado'], { texto: string; tono: 'ok' | 'alerta' | 'falla' | 'info' }> = {
   pendiente_pago: { texto: 'Pendiente de pago', tono: 'alerta' },
+  pago_en_proceso: { texto: 'Pago en proceso', tono: 'info' },
   pagada: { texto: 'Pagada', tono: 'ok' },
   pago_fallido: { texto: 'Pago fallido', tono: 'falla' },
 }
+
+const INTERVALO_SONDEO_MS = 2000
 
 function formatQ(valor: number): string {
   return `Q ${valor.toFixed(2)}`
@@ -28,10 +32,27 @@ export function OrderStatusPage() {
 
   useEffect(() => {
     if (!id) return
-    mockOrderRepository.getOrder(id).then((resultado) => {
+    let cancelado = false
+
+    async function consultar() {
+      const resultado = await mockOrderRepository.getOrder(id!)
+      if (cancelado) return
       setOrden(resultado)
       setCargando(false)
-    })
+    }
+
+    consultar()
+
+    // Mientras el pago está en proceso, se sondea sin bloquear la UI (el backend real resuelve
+    // el reintento de forma asíncrona vía outbox/circuit breaker — CDU-02).
+    const intervalo = setInterval(() => {
+      if (!cancelado) consultar()
+    }, INTERVALO_SONDEO_MS)
+
+    return () => {
+      cancelado = true
+      clearInterval(intervalo)
+    }
   }, [id])
 
   if (cargando) return <p className="text-sm text-gray-400">Cargando orden…</p>
@@ -64,11 +85,23 @@ export function OrderStatusPage() {
         </div>
       </div>
 
-      <p className="text-sm text-gray-500">Entrega: {ETIQUETA_ENTREGA[orden.metodoEntrega]}</p>
+      <p className="text-sm text-gray-500 mb-4">Entrega: {ETIQUETA_ENTREGA[orden.metodoEntrega]}</p>
 
       {orden.estado === 'pendiente_pago' && (
-        <p className="text-sm text-gray-400 mt-3">
-          El pago de esta orden se habilita en la próxima entrega (PB-010).
+        <Link to={`/ordenes/${orden.id}/pago`}>
+          <Button>Pagar ahora</Button>
+        </Link>
+      )}
+
+      {orden.estado === 'pago_en_proceso' && (
+        <p className="text-sm text-gray-400">
+          Estamos confirmando tu pago. Esta página se actualiza sola cuando tengamos el resultado.
+        </p>
+      )}
+
+      {orden.estado === 'pago_fallido' && (
+        <p className="text-sm text-falla">
+          Se agotaron los intentos de cobro. Te notificaremos para que puedas reintentar más tarde.
         </p>
       )}
     </div>
