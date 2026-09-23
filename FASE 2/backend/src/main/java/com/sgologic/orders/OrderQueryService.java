@@ -34,7 +34,11 @@ public class OrderQueryService {
                             rs.getString("status"),
                             rs.getBigDecimal("total"),
                             rs.getString("last_payment_result"),
-                            (Integer) rs.getObject("payment_attempts"),
+                            // count(*) over () viene como bigint: castear a Integer directo
+                            // reventaba en cuanto la orden tenía un intento de cobro.
+                            rs.getObject("payment_attempts") == null
+                                    ? null
+                                    : ((Number) rs.getObject("payment_attempts")).intValue(),
                             rs.getString("invoice_status"),
                             rs.getString("shipment_status"),
                             rs.getString("tracking_number")),
