@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { mockPaymentRepository } from './paymentRepository.mock'
 import { mockOrderRepository } from '../../orden/api/orderRepository.mock'
 
@@ -9,6 +9,10 @@ async function crearOrden() {
 }
 
 describe('mockPaymentRepository', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
   it('una tarjeta terminada en 0000 es rechazada y la orden vuelve a pendiente_pago', async () => {
     const orden = await crearOrden()
     const intento = await mockPaymentRepository.charge(orden.id, 'tarjeta', { ultimosDigitos: '0000' })
