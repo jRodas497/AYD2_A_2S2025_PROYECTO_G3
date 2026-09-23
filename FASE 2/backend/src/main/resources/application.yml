@@ -1,0 +1,29 @@
+server:
+  port: 8080
+  error:
+    # Sin esto, un 404/400 normal no trae "message" y solo el 409 de sin-stock lo tenía
+    # (por un manejador propio). Frontend necesita el mismo formato en todos los errores.
+    include-message: always
+    include-binding-errors: always
+
+spring:
+  application:
+    name: sgologic-backend
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:sgologic}
+    username: ${DB_APP_USER:sgologic_app}
+    password: ${DB_APP_PASSWORD:sgologic_app_dev}
+  jpa:
+    open-in-view: false
+    hibernate:
+      # La base ya existe (migraciones en FASE 2/db). Hibernate nunca crea ni cambia tablas.
+      ddl-auto: none
+    properties:
+      hibernate:
+        default_schema: orders
+        format_sql: false
+
+sgologic:
+  reservation:
+    # Cada cuánto corre el job que libera reservas vencidas (ms). El TTL en sí vive en config.setting.
+    release-expired-fixed-delay-ms: 30000
