@@ -1,0 +1,168 @@
+package com.sgologic.inventory;
+
+import java.util.List;
+import java.util.Map;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Lo que le pasa a una reserva después del checkout: se confirma cuando el cobro se aprueba y
+ * se consume cuando la mercancía sale hacia el cliente.
+ *
+ * <p>Separar "confirmar" de "consumir" importa: al confirmar, la reserva deja de vencer (el job
+ * de {@link ReservationExpiryJob} solo toca las ACTIVE), pero las unidades siguen contadas en la
+ * tienda porque todavía no han salido. Al despachar es cuando el inventario baja de verdad y
+ * queda su movimiento de salida para poder cuadrarlo después.
+ */
+@Service
+public class ReservationLifecycleService {
+
+    private final JdbcTemplate jdbc;
+    private final InventoryReservationService reservations;
+
+    public ReservationLifecycleService(JdbcTemplate jdbc, InventoryReservationService reservations) {
+        this.jdbc = jdbc;
+        this.reservations = reservations;
+    }
+
+    /** Fija las reservas activas de la orden: ya no vencen. 1 = ACTIVE, 2 = CONFIRMED. */
+    @Transactional
+    public int confirmForOrder(Long orderId) {
+        return jdbc.update(
+                "update inventory.reservation set status_id = 2, closed_at = now() "
+                        + "where order_id = ? and status_id = 1",
+                orderId);
+    }
+
+    /** Las reservas confirmadas de la orden, con la ubicación donde está apartada la mercancía. */
+    public List<ReservedLine> confirmedLines(Long orderId) {
+        return jdbc.query(
+                """
+                select r.id, r.location_id, l.code as location_code, l.type_id, r.product_id, r.quantity
+                from inventory.reservation r
+                join inventory.location l on l.id = r.location_id
+                where r.order_id = ? and r.status_id = 2
+                order by r.id
+                """,
+                (rs, rowNum) -> new ReservedLine(
+                        rs.getLong("id"),
+                        rs.getLong("location_id"),
+                        rs.getString("location_code"),
+                        LocationType.fromId(rs.getShort("type_id")),
+                        rs.getLong("product_id"),
+                        rs.getInt("quantity")),
+                orderId);
+    }
+
+    /**
+     * Garantiza que la orden tenga reservada toda su mercancía antes de despachar. Normalmente
+     * ya la tiene desde el checkout; hace falta cuando la reserva venció entre el checkout y el
+     * cobro (por ejemplo, un cobro que estuvo en la cola de contingencia más de lo que dura la
+     * reserva). Si ya no hay existencia, lanza {@link InsufficientStockException} y el despacho
+     * queda pendiente en lugar de sacar mercancía que no existe.
+     */
+    @Transactional
+    public List<ReservedLine> ensureReservedForDispatch(Long orderId, int ttlMinutes) {
+        Map<Long, Integer> reservedByProduct = confirmedLines(orderId).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        ReservedLine::productId, ReservedLine::quantity, Integer::sum));
+
+        List<long[]> ordered = jdbc.query(
+                "select product_id, quantity from orders.order_item where order_id = ?",
+                (rs, rowNum) -> new long[] {rs.getLong("product_id"), rs.getInt("quantity")},
+                orderId);
+
+        boolean reservedSomething = false;
+        for (long[] item : ordered) {
+            long productId = item[0];
+            int missing = (int) item[1] - reservedByProduct.getOrDefault(productId, 0);
+            if (missing > 0) {
+                reservations.reserve(orderId, productId, missing, ttlMinutes);
+                reservedSomething = true;
+            }
+        }
+        if (reservedSomething) {
+            confirmForOrder(orderId);
+        }
+        return confirmedLines(orderId);
+    }
+
+    /**
+     * Saca del inventario la mercancía ya reservada de la orden: baja las existencias del punto
+     * de origen y deja el movimiento de salida. Solo se llama una vez por orden, dentro de la
+     * misma transacción que crea el envío.
+     */
+    @Transactional
+    public void consume(Long orderId, List<ReservedLine> lines) {
+        for (ReservedLine line : lines) {
+            jdbc.update(
+                    """
+                    update inventory.stock
+                    set on_hand = on_hand - ?, reserved = reserved - ?, updated_at = now()
+                    where location_id = ? and product_id = ?
+                    """,
+                    line.quantity(), line.quantity(), line.locationId(), line.productId());
+            recordMovement(line.locationId(), line.productId(), MovementType.OUT, line.quantity(),
+                    "Despacho de la orden " + orderId, orderId);
+        }
+    }
+
+    /**
+     * Cambia el punto de despacho de una orden ya preparada (CDU-04, flujo 1a): devuelve la
+     * mercancía al origen anterior y la toma del nuevo. Si el nuevo origen no tiene existencia,
+     * no se mueve nada.
+     */
+    @Transactional
+    public List<ReservedLine> moveOrigin(Long orderId, Long newLocationId, List<ReservedLine> lines) {
+        for (ReservedLine line : lines) {
+            if (line.locationId().equals(newLocationId)) {
+                continue;
+            }
+            jdbc.update(
+                    "update inventory.stock set on_hand = on_hand + ?, updated_at = now() "
+                            + "where location_id = ? and product_id = ?",
+                    line.quantity(), line.locationId(), line.productId());
+            recordMovement(line.locationId(), line.productId(), MovementType.IN, line.quantity(),
+                    "Reasignación del despacho de la orden " + orderId, orderId);
+
+            int taken = jdbc.update(
+                    """
+                    update inventory.stock
+                    set on_hand = on_hand - ?, updated_at = now()
+                    where location_id = ? and product_id = ? and on_hand - reserved >= ?
+                    """,
+                    line.quantity(), newLocationId, line.productId(), line.quantity());
+            if (taken != 1) {
+                // Revierte todo: la orden se queda despachándose desde donde ya estaba.
+                throw new InsufficientStockException(line.productId(), line.quantity());
+            }
+            recordMovement(newLocationId, line.productId(), MovementType.OUT, line.quantity(),
+                    "Reasignación del despacho de la orden " + orderId, orderId);
+
+            jdbc.update("update inventory.reservation set location_id = ? where id = ?",
+                    newLocationId, line.reservationId());
+        }
+        return confirmedLines(orderId);
+    }
+
+    private void recordMovement(Long locationId, Long productId, MovementType type, int quantity,
+                                String reason, Long orderId) {
+        jdbc.update(
+                """
+                insert into inventory.stock_movement (location_id, product_id, type_id, quantity, reason, order_id)
+                values (?, ?, ?, ?, ?, ?)
+                """,
+                locationId, productId, type.id(), quantity, reason, orderId);
+    }
+
+    /** Una línea de mercancía apartada para la orden, en una ubicación concreta. */
+    public record ReservedLine(
+            Long reservationId,
+            Long locationId,
+            String locationCode,
+            LocationType locationType,
+            Long productId,
+            int quantity) {
+    }
+}
