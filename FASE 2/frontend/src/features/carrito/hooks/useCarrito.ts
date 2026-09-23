@@ -35,7 +35,21 @@ export function useCarrito() {
     await setCart({ items: [] })
   }
 
+  async function actualizarCantidad(productId: string, cantidad: number): Promise<void> {
+    if (cantidad <= 0) {
+      await eliminarItem(productId)
+      return
+    }
+    const items = cart.items.map((item) => (item.productId === productId ? { ...item, cantidad } : item))
+    await setCart({ items })
+  }
+
+  async function eliminarItem(productId: string): Promise<void> {
+    const items = cart.items.filter((item) => item.productId !== productId)
+    await setCart({ items })
+  }
+
   const total = cart.items.reduce((suma, item) => suma + item.precioUnitario * item.cantidad, 0)
 
-  return { cart, cargando, agregarProducto, vaciarCarrito, total }
+  return { cart, cargando, agregarProducto, vaciarCarrito, actualizarCantidad, eliminarItem, total }
 }

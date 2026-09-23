@@ -4,6 +4,8 @@ import { Pill } from '../../../shared/components/Pill'
 import { PriceTag } from '../../../shared/components/PriceTag'
 import { Button } from '../../../shared/components/Button'
 import { BackLink } from '../../../shared/components/BackLink'
+import { QuantityStepper } from '../../../shared/components/QuantityStepper'
+import { useNotify } from '../../../shared/notifications/NotificationContext'
 import { useProducto } from '../hooks/useCatalogo'
 import { useCarrito } from '../../carrito/hooks/useCarrito'
 import { UnavailableNotice } from '../../carrito/components/UnavailableNotice'
@@ -12,8 +14,9 @@ export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { producto, cargando } = useProducto(id)
   const { agregarProducto } = useCarrito()
+  const { notificar } = useNotify()
+  const [cantidad, setCantidad] = useState(1)
   const [error, setError] = useState<string | null>(null)
-  const [agregado, setAgregado] = useState(false)
 
   if (cargando) return <p className="text-sm text-gray-400">Cargando producto…</p>
   if (!producto) return <p className="text-sm text-falla">Producto no encontrado.</p>
@@ -21,10 +24,10 @@ export function ProductDetailPage() {
   async function handleAgregar() {
     if (!producto) return
     setError(null)
-    setAgregado(false)
-    const resultado = await agregarProducto(producto)
+    const resultado = await agregarProducto(producto, cantidad)
     if (resultado.ok) {
-      setAgregado(true)
+      notificar(`${producto.nombre} (${cantidad}) se agregó al carrito`, 'ok')
+      setCantidad(1)
     } else {
       setError(resultado.motivo)
     }
@@ -46,9 +49,19 @@ export function ProductDetailPage() {
         </Pill>
       </div>
 
+      <div className="flex items-center gap-3 mb-4">
+        <span className="text-sm text-gray-500">Cantidad</span>
+        <QuantityStepper
+          cantidad={cantidad}
+          min={1}
+          etiqueta={producto.nombre}
+          onDecrementar={() => setCantidad((c) => Math.max(1, c - 1))}
+          onIncrementar={() => setCantidad((c) => c + 1)}
+        />
+      </div>
+
       <Button onClick={handleAgregar}>Agregar al carrito</Button>
 
-      {agregado && <p className="text-sm text-ok mt-3">Producto agregado al carrito.</p>}
       {error && (
         <UnavailableNotice motivo={error} sugerencia="Tienda Zona 10 tiene existencia de un producto similar" />
       )}
