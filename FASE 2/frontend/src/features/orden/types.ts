@@ -12,6 +12,7 @@ export interface Order {
   metodoEntrega: MetodoEntrega
   estado: EstadoOrden
   creadaEn: string
+  enProcesoDesde?: string
 }
 
 export interface CrearOrdenInput {
