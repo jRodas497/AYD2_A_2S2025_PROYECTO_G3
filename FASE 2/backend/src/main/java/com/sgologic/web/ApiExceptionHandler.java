@@ -1,5 +1,6 @@
 package com.sgologic.web;
 
+import com.sgologic.external.ProviderUnavailableException;
 import com.sgologic.inventory.InsufficientStockException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.OffsetDateTime;
@@ -20,6 +21,17 @@ public class ApiExceptionHandler {
     public ResponseEntity<ApiError> onInsufficientStock(InsufficientStockException ex, HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new ApiError(HttpStatus.CONFLICT, ex.getMessage(), request.getRequestURI()));
+    }
+
+    /**
+     * Un tercero (PayKlik, la SAT, LogiExpress) no respondió. Se responde 503 y no 500: no es un
+     * error de SGO-Logic, y la operación ya quedó encolada para reintentarse sola.
+     */
+    @ExceptionHandler(ProviderUnavailableException.class)
+    public ResponseEntity<ApiError> onProviderUnavailable(
+            ProviderUnavailableException ex, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ApiError(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), request.getRequestURI()));
     }
 
     public record ApiError(OffsetDateTime timestamp, int status, String error, String message, String path) {
