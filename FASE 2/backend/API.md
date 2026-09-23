@@ -1,6 +1,8 @@
 # API — núcleo comercial (Backend 1)
 
-Para el equipo de frontend. Cubre catálogo, clientes, inventario y carrito/órdenes. Pagos, facturación, logística y notificaciones son del otro backend y no están aquí.
+Para el equipo de frontend. Cubre catálogo, clientes, inventario y carrito/órdenes.
+
+Pagos, facturación, logística, notificaciones, auditoría e integraciones (PayKlik, SAT, LogiExpress, POS, ERP) están documentados en [`API-Transacciones.md`](API-Transacciones.md).
 
 Base local: `http://localhost:8080`. Todo responde JSON, entrada y salida.
 
@@ -42,7 +44,7 @@ Estos campos solo aceptan uno de estos textos, en mayúsculas, tal cual:
 | `status` (carrito) | `OPEN`, `IN_CHECKOUT`, `CONVERTED`, `ABANDONED` |
 | `status` (orden) | `PENDING_PAYMENT`, `PAYMENT_IN_PROGRESS`, `PAYMENT_FAILED`, `PAID`, `INVOICED`, `IN_DISPATCH`, `DELIVERED`, `CANCELLED`, `RETURNED` |
 
-Mientras no exista el módulo de pagos, toda orden nueva queda en `PENDING_PAYMENT`. `lastPaymentResult`, `invoiceStatus`, `shipmentStatus` y `trackingNumber` (en la consulta de una orden) vienen `null` hasta que el otro backend actúe sobre esa orden.
+Toda orden nueva queda en `PENDING_PAYMENT`. `lastPaymentResult`, `invoiceStatus`, `shipmentStatus` y `trackingNumber` (en la consulta de una orden) vienen `null` hasta que se cobre: a partir del cobro, el resto del flujo —factura, despacho y guía— avanza solo y esos campos se van llenando. Ver [`API-Transacciones.md`](API-Transacciones.md).
 
 ---
 
