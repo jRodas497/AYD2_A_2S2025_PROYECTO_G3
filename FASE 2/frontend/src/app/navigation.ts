@@ -34,7 +34,7 @@ export const NAV_SECTIONS: NavSection[] = [
     titulo: 'Mis compras',
     items: [
       { label: 'Checkout', path: '/checkout', estado: 'activo', icon: ClipboardCheck },
-      { label: 'Mis órdenes', path: '/mis-ordenes', estado: 'proximamente', icon: Package },
+      { label: 'Mis órdenes', path: '/mis-ordenes', estado: 'activo', icon: Package },
       { label: 'Notificaciones', path: '/notificaciones', estado: 'proximamente', icon: Bell },
     ],
   },

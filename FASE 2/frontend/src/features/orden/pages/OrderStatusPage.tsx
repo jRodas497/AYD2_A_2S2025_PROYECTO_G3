@@ -4,19 +4,13 @@ import { Pill } from '../../../shared/components/Pill'
 import { BackLink } from '../../../shared/components/BackLink'
 import { Button } from '../../../shared/components/Button'
 import { mockOrderRepository } from '../api/orderRepository.mock'
+import { ETIQUETA_ESTADO } from '../estadoLabels'
 import type { Order } from '../types'
 
 const ETIQUETA_ENTREGA: Record<Order['metodoEntrega'], string> = {
   centro_distribucion: 'Centro de distribución',
   tienda: 'Tienda',
   recogida: 'Recogida',
-}
-
-const ETIQUETA_ESTADO: Record<Order['estado'], { texto: string; tono: 'ok' | 'alerta' | 'falla' | 'info' }> = {
-  pendiente_pago: { texto: 'Pendiente de pago', tono: 'alerta' },
-  pago_en_proceso: { texto: 'Pago en proceso', tono: 'info' },
-  pagada: { texto: 'Pagada', tono: 'ok' },
-  pago_fallido: { texto: 'Pago fallido', tono: 'falla' },
 }
 
 const INTERVALO_SONDEO_MS = 2000
