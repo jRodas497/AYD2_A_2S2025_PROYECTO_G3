@@ -29,6 +29,10 @@ services:
       DB_APP_PASSWORD: ${DB_APP_PASSWORD:-sgologic_app_dev}
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
+    volumes:
+      # Los archivos CSV/XML que el ERP-Core AS/400 recoge (CDU-07). Se montan afuera para
+      # poder abrirlos sin entrar al contenedor.
+      - ./erp-out:/app/erp-out
     depends_on:
       db:
         condition: service_healthy

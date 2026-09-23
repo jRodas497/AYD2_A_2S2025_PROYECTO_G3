@@ -13,6 +13,12 @@ spring:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:sgologic}
     username: ${DB_APP_USER:sgologic_app}
     password: ${DB_APP_PASSWORD:sgologic_app_dev}
+  task:
+    scheduling:
+      pool:
+        # Varios jobs corren en paralelo (reservas, outbox, avisos, POS, ERP). Con un solo hilo,
+        # un envío lento a un tercero dejaría a los demás esperando su turno.
+        size: 5
   jpa:
     open-in-view: false
     hibernate:
@@ -27,3 +33,53 @@ sgologic:
   reservation:
     # Cada cuánto corre el job que libera reservas vencidas (ms). El TTL en sí vive en config.setting.
     release-expired-fixed-delay-ms: 30000
+
+  # --- Backend 2: transacciones e integraciones ---
+
+  outbox:
+    # El broker del MVP: cada cuánto se reparten los eventos pendientes y cómo se reintentan.
+    poll-fixed-delay-ms: 2000
+    batch-size: 25
+    max-attempts: 5
+    base-backoff-seconds: 2
+
+  circuit:
+    # Fallas seguidas antes de abrir el circuito de un tercero, y cuánto se queda abierto.
+    failure-threshold: 3
+    open-seconds: 20
+
+  notifications:
+    fixed-delay-ms: 5000
+    max-attempts: 3
+    batch-size: 50
+
+  pos:
+    fixed-delay-ms: 5000
+    max-attempts: 5
+    batch-size: 25
+    base-backoff-seconds: 5
+
+  erp:
+    # El intervalo real (30 min) vive en config.setting; esto es cada cuánto se revisa si ya toca.
+    check-fixed-delay-ms: 60000
+    format: CSV
+    output-dir: /app/erp-out
+
+  invoicing:
+    series: A
+    issuer-name: MegaStore, S.A.
+    issuer-tax-id: 1234567-8
+
+  simulation:
+    # PayKlik, la SAT, LogiExpress, el proveedor de mensajería y el POS no existen para
+    # conectarse de verdad. Estos modos se cambian en caliente desde /api/simulation para
+    # demostrar los escenarios de falla. Valores: NORMAL, SLOW, DOWN, REJECT.
+    payklik: NORMAL
+    sat: NORMAL
+    logiexpress: NORMAL
+    messaging: NORMAL
+    pos: NORMAL
+    normal-latency-ms: 80
+    slow-latency-ms: 5500
+    # El ~2% de timeouts que LogiExpress tiene documentado (ADR-0004). En 0 la demo es determinista.
+    logiexpress-timeout-rate: 0.02
