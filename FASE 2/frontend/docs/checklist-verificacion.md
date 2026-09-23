@@ -25,6 +25,26 @@ Plantilla por pantalla: marcar cada RF de su historia y el RNF aplicable antes d
 - [x] El resto del carrito no se ve afectado cuando un producto falla al agregarse (RF PB-003.3)
 - [x] El carrito persiste tras recargar la página, dentro del mismo navegador (simulación local de "el carrito es del cliente" — pendiente de validar cross-device con backend real)
 
+## Identificación del cliente (transversal) — PB-009
+
+- [x] El carrito queda asociado al cliente identificado, no al canal/dispositivo (RF PB-009.3 — vía `CustomerContext`)
+- [x] Existe un mecanismo de reidentificación accesible en todo momento (RF PB-009.2 — control "¿No eres tú?" en la sidebar + modal bloqueante)
+- [ ] Detección automática de sesión no reconocible al cambiar de canal (RF PB-009.2, parcial) — el mock la simula manualmente; no hay canales reales que forzar el escenario todavía.
+
+## Checkout (`/checkout`) — PB-004
+
+- [x] Permite elegir centro de distribución, tienda o recogida como método de entrega (RF PB-004.1)
+- [x] Al confirmar, la orden pasa a estado "pendiente de pago" (RF PB-004.2)
+- [x] Se dispara el flujo hacia la orden creada (RF PB-004.3) — el flujo de pago en sí es PB-010 (siguiente entrega)
+- [x] Un carrito vacío no permite llegar a confirmar una compra sin productos
+
+## Estado de orden (`/ordenes/:id`) — base para PB-025
+
+- [x] Muestra número de orden, ítems, total, método de entrega y estado
+- [x] Un id de orden inexistente responde con mensaje claro, sin exponer otras órdenes
+
 ## Hallazgos pendientes de este plan
 
 - La sugerencia de producto/tienda alternativa en PB-003 es un texto fijo de demo — falta contrato real del backend para dato dinámico (ver `docs/contratos-api/catalog-service.md`).
+- La reidentificación (PB-009) se dispara manualmente desde la sidebar, no automáticamente al detectar una sesión perdida — falta que Customer Service defina el mecanismo real de detección (ver `docs/contratos-api/order-checkout-service.md`).
+- `/ordenes/:id` hoy solo muestra lo que devuelve la creación de la orden — la vista consolidada completa (pago, despacho, entrega, incidencias) es PB-025, todavía no implementada.
