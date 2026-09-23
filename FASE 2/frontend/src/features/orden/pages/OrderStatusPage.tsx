@@ -1,11 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Pill } from '../../../shared/components/Pill'
 import { BackLink } from '../../../shared/components/BackLink'
 import { Button } from '../../../shared/components/Button'
+import { useNotify } from '../../../shared/notifications/NotificationContext'
 import { mockOrderRepository } from '../api/orderRepository.mock'
 import { ETIQUETA_ESTADO } from '../estadoLabels'
 import type { Order } from '../types'
+
+const MENSAJE_TRANSICION: Partial<Record<Order['estado'], { texto: string; tono: 'ok' | 'falla' | 'info' }>> = {
+  pagada: { texto: 'Tu pago fue confirmado.', tono: 'ok' },
+  pago_fallido: { texto: 'El pago falló definitivamente.', tono: 'falla' },
+}
 
 const ETIQUETA_ENTREGA: Record<Order['metodoEntrega'], string> = {
   centro_distribucion: 'Centro de distribución',
@@ -23,6 +29,8 @@ export function OrderStatusPage() {
   const { id } = useParams<{ id: string }>()
   const [orden, setOrden] = useState<Order | null>(null)
   const [cargando, setCargando] = useState(true)
+  const { notificar } = useNotify()
+  const estadoAnteriorRef = useRef<Order['estado'] | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -31,6 +39,14 @@ export function OrderStatusPage() {
     async function consultar() {
       const resultado = await mockOrderRepository.getOrder(id!)
       if (cancelado) return
+      if (resultado) {
+        const anterior = estadoAnteriorRef.current
+        if (anterior && anterior !== resultado.estado) {
+          const transicion = MENSAJE_TRANSICION[resultado.estado]
+          if (transicion) notificar(transicion.texto, transicion.tono)
+        }
+        estadoAnteriorRef.current = resultado.estado
+      }
       setOrden(resultado)
       setCargando(false)
     }
@@ -47,7 +63,7 @@ export function OrderStatusPage() {
       cancelado = true
       clearInterval(intervalo)
     }
-  }, [id])
+  }, [id, notificar])
 
   if (cargando) return <p className="text-sm text-gray-400">Cargando orden…</p>
   if (!orden) return <p className="text-sm text-falla">No encontramos una orden con ese número.</p>

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { BackLink } from '../../../shared/components/BackLink'
 import { Button } from '../../../shared/components/Button'
 import { Pill } from '../../../shared/components/Pill'
+import { useNotify } from '../../../shared/notifications/NotificationContext'
 import { mockOrderRepository } from '../../orden/api/orderRepository.mock'
 import { mockPaymentRepository } from '../api/paymentRepository.mock'
 import type { Order } from '../../orden/types'
@@ -21,6 +22,7 @@ function formatQ(valor: number): string {
 export function PaymentPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { notificar } = useNotify()
   const [orden, setOrden] = useState<Order | null>(null)
   const [cargando, setCargando] = useState(true)
   const [metodo, setMetodo] = useState<MetodoPago>('tarjeta')
@@ -79,7 +81,14 @@ export function PaymentPage() {
       metodo === 'tarjeta' ? { ultimosDigitos } : undefined,
     )
 
-    if (intento.resultado === 'aprobado' || intento.resultado === 'en_proceso') {
+    if (intento.resultado === 'aprobado') {
+      notificar('Pago aprobado. Tu orden fue confirmada.', 'ok')
+      navigate(`/ordenes/${orden.id}`)
+      return
+    }
+
+    if (intento.resultado === 'en_proceso') {
+      notificar('Tu pago quedó en proceso. Te avisaremos cuando se confirme.', 'info')
       navigate(`/ordenes/${orden.id}`)
       return
     }
@@ -87,7 +96,9 @@ export function PaymentPage() {
     // Rechazado: releer la orden, porque el repositorio ya pudo haberla marcado pago_fallido.
     const actualizada = await mockOrderRepository.getOrder(orden.id)
     setOrden(actualizada)
-    setRechazoMotivo(intento.motivo ?? 'El cobro fue rechazado')
+    const motivo = intento.motivo ?? 'El cobro fue rechazado'
+    setRechazoMotivo(motivo)
+    notificar(`Pago rechazado: ${motivo}`, 'falla')
     setEnviando(false)
   }
 
