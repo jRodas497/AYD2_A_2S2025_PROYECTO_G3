@@ -37,4 +37,10 @@ export const mockOrderRepository: OrderRepository = {
   async getOrder(id) {
     return esperar(ORDENES.find((o) => o.id === id) ?? null)
   },
+  async updateEstado(id, estado) {
+    const orden = ORDENES.find((o) => o.id === id)
+    if (!orden) return esperar(null)
+    orden.estado = estado
+    return esperar(orden)
+  },
 }

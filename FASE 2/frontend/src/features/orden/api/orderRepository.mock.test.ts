@@ -36,4 +36,21 @@ describe('mockOrderRepository', () => {
     const resultado = await mockOrderRepository.getOrder('SGO-NOEXISTE')
     expect(resultado).toBeNull()
   })
+
+  it('updateEstado cambia el estado de una orden existente', async () => {
+    const creada = await mockOrderRepository.createOrder({
+      customerId: 'cliente-x',
+      items: [ITEM],
+      metodoEntrega: 'tienda',
+    })
+    const actualizada = await mockOrderRepository.updateEstado(creada.id, 'pagada')
+    expect(actualizada?.estado).toBe('pagada')
+    const recuperada = await mockOrderRepository.getOrder(creada.id)
+    expect(recuperada?.estado).toBe('pagada')
+  })
+
+  it('updateEstado retorna null si el id no existe', async () => {
+    const resultado = await mockOrderRepository.updateEstado('SGO-NOEXISTE', 'pagada')
+    expect(resultado).toBeNull()
+  })
 })

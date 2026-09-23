@@ -2,7 +2,7 @@ import type { CartItem } from '../carrito/types'
 
 export type MetodoEntrega = 'centro_distribucion' | 'tienda' | 'recogida'
 
-export type EstadoOrden = 'pendiente_pago' | 'pagada' | 'pago_fallido'
+export type EstadoOrden = 'pendiente_pago' | 'pago_en_proceso' | 'pagada' | 'pago_fallido'
 
 export interface Order {
   id: string
