@@ -17,10 +17,10 @@ const NotificationContext = createContext<NotificationContextValue | null>(null)
 const DURACION_MS = 4000
 
 const TONE_STYLES: Record<NotificationTone, string> = {
-  ok: 'border-ok',
-  alerta: 'border-alerta',
-  falla: 'border-falla',
-  info: 'border-brand',
+  ok: 'bg-green-50 border-green-400 text-green-900',
+  alerta: 'bg-orange-50 border-orange-400 text-orange-900',
+  falla: 'bg-red-50 border-red-400 text-red-900',
+  info: 'bg-blue-50 border-blue-400 text-blue-900',
 }
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
@@ -43,17 +43,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   return (
     <NotificationContext.Provider value={{ notificar }}>
       {children}
-      <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 w-80 max-w-[calc(100vw-2rem)]">
+      <div className="fixed top-20 right-4 z-50 flex flex-col gap-2 w-80 max-w-[calc(100vw-2rem)]">
         {notificaciones.map((n) => (
           <div
             key={n.id}
-            className={`bg-white rounded shadow-md border-l-4 ${TONE_STYLES[n.tono]} px-4 py-3 text-sm text-ink flex items-start justify-between gap-3`}
+            className={`rounded shadow-lg border ${TONE_STYLES[n.tono]} px-4 py-3 text-sm flex items-start justify-between gap-3`}
           >
             <span>{n.mensaje}</span>
             <button
               type="button"
               onClick={() => cerrar(n.id)}
-              className="text-gray-400 hover:text-gray-600 leading-none"
+              className="opacity-60 hover:opacity-100 leading-none"
               aria-label="Cerrar notificación"
             >
               ×
