@@ -43,8 +43,19 @@ Plantilla por pantalla: marcar cada RF de su historia y el RNF aplicable antes d
 - [x] Muestra número de orden, ítems, total, método de entrega y estado
 - [x] Un id de orden inexistente responde con mensaje claro, sin exponer otras órdenes
 
+## Pago (`/ordenes/:id/pago`) — PB-010, PB-013, PB-014
+
+- [x] Ofrece tarjeta, transferencia y billetera digital (RF PB-010.1)
+- [x] El resultado (aprobado, rechazado o en proceso) se refleja en la orden y se muestra al cliente (RF PB-010.3)
+- [x] Un cobro rechazado devuelve la orden a "pendiente de pago" y muestra el motivo (RF PB-013.1, PB-013.2)
+- [x] Se puede elegir un método de pago distinto sin recrear el carrito/la orden (RF PB-013.3)
+- [x] Existe un máximo de reintentos fallidos; al agotarse, la orden queda "fallido definitivo" (RF PB-014.1, PB-014.2)
+- [x] El formulario nunca conserva el número completo de tarjeta ni el CVV en su estado tras enviar el intento (DC-08/RC06)
+- [x] RNF: mientras el pago está "en proceso", `OrderStatusPage` sondea sin bloquear la UI (no hay spinner de pantalla completa)
+
 ## Hallazgos pendientes de este plan
 
 - La sugerencia de producto/tienda alternativa en PB-003 es un texto fijo de demo — falta contrato real del backend para dato dinámico (ver `docs/contratos-api/catalog-service.md`).
 - La reidentificación (PB-009) se dispara manualmente desde la sidebar, no automáticamente al detectar una sesión perdida — falta que Customer Service defina el mecanismo real de detección (ver `docs/contratos-api/order-checkout-service.md`).
 - `/ordenes/:id` hoy solo muestra lo que devuelve la creación de la orden — la vista consolidada completa (pago, despacho, entrega, incidencias) es PB-025, todavía no implementada.
+- PB-014 AC3 pide que el cliente "reciba una notificación" al fallar definitivamente — hoy es solo un mensaje inline en `/ordenes/:id` y `/ordenes/:id/pago`; la notificación real (SMS/correo/in-app) depende de Notification Service y de PB-040, todavía no implementado.
