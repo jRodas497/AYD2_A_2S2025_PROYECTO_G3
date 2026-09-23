@@ -2,6 +2,7 @@ import { AppLayout } from './shared/layout/AppLayout'
 import { AppRouter } from './app/router'
 import { CustomerProvider } from './shared/context/CustomerContext'
 import { CartProvider } from './features/carrito/context/CartContext'
+import { ReidentifyPrompt } from './shared/components/ReidentifyPrompt'
 
 function App() {
   return (
@@ -10,6 +11,7 @@ function App() {
         <AppLayout>
           <AppRouter />
         </AppLayout>
+        <ReidentifyPrompt />
       </CartProvider>
     </CustomerProvider>
   )

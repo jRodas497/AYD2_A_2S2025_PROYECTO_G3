@@ -3,7 +3,7 @@ import { useCustomer } from '../context/CustomerContext'
 import { useCartContext } from '../../features/carrito/context/CartContext'
 
 export function Topbar() {
-  const customer = useCustomer()
+  const { customer } = useCustomer()
   const { cart } = useCartContext()
   const cantidadTotal = cart.items.reduce((total, item) => total + item.cantidad, 0)
 

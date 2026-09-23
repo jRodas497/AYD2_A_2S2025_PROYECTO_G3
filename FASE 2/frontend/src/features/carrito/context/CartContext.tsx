@@ -12,7 +12,7 @@ interface CartContextValue {
 const CartContext = createContext<CartContextValue | null>(null)
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const customer = useCustomer()
+  const { customer } = useCustomer()
   const [cart, setCartState] = useState<Cart>(EMPTY_CART)
   const [cargando, setCargando] = useState(true)
 
