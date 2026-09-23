@@ -31,7 +31,11 @@ export function useCarrito() {
     return { ok: true }
   }
 
+  async function vaciarCarrito(): Promise<void> {
+    await setCart({ items: [] })
+  }
+
   const total = cart.items.reduce((suma, item) => suma + item.precioUnitario * item.cantidad, 0)
 
-  return { cart, cargando, agregarProducto, total }
+  return { cart, cargando, agregarProducto, vaciarCarrito, total }
 }
