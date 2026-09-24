@@ -3,6 +3,7 @@ package com.sgologic.integration;
 import com.sgologic.common.DeliveryStatus;
 import com.sgologic.external.CircuitBreakers;
 import com.sgologic.integration.pos.PosEventService;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -26,12 +27,15 @@ public class IntegrationController {
     private final OutboxRepository outbox;
     private final PosEventService posEvents;
     private final CircuitBreakers breakers;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbc;
 
     public IntegrationController(
-            OutboxRepository outbox, PosEventService posEvents, CircuitBreakers breakers) {
+            OutboxRepository outbox, PosEventService posEvents, CircuitBreakers breakers,
+            org.springframework.jdbc.core.JdbcTemplate jdbc) {
         this.outbox = outbox;
         this.posEvents = posEvents;
         this.breakers = breakers;
+        this.jdbc = jdbc;
     }
 
     /** Una sola pantalla: circuitos, cola de eventos y cola del POS. */
@@ -40,7 +44,9 @@ public class IntegrationController {
         return Map.of(
                 "circuitos", breakers.states(),
                 "outbox", outbox.countByStatus(),
-                "pos", posEvents.countByStatus());
+                "pos", posEvents.countByStatus(),
+                "avisos", countByStatus("notifications.notification"),
+                "erp", countByStatus("integration.erp_batch"));
     }
 
     /**
@@ -61,6 +67,20 @@ public class IntegrationController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "evento no encontrado");
         }
         return Map.of("id", id, "status", DeliveryStatus.PENDING.code());
+    }
+
+    /** Entregados, pendientes y fallidos de una cola: la tasa de éxito que pide el ADR-0004. */
+    private Map<String, Long> countByStatus(String table) {
+        return jdbc.query(
+                "select s.code, count(t.id) as total from config.delivery_status s "
+                        + "left join " + table + " t on t.status_id = s.id group by s.code",
+                rs -> {
+                    Map<String, Long> counts = new LinkedHashMap<>();
+                    while (rs.next()) {
+                        counts.put(rs.getString("code"), rs.getLong("total"));
+                    }
+                    return counts;
+                });
     }
 
     private static DeliveryStatus parse(String status) {

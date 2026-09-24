@@ -39,6 +39,9 @@ public class ExternalSimulation {
     @Value("${sgologic.simulation.pos:NORMAL}")
     private SimulationMode pos;
 
+    @Value("${sgologic.simulation.erp:NORMAL}")
+    private SimulationMode erp;
+
     /**
      * Proporción de llamadas que fallan aunque el proveedor esté en NORMAL. LogiExpress tiene
      * ~2% de timeouts documentados (ADR-0004); dejarlo en 0 vuelve la demo determinista.
@@ -53,6 +56,7 @@ public class ExternalSimulation {
         modes.put(Provider.LOGIEXPRESS, logiexpress);
         modes.put(Provider.MESSAGING, messaging);
         modes.put(Provider.POS, pos);
+        modes.put(Provider.ERP, erp);
     }
 
     public SimulationMode modeOf(Provider provider) {
