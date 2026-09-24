@@ -45,6 +45,22 @@ trabado: el préstamo vence y otro lo vuelve a tomar.
 Esta decisión **no** cambia ADR-0001, ADR-0002 ni ADR-0004: los implementa. El día que haga
 falta un broker externo, los manejadores no cambian — cambia quién los invoca.
 
+### Cómo se aplica al cobro (refina el ADR-0002)
+
+El ADR-0002 dice que el intento de pago se registra en el outbox "en la misma transacción que crea
+la orden". En la implementación, la garantía es la misma pero el orden es distinto:
+
+1. El checkout crea la orden en `PENDING_PAYMENT` (sin evento: todavía no hay nada que reintentar).
+2. Al cobrar, una transacción corta pasa la orden a `PAYMENT_IN_PROGRESS` **antes** de llamar a
+   PayKlik. Desde ese momento la orden existe y está marcada como "cobro en curso", pase lo que
+   pase con el proveedor o con este mismo servicio.
+3. Si PayKlik no responde, en la transacción que registra el intento fallido se publica
+   `PaymentRetryRequested` en el outbox; si aprueba, se publica `OrderPaid`.
+
+Publicar un evento de cobro al crear la orden obligaría a reintentar cobros que el cliente todavía
+no pidió. La propiedad que el ADR-0002 buscaba —ninguna orden se pierde por una falla de PayKlik—
+se mantiene y se comprobó cayendo el proveedor a propósito.
+
 ## Alternativas consideradas
 
 | Alternativa | Ventajas | Desventajas | Por qué se descartó |
