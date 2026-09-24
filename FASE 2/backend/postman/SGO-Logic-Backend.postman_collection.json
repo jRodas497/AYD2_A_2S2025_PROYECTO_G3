@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "SGO-Logic — Backend",
-    "description": "API completa de SGO-Logic.\n\n- **Núcleo comercial (Backend 1):** catálogo, clientes, inventario, carrito y órdenes. Detalle en `FASE 2/backend/API.md`.\n- **Transacciones e integraciones (Backend 2):** pagos, facturación, logística, notificaciones, auditoría e integraciones con PayKlik, la SAT, LogiExpress, el POS y el ERP-Core. Detalle en `FASE 2/backend/API-Transacciones.md`.\n\nUsar el entorno 'SGO-Logic Local' (baseUrl = http://localhost:8080).\n\n**Orden sugerido para recorrer el flujo completo:** Carrito > Agregar ítem al carrito, Órdenes > Checkout (guarda {{lastOrderId}}), Pagos > Cobrar una orden, y de ahí la facturación y el despacho ocurren solos — se ven con Órdenes > Consultar estado, Auditoría > Trazabilidad de una orden y Logística > Ver el envío de una orden.",
+    "description": "API completa de SGO-Logic.\n\n- **Núcleo comercial (Backend 1):** catálogo, clientes, inventario, carrito y órdenes. Detalle en `FASE 2/backend/API.md`.\n- **Transacciones e integraciones (Backend 2):** pagos, facturación, logística, notificaciones, auditoría e integraciones con PayKlik, la SAT, LogiExpress, el POS y el ERP-Core. Detalle en `FASE 2/backend/API-Transacciones.md`.\n\nUsar el entorno 'SGO-Logic Local' (baseUrl = http://localhost:8080).\n\n**Orden sugerido para recorrer el flujo completo:** Carrito > Agregar ítem al carrito, Órdenes > Checkout (guarda {{lastOrderId}}), Pagos > Cobrar una orden, y de ahí la facturación y el despacho ocurren solos — se ven con Órdenes > Consultar estado, Auditoría > Trazabilidad de una orden y Logística > Ver el envío de una orden.\n\n**Correr la colección completa en orden** (Collection Runner) funciona de punta a punta: las consultas de factura y envío esperan unos segundos porque el outbox los genera de forma asíncrona. Los únicos no-2xx esperados son los que prueban una regla: el cobro con número de tarjeta (400) y los que pasan por la carpeta de simulación.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -35,6 +35,10 @@
     },
     {
       "key": "posEventId",
+      "value": "1"
+    },
+    {
+      "key": "incidentId",
       "value": "1"
     }
   ],
@@ -132,7 +136,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fullName\": \"Cliente de prueba (Postman)\",\n  \"email\": \"postman@example.com\",\n  \"phone\": \"50200000000\",\n  \"address\": \"Zona 1, Ciudad de Guatemala\"\n}"
+              "raw": "{\n  \"fullName\": \"Cliente de prueba (Postman)\",\n  \"email\": \"postman+{{$timestamp}}@example.com\",\n  \"phone\": \"50200000000\",\n  \"address\": \"Zona 1, Ciudad de Guatemala\"\n}"
             }
           }
         },
@@ -159,7 +163,56 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fullName\": \"Cliente actualizado\",\n  \"email\": \"actualizado@example.com\",\n  \"phone\": \"50299999999\",\n  \"address\": \"Zona 15, Ciudad de Guatemala\"\n}"
+              "raw": "{\n  \"fullName\": \"Cliente actualizado\",\n  \"email\": \"actualizado+{{$timestamp}}@example.com\",\n  \"phone\": \"50299999999\",\n  \"address\": \"Zona 15, Ciudad de Guatemala\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Historial del cliente (órdenes y atenciones)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/customers/{{customerId}}/history?limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "customers",
+                "{{customerId}}",
+                "history"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "description": "La ficha que ve el agente: cliente, órdenes más recientes primero y atenciones."
+        },
+        {
+          "name": "Órdenes del cliente",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/customers/{{customerId}}/orders?limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "customers",
+                "{{customerId}}",
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
             }
           }
         }
@@ -183,6 +236,115 @@
                 "products",
                 "{{productId}}",
                 "availability"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Registrar entrada de mercancía",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/movements",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "inventory",
+                "movements"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"locationCode\": \"T-07\",\n  \"productId\": 1,\n  \"type\": \"IN\",\n  \"quantity\": 10,\n  \"reason\": \"Reposición desde proveedor\"\n}"
+            }
+          },
+          "description": "Suma existencia, deja el movimiento y, si es una tienda, avisa a su POS."
+        },
+        {
+          "name": "Registrar salida de mercancía",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/movements",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "inventory",
+                "movements"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"locationCode\": \"T-07\",\n  \"productId\": 1,\n  \"type\": \"OUT\",\n  \"quantity\": 1,\n  \"reason\": \"Merma: unidad dañada\"\n}"
+            }
+          },
+          "description": "Solo puede sacar lo disponible; las unidades reservadas no se tocan (409)."
+        },
+        {
+          "name": "Ajuste por conteo físico (POS)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/adjustments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "inventory",
+                "adjustments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"locationCode\": \"T-07\",\n  \"productId\": 1,\n  \"countedQuantity\": 15,\n  \"source\": \"POS T-07 conteo semanal\"\n}"
+            }
+          },
+          "description": "CDU-08, E2: el conteo del POS se acepta como la existencia real; la diferencia queda como movimiento y en la auditoría. Un conteo menor a lo reservado se rechaza (409) y también se audita."
+        },
+        {
+          "name": "Movimientos de un producto",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/products/{{productId}}/movements?limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "inventory",
+                "products",
+                "{{productId}}",
+                "movements"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             }
           }
@@ -238,6 +400,93 @@
               "raw": "{\n  \"productId\": {{productId}},\n  \"quantity\": 1,\n  \"channel\": \"WEB\"\n}"
             }
           }
+        },
+        {
+          "name": "Cambiar la cantidad de un ítem",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/customers/{{customerId}}/cart/items/{{productId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "customers",
+                "{{customerId}}",
+                "cart",
+                "items",
+                "{{productId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 2,\n  \"channel\": \"MOBILE\"\n}"
+            }
+          },
+          "description": "Fija la cantidad exacta. `channel` opcional: queda como último canal del carrito."
+        },
+        {
+          "name": "Agregar otro producto (para luego quitarlo)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/customers/{{customerId}}/cart/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "customers",
+                "{{customerId}}",
+                "cart",
+                "items"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": 2,\n  \"quantity\": 1,\n  \"channel\": \"WEB\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Quitar un ítem del carrito",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/customers/{{customerId}}/cart/items/2?channel=CALL_CENTER",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "customers",
+                "{{customerId}}",
+                "cart",
+                "items",
+                "2"
+              ],
+              "query": [
+                {
+                  "key": "channel",
+                  "value": "CALL_CENTER"
+                }
+              ]
+            }
+          },
+          "description": "Quita el producto 2 que agregó el request anterior; el resto del carrito sigue para el checkout. 404 si el producto no está en el carrito."
         }
       ]
     },
@@ -409,7 +658,19 @@
               ]
             }
           },
-          "description": "404 mientras la orden no tenga factura."
+          "description": "404 mientras la orden no tenga factura.",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// La factura se emite de forma asíncrona (outbox) después del cobro: se esperan unos segundos.",
+                  "setTimeout(() => {}, 5000);"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Ver el XML de la factura",
@@ -496,6 +757,16 @@
         {
           "name": "Ver el envío de una orden",
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// El despacho y la guía también son asíncronos: salen cuando la SAT acepta la factura.",
+                  "setTimeout(() => {}, 5000);"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -641,35 +912,6 @@
           "description": "Reintento manual de la guía, para resolver una alerta. 503 si LogiExpress sigue caído."
         },
         {
-          "name": "Actualizar el rastreo",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/shipments/{{shipmentId}}/tracking",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "shipments",
-                "{{shipmentId}}",
-                "tracking"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"IN_TRANSIT\",\n  \"detail\": \"Salió del centro de distribución\"\n}"
-            }
-          },
-          "description": "Lo que manda LogiExpress cuando cambia el estado del envío. Con `status: DELIVERED` la orden pasa a DELIVERED y el cliente recibe el aviso."
-        },
-        {
           "name": "Cambiar el punto de despacho",
           "request": {
             "method": "PUT",
@@ -697,6 +939,173 @@
             }
           },
           "description": "CDU-04, flujo 1a: el cliente cambia el método de entrega después de comprar. Devuelve la mercancía al origen anterior y la toma del nuevo, sin perder la trazabilidad. Si la guía ya estaba emitida, se anula y se pide una nueva.\n\n- 409 si la mercancía ya salió (IN_TRANSIT o posterior).\n- 409 si el nuevo origen no tiene existencia: no se mueve nada."
+        },
+        {
+          "name": "Actualizar el rastreo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/shipments/{{shipmentId}}/tracking",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shipments",
+                "{{shipmentId}}",
+                "tracking"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_TRANSIT\",\n  \"detail\": \"Salió del centro de distribución\"\n}"
+            }
+          },
+          "description": "Lo que manda LogiExpress cuando cambia el estado del envío. Con `status: DELIVERED` la orden pasa a DELIVERED y el cliente recibe el aviso."
+        }
+      ]
+    },
+    {
+      "name": "Atenciones (cambios y devoluciones)",
+      "description": "Registrar atención (CDU-05). Solo sobre órdenes ya pagadas. Cada paso queda en la auditoría. Una devolución resuelta deja la orden en RETURNED. En el recorrido de la colección va después de Logística porque la orden del checkout ya tiene que estar cobrada.",
+      "item": [
+        {
+          "name": "Registrar una devolución",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) {",
+                  "    pm.collectionVariables.set('incidentId', pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{lastOrderId}}/incidents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{lastOrderId}}",
+                "incidents"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"RETURN\",\n  \"description\": \"Llegó con la caja dañada\",\n  \"actor\": \"agente-07\"\n}"
+            }
+          },
+          "description": "409 si la orden todavía no está pagada."
+        },
+        {
+          "name": "Atenciones de una orden",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{lastOrderId}}/incidents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{lastOrderId}}",
+                "incidents"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Ver una atención",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/incidents/{{incidentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "incidents",
+                "{{incidentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Pasar la atención a en proceso",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/incidents/{{incidentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "incidents",
+                "{{incidentId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_PROCESS\",\n  \"note\": \"se pidió foto del daño\",\n  \"actor\": \"agente-07\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Resolver la atención",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/incidents/{{incidentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "incidents",
+                "{{incidentId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"RESOLVED\",\n  \"note\": \"devolución aceptada\",\n  \"actor\": \"agente-07\"\n}"
+            }
+          },
+          "description": "Si es una devolución, la orden queda RETURNED. Una atención cerrada ya no se puede cambiar (409)."
         }
       ]
     },
@@ -1001,6 +1410,37 @@
           "description": "Cierra la ventana sin esperar los 30 minutos. Agrupa las órdenes con factura aceptada que todavía no están en ningún lote.\n\nEs idempotente: una orden entra en un solo lote, así que correrlo dos veces no manda la misma venta dos veces al ERP. Si no hay nada pendiente devuelve `generated: false` en vez de crear un lote vacío."
         },
         {
+          "name": "Reintentar la entrega de un lote",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/integration/erp/batches/{{batchId}}/retry",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "integration",
+                "erp",
+                "batches",
+                "{{batchId}}",
+                "retry"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          },
+          "description": "Reentrega a mano un lote que quedó PENDING porque la carpeta del AS/400 no estaba disponible. El job también lo reintenta solo cada minuto. Reenvía el mismo archivo con las mismas órdenes: nunca duplica una venta."
+        },
+        {
           "name": "Lotes del ERP",
           "request": {
             "method": "GET",
@@ -1143,7 +1583,7 @@
           "description": "Cada intento de cobro con su orden, canal, fecha y resultado. Filtros opcionales: `result` (APPROVED, DECLINED, TIMEOUT, ERROR), `channel`, `orderId`, `from`, `to`."
         },
         {
-          "name": "Resumen de ventas",
+          "name": "Informe de ventas conciliado",
           "request": {
             "method": "GET",
             "url": {
@@ -1158,13 +1598,13 @@
               ]
             }
           },
-          "description": "Ventas por canal y por estado. Por defecto, los últimos 30 días; se acota con `from` y `to` en fecha ISO."
+          "description": "Ventas por canal y por estado, más la conciliación contra el ERP: cuánto está facturado, cuánto ya se entregó al AS/400 y si cuadra. Por defecto los últimos 30 días; se acota con `from` y `to` en fecha ISO. Cada generación queda en la auditoría."
         }
       ]
     },
     {
       "name": "Simulación de terceros (solo demo)",
-      "description": "PayKlik, la SAT, LogiExpress, el proveedor de mensajería y el POS no existen para conectarse de verdad. Esto cambia su comportamiento en caliente para demostrar los escenarios de falla. No es un endpoint de negocio: en un despliegue real no existe.\n\nModos: NORMAL, SLOW (tarda más del umbral, da timeout), DOWN (no responde) y REJECT (responde rechazando).",
+      "description": "PayKlik, la SAT, LogiExpress, el proveedor de mensajería y el POS no existen para conectarse de verdad. Esto cambia su comportamiento en caliente para demostrar los escenarios de falla. No es un endpoint de negocio: en un despliegue real no existe.\n\nModos: NORMAL, SLOW (tarda más del umbral, da timeout), DOWN (no responde) y REJECT (responde rechazando).\n\nCada falla va seguida de su \"vuelve\": correr la carpeta completa deja a todos los terceros en NORMAL.",
       "item": [
         {
           "name": "Ver el estado de los terceros",
@@ -1209,34 +1649,6 @@
             }
           },
           "description": "Con esto, cobrar deja la orden en PAYMENT_IN_PROGRESS y el cobro pasa a la cola de contingencia. Tras 3 fallas seguidas el circuito se abre y ya ni se intenta. La orden nunca se pierde."
-        },
-        {
-          "name": "PayKlik vuelve",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/simulation/payklik",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "simulation",
-                "payklik"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"mode\": \"NORMAL\"\n}"
-            }
-          },
-          "description": "El cobro encolado se resuelve solo en el siguiente reintento y de ahí sigue el flujo completo: factura, despacho y guía."
         },
         {
           "name": "PayKlik lento (timeout)",
@@ -1293,6 +1705,34 @@
             }
           },
           "description": "El cobro queda DECLINED con su motivo y la orden en PAYMENT_FAILED: el cliente puede reintentar con otro método."
+        },
+        {
+          "name": "PayKlik vuelve",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/simulation/payklik",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "simulation",
+                "payklik"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"NORMAL\"\n}"
+            }
+          },
+          "description": "El cobro encolado se resuelve solo en el siguiente reintento y de ahí sigue el flujo completo: factura, despacho y guía."
         },
         {
           "name": "La SAT rechaza la factura",
@@ -1506,6 +1946,61 @@
                 "api",
                 "simulation",
                 "pos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"NORMAL\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Se cae la carpeta del AS/400",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/simulation/erp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "simulation",
+                "erp"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"DOWN\"\n}"
+            }
+          },
+          "description": "El siguiente lote se crea pero queda PENDING, y el informe de ventas deja de cuadrar hasta que se entregue."
+        },
+        {
+          "name": "Vuelve la carpeta del AS/400",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/simulation/erp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "simulation",
+                "erp"
               ]
             },
             "body": {

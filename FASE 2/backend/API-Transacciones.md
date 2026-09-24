@@ -251,14 +251,16 @@ como último recurso.
 
 ### `GET /api/integration/health`
 
-Una sola consulta con el estado de cada tercero y la profundidad de las colas.
+Una sola consulta con el estado de cada tercero y cuánto hay entregado, pendiente y fallido en cada cola: el broker, el POS, los avisos y los lotes del ERP. Es la tasa de éxito y la profundidad de cola que pide el ADR-0004.
 
 ```json
 {
   "circuitos": { "PAYKLIK": "CLOSED", "SAT": "CLOSED", "LOGIEXPRESS": "OPEN",
                  "MESSAGING": "CLOSED", "POS": "CLOSED" },
   "outbox": { "PENDING": 1, "DELIVERED": 24, "FAILED": 0 },
-  "pos": { "PENDING": 0, "DELIVERED": 3, "FAILED": 0 }
+  "pos": { "PENDING": 0, "DELIVERED": 3, "FAILED": 0 },
+  "avisos": { "PENDING": 0, "DELIVERED": 12, "FAILED": 0 },
+  "erp": { "PENDING": 0, "DELIVERED": 4, "FAILED": 0 }
 }
 ```
 
@@ -279,6 +281,13 @@ Vuelve a encolar un evento agotado, una vez resuelto lo que lo tumbó.
 Los eventos de actualización hacia el POS de cada tienda. Con `FAILED` son las tiendas que se
 quedaron sin recibirlos.
 
+Hay dos tipos de evento:
+
+| `eventType` | Cuándo se manda | A quién |
+|---|---|---|
+| `StockAdjusted` | Cada vez que se mueve existencia en una tienda (despacho, reasignación, entrada, salida o ajuste) | Solo a esa tienda |
+| `InventoryConsolidated` | Al cerrar cada ventana del ERP: la existencia de los productos que se movieron, en esa tienda y en toda la red. Es el paso 10 del flujo principal | A las 32 tiendas |
+
 ### `POST /api/integration/pos/events/{id}/retry`
 
 ### `POST /api/integration/erp/batches`
@@ -295,9 +304,21 @@ Cierra la ventana de conciliación ahora mismo, sin esperar los 30 minutos.
 }
 ```
 
+Al cerrarse el lote, las 32 tiendas reciben por el POS la existencia consolidada de lo que se movió en la ventana (`InventoryConsolidated`, paso 10 del flujo principal).
+
 Si no hay ventas pendientes responde `{ "generated": false, ... }` con el motivo, en vez de
 crear un lote vacío. **Una orden entra en un solo lote**, así que correrlo dos veces no manda la
 misma venta dos veces al ERP.
+
+Si la carpeta de intercambio con el AS/400 no está disponible, el lote se crea igual pero queda
+en `PENDING`: sus órdenes ya le pertenecen y no entran en ningún otro. El job lo reintenta cada
+minuto, reconstruyendo el mismo archivo, hasta entregarlo.
+
+### `POST /api/integration/erp/batches/{id}/retry`
+
+Reintenta a mano la entrega de un lote `PENDING`. Responde el lote con su estado actual; si la
+carpeta sigue caída, vuelve igual en `PENDING`. Cada reentrega queda en la auditoría
+(`ERP_LOTE_REENVIADO`).
 
 ### `GET /api/integration/erp/batches?limit=20` — los lotes con su ventana, archivo, cantidad de órdenes y monto.
 
@@ -342,7 +363,17 @@ Valores típicos de `action`: `COBRO_INICIADO`, `COBRO_REINTENTADO`, `COBRO_APPR
 `COBRO_DECLINED`, `COBRO_TIMEOUT`, `COBRO_ERROR`, `COBRO_AGOTADO`, `FACTURA_GENERADA`,
 `FACTURA_ACEPTADA`, `FACTURA_RECHAZADA`, `FACTURA_SIN_RESPUESTA`, `FACTURA_ESCALADA`,
 `DESPACHO_ASIGNADO`, `DESPACHO_REASIGNADO`, `GUIA_EMITIDA`, `GUIA_FALLIDA`, `GUIA_ESCALADA`,
-`ENVIO_IN_TRANSIT`, `ENVIO_DELIVERED`, `ENVIO_FAILED`, `ERP_LOTE_GENERADO`.
+`ENVIO_IN_TRANSIT`, `ENVIO_DELIVERED`, `ENVIO_FAILED`, `ERP_LOTE_GENERADO`, `ERP_LOTE_REENVIADO`,
+`REPORTE_VENTAS_GENERADO`, `ATENCION_REGISTRADA`, `ATENCION_IN_PROCESS`, `ATENCION_RESOLVED`,
+`ATENCION_REJECTED`, `INVENTARIO_ENTRADA`, `INVENTARIO_SALIDA`, `INVENTARIO_AJUSTE`,
+`INVENTARIO_AJUSTE_RECHAZADO`.
+
+### Consultas lentas
+
+Si `GET /api/orders/{id}` tarda más de 5 s, o una consulta de auditoría o cobros más de 1 s, queda
+una línea `WARN` en el log `sgologic.capacidad` con la ruta y el tiempo (CDU-06, E2: una consulta
+fuera de meta "debe registrarse para revisión de capacidad"). Se ve con
+`docker logs sgologic-backend | grep sgologic.capacidad`.
 
 No hay endpoint para escribir auditoría: se escribe sola desde cada módulo, y la base no admite
 modificarla después.
@@ -354,7 +385,28 @@ Filtros opcionales: `result`, `channel`, `orderId`, `from`, `to`, `limit`.
 
 ### `GET /api/reports/sales`
 
-Ventas por canal y por estado. Por defecto los últimos 30 días; se acota con `from` y `to`.
+Informe de ventas conciliado. Por defecto los últimos 30 días; se acota con `from` y `to`.
+
+```json
+{
+  "from": "...", "to": "...",
+  "total": { "ordenes": 8, "monto": 18830.00 },
+  "reconciliation": {
+    "facturadas": 7, "monto_facturado": 16730.00,
+    "entregadas_al_erp": 7, "monto_entregado_al_erp": 16730.00,
+    "en_lote_pendiente": 0, "facturadas_sin_lote": 0, "monto_sin_lote": 0,
+    "cuadra": true
+  },
+  "byChannel": [ { "canal": "WEB", "ordenes": 6, "monto": 14630.00 } ],
+  "byStatus": [ { "estado": "IN_DISPATCH", "ordenes": 6, "monto": 12780.00 } ]
+}
+```
+
+`reconciliation` compara lo facturado con lo que ya se entregó al ERP. `cuadra: false` significa
+que hay ventas facturadas que el AS/400 todavía no tiene —en un lote pendiente de entrega o
+esperando la siguiente ventana—, y los campos de al lado dicen cuántas y por cuánto. Cada vez que
+se genera el informe queda en la auditoría (`REPORTE_VENTAS_GENERADO`) con el periodo y las cifras
+que mostró.
 
 ---
 
@@ -370,7 +422,7 @@ caliente para demostrar los escenarios de falla.
 
 ### `PUT /api/simulation/{provider}`
 
-`provider`: `payklik`, `sat`, `logiexpress`, `messaging`, `pos`.
+`provider`: `payklik`, `sat`, `logiexpress`, `messaging`, `pos`, `erp` (la carpeta de intercambio con el AS/400).
 
 ```json
 { "mode": "DOWN" }
@@ -393,3 +445,4 @@ caliente para demostrar los escenarios de falla.
 | LogiExpress `DOWN` | La orden se despacha igual (`IN_DISPATCH`, inventario descontado); lo que falta es la guía, y el envío aparece en `GET /api/shipments?status=GUIDE_REQUESTED`. |
 | Mensajería `DOWN` | El envío avanza igual; solo quedan avisos en `FAILED`. |
 | POS `DOWN` | Los eventos se acumulan pendientes y se entregan cuando la tienda vuelve. |
+| ERP `DOWN` y generar lote | El lote queda `PENDING` y el informe de ventas deja de cuadrar. Volver a `NORMAL`: el job (o el reintento manual) lo entrega y el informe vuelve a cuadrar, sin duplicar ninguna venta. |

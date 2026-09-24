@@ -1,6 +1,6 @@
 # Backend
 
-Java 21 + Spring Boot. Es un solo despliegue con un módulo por componente, como se decidió en el ADR-0001 (monolito modular con broker): no son dos servicios separados, son dos partes del reparto de trabajo dentro de la misma aplicación.
+Java 21 + Spring Boot. Todos los componentes corren en un solo contenedor, cada uno como un paquete propio con su propio esquema en la base. El ADR-0001 pedía contenedores independientes por componente; el MVP los junta para que el checkout pueda crear la orden y reservar el stock en una sola transacción, y la decisión está registrada en el [ADR-0009](../DDA/ADR/0009-alcance-de-despliegue-del-mvp.md). Backend 1 y Backend 2 son dos partes del reparto de trabajo dentro de la misma aplicación, no dos servicios.
 
 - **Núcleo comercial (Backend 1):** catálogo, clientes, inventario y órdenes/carrito.
 - **Transacciones e integraciones (Backend 2):** pagos, facturación, logística, notificaciones, auditoría e integraciones con PayKlik, la SAT, LogiExpress, el POS y el ERP-Core.
@@ -72,13 +72,20 @@ decidieron el ADR-0002 y el ADR-0004:
 | SAT | La orden se queda retenida antes de despacho. Es la regla dura: ninguna mercancía sale sin factura aceptada. Al agotarse los reintentos queda escalada en la auditoría. |
 | LogiExpress | El despacho se hace igual y el inventario baja; lo que falta es la guía. El envío queda listado en `GET /api/shipments?status=GUIDE_REQUESTED` como alerta para Logística. |
 | Mensajería | Solo se pierde el aviso. Confirmar, pagar, facturar y despachar siguen igual. |
-| POS de una tienda | Los eventos se acumulan pendientes y se entregan cuando la tienda vuelve. |
+| POS de una tienda | Los eventos se acumulan pendientes y se entregan cuando la tienda vuelve. Al cerrar cada ventana del ERP, las 32 tiendas reciben la existencia consolidada (paso 10 del flujo principal). |
+| Carpeta del AS/400 | El lote queda `PENDING` con sus órdenes ya asignadas y se reentrega cada minuto hasta que el archivo llegue. Nunca se duplica una venta. |
 
-Los cinco son simuladores: no hay un PayKlik ni una SAT reales contra los cuales integrarse. Cada
+Los seis son simuladores: no hay un PayKlik ni una SAT reales contra los cuales integrarse. Cada
 uno vive detrás de su propio `*Client` en `external`, que es el único archivo que cambia el día
 que el proveedor exista ([ADR-0008](../DDA/ADR/0008-terceros-simulados-tras-un-adaptador.md)).
 Su comportamiento se cambia en caliente desde `/api/simulation` para demostrar los escenarios de
 falla sin reiniciar nada.
+
+## Pruebas de los escenarios de calidad
+
+`FASE 2/pruebas/` tiene tres scripts ejecutables —reserva concurrente sin sobreventa, tiempos de
+respuesta bajo carga y el flujo completo con volumen— con los resultados medidos. Ver
+[`pruebas/README.md`](../pruebas/README.md).
 
 ## Endpoints
 
@@ -91,6 +98,11 @@ falla sin reiniciar nada.
 | GET | `/api/inventory/products/{id}/availability` | Existencia consolidada por ubicación (RF03) |
 | GET | `/api/customers/{id}/cart` | Ver el carrito activo (sin crear ni tocar el canal) |
 | POST | `/api/customers/{id}/cart/items` | Agregar un ítem (crea el carrito si no existe) |
+| PUT / DELETE | `/api/customers/{id}/cart/items/{productId}` | Cambiar la cantidad o quitar un ítem |
+| GET | `/api/customers/{id}/orders` · `/history` | Historial del cliente: órdenes y atenciones |
+| POST | `/api/inventory/movements` | Entrada o salida de mercancía; avisa al POS si es una tienda |
+| POST | `/api/inventory/adjustments` | Ajuste por conteo físico que reporta el POS (CDU-08, E2) |
+| POST · PATCH | `/api/orders/{id}/incidents` · `/api/incidents/{id}` | Registrar y avanzar un cambio o devolución |
 | POST | `/api/orders/checkout` | Convierte el carrito en orden, reserva stock |
 | GET | `/api/orders/{id}` | Estado completo de la orden (RC01, `orders.order_overview`) |
 
@@ -105,7 +117,9 @@ El adaptador del ERP escribe los CSV/XML en `/app/erp-out` dentro del contenedor
 
 ## Lo que falta a propósito
 
-No incluye gestión de incidencias (cambios/devoluciones), ni CRUD completo de catálogo (crear/editar producto). El enunciado prioriza el camino feliz de la demo; con el tiempo que quedó para la Fase 2, esto se dejó fuera a propósito, no por descuido.
+No incluye, de los CDU de la Fase 1: el reembolso de una devolución ni su aprobación por Finanzas arriba de USD 500 (CDU-05; la atención se registra y resuelve, pero no extiende el flujo de pago), la recogida en tienda como método de entrega (CDU-04), la sugerencia de un producto alternativo cuando no hay existencia (CDU-01, 2a) ni la reidentificación del cliente al cambiar de canal (CDU-01, E2, depende del login). Tampoco el CRUD completo de catálogo (crear/editar producto).
+
+Del lado del ERP, el adaptador manda las ventas facturadas pero no las devoluciones (el ADR-0003 las incluía): una orden devuelta después de conciliada no genera un registro de ajuste para el AS/400. Y no hay un canal de respuesta del AS/400, así que un lote que el ERP rechace por formato no se detecta automáticamente (CDU-07, E1). El enunciado prioriza el camino feliz de la demo; con el tiempo que quedó para la Fase 2, esto se dejó fuera a propósito, no por descuido.
 
 Del lado de transacciones, tampoco hay autenticación: `config.app_user` existe en la base con su
 bloqueo por intentos, pero el login no se implementó, así que todo endpoint es público. Eso
