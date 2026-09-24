@@ -33,6 +33,28 @@ Cualquier error (400, 404, 409) responde con la misma forma:
 
 Un error de validación (400) además trae `errors`, un arreglo con un objeto por campo inválido (`field`, `defaultMessage`, etc. — es el formato estándar de Spring).
 
+## Iniciar sesión
+
+Casi toda la API sigue abierta (carrito, checkout, catálogo de solo lectura, consultar cliente). Solo dos acciones, las que las CDU marcan como de Administrador, piden sesión: crear/editar un producto y procesar una incidencia.
+
+### `POST /api/auth/login`
+```json
+{ "username": "admin", "password": "admin123" }
+```
+`200` con el token:
+```json
+{ "token": "eyJhbGciOiJIUzM4NCJ9...", "username": "admin", "roles": ["ADMIN"] }
+```
+Ese es el único usuario que trae la base sembrada (`FASE 2/db/migrations/V7__usuario_de_prueba.sql`). `401` si el usuario o la contraseña no coinciden. Después de 5 intentos fallidos seguidos, la cuenta queda bloqueada 15 minutos (`423`), aunque en el siguiente intento se mande la contraseña correcta.
+
+Para usar el token, mandarlo en cada petición protegida:
+```
+Authorization: Bearer eyJhbGciOiJIUzM4NCJ9...
+```
+Dura 8 horas. No hay endpoint para renovarlo: cuando expira, se vuelve a hacer login.
+
+`401` sin el header (o con un token vencido/inválido): `"hace falta iniciar sesión"`. `403` con un token válido pero sin el rol que pide el endpoint: `"el usuario no tiene permiso para esto"`.
+
 ## Valores fijos (enums)
 
 Estos campos solo aceptan uno de estos textos, en mayúsculas, tal cual:
@@ -61,6 +83,22 @@ Lista los productos activos.
 
 ### `GET /api/products/{id}`
 Un producto. `404` si no existe.
+
+### `POST /api/products` — requiere sesión (rol `ADMIN`)
+Configurar Catálogo de Productos: alta. Deja el producto con existencia en 0 en las 34 ubicaciones (no queda ausente del inventario).
+
+```json
+{ "sku": "EL-010", "name": "Parlante bluetooth", "category": "ELECTRONICA", "price": 350.00 }
+```
+`201` con el producto creado (`active` sale `true`). `409` si el `sku` ya existe. `400` si falta algún campo o `price` es negativo.
+
+### `PUT /api/products/{id}` — requiere sesión (rol `ADMIN`)
+Edita nombre, categoría, precio y si está activo.
+
+```json
+{ "name": "Parlante bluetooth XL", "category": "ELECTRONICA", "price": 420.00, "active": true }
+```
+`active` es opcional (si no se manda, no cambia). `200` con el producto actualizado, `404` si no existe.
 
 ---
 
@@ -168,3 +206,22 @@ Estado completo de la orden en una sola consulta — pensado para responder ráp
 }
 ```
 `404` si la orden no existe.
+
+### `POST /api/orders/{orderId}/incidents`
+Registra un cambio o una devolución sobre una orden (Gestión de Incidencias).
+
+```json
+{ "type": "RETURN", "description": "El cliente reporta que llegó dañado" }
+```
+`type` es `EXCHANGE` o `RETURN`. `201` con la incidencia, en estado `REGISTERED`. `404` si la orden no existe.
+
+### `GET /api/orders/{orderId}/incidents`
+Lista las incidencias de una orden.
+
+### `PUT /api/incidents/{id}/status` — requiere sesión (cualquier usuario logueado)
+Procesa la incidencia: la mueve a `IN_PROCESS`, `RESOLVED` o `REJECTED`. Al pasarla a `RESOLVED` o `REJECTED` se guarda `resolvedAt`.
+
+```json
+{ "status": "IN_PROCESS" }
+```
+`404` si la incidencia no existe.
