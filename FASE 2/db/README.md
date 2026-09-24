@@ -147,7 +147,7 @@ Quedan como texto libre, a propósito, los valores que no son un conjunto fijo: 
 
 ## Datos de prueba
 
-`V2__datos_de_prueba.sql` carga 2 centros de distribución, 32 tiendas, 12 productos con su stock, 100 clientes y los tres valores de `config.setting`. Son datos de ejemplo. El tiempo de reserva de 15 minutos es un valor por defecto que se puede cambiar.
+`V2__datos_de_prueba.sql` carga 2 centros de distribución, 32 tiendas, 12 productos con su stock, 100 clientes y los tres valores de `config.setting`. Son datos de ejemplo. El tiempo de reserva queda en 20 minutos, el valor que el equipo confirmó en CDU-01 y CDU-08: V2 lo sembraba en 15 y `V7__reserva_de_20_minutos.sql` lo corrige. Se puede cambiar en `config.setting` sin reiniciar nada.
 
 ## Cargar órdenes de prueba
 
