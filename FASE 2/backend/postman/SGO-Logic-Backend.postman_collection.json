@@ -22,6 +22,10 @@
       "value": "1"
     },
     {
+      "key": "token",
+      "value": ""
+    },
+    {
       "key": "shipmentId",
       "value": "1"
     },
@@ -43,6 +47,53 @@
     }
   ],
   "item": [
+    {
+      "name": "Sesión",
+      "description": "Solo dos acciones piden sesión: crear/editar producto (rol ADMIN) y procesar una incidencia (cualquier usuario). El resto de la API sigue abierta.",
+      "item": [
+        {
+          "name": "Iniciar sesión",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.collectionVariables.set('token', pm.response.json().token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            }
+          },
+          "description": "Único usuario sembrado (V7__usuario_de_prueba.sql). Guarda el token en {{token}}; las peticiones de 'Crear producto', 'Editar producto' y 'Procesar incidencia' ya lo usan solas."
+        }
+      ]
+    },
     {
       "name": "Catálogo",
       "item": [
@@ -100,6 +151,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
               }
             ],
             "url": {
@@ -117,7 +172,7 @@
               "raw": "{\n  \"sku\": \"EL-010\",\n  \"name\": \"Parlante bluetooth\",\n  \"category\": \"ELECTRONICA\",\n  \"price\": 350.00\n}"
             }
           },
-          "description": "Configurar Catálogo de Productos: alta. Deja el producto con existencia en 0 en las 34 ubicaciones. 409 si el sku ya existe."
+          "description": "Requiere sesión (rol ADMIN, correr antes 'Sesión > Iniciar sesión'). Configurar Catálogo de Productos: alta. Deja el producto con existencia en 0 en las 34 ubicaciones. 401 sin token, 409 si el sku ya existe."
         },
         {
           "name": "Editar producto",
@@ -127,6 +182,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
               }
             ],
             "url": {
@@ -145,7 +204,7 @@
               "raw": "{\n  \"name\": \"Parlante bluetooth XL\",\n  \"category\": \"ELECTRONICA\",\n  \"price\": 420.00,\n  \"active\": true\n}"
             }
           },
-          "description": "`active` es opcional; si no se manda, no cambia."
+          "description": "Requiere sesión (rol ADMIN). `active` es opcional; si no se manda, no cambia."
         }
       ]
     },
@@ -449,6 +508,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
               }
             ],
             "url": {
@@ -468,7 +531,7 @@
               "raw": "{\n  \"status\": \"IN_PROCESS\"\n}"
             }
           },
-          "description": "`status`: IN_PROCESS, RESOLVED o REJECTED. Al pasar a RESOLVED o REJECTED se guarda resolvedAt."
+          "description": "Requiere sesión (cualquier usuario logueado). `status`: IN_PROCESS, RESOLVED o REJECTED. Al pasar a RESOLVED o REJECTED se guarda resolvedAt."
         }
       ]
     },
