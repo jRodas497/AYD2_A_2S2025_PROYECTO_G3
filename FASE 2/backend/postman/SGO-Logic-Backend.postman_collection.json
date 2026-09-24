@@ -18,6 +18,10 @@
       "value": "1"
     },
     {
+      "key": "incidentId",
+      "value": "1"
+    },
+    {
       "key": "shipmentId",
       "value": "1"
     },
@@ -74,6 +78,74 @@
               ]
             }
           }
+        },
+        {
+          "name": "Crear producto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('productId', pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"EL-010\",\n  \"name\": \"Parlante bluetooth\",\n  \"category\": \"ELECTRONICA\",\n  \"price\": 350.00\n}"
+            }
+          },
+          "description": "Configurar Catálogo de Productos: alta. Deja el producto con existencia en 0 en las 34 ubicaciones. 409 si el sku ya existe."
+        },
+        {
+          "name": "Editar producto",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/products/{{productId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{productId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Parlante bluetooth XL\",\n  \"category\": \"ELECTRONICA\",\n  \"price\": 420.00,\n  \"active\": true\n}"
+            }
+          },
+          "description": "`active` es opcional; si no se manda, no cambia."
         }
       ]
     },
@@ -302,6 +374,101 @@
             }
           },
           "description": "Usa {{lastOrderId}}, la orden que dejó el checkout anterior. Se puede cambiar a mano por cualquier otro id."
+        }
+      ]
+    },
+    {
+      "name": "Incidencias",
+      "description": "Cambios y devoluciones sobre una orden ya creada (Gestión de Incidencias).",
+      "item": [
+        {
+          "name": "Registrar incidencia",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('incidentId', pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{lastOrderId}}/incidents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{lastOrderId}}",
+                "incidents"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"RETURN\",\n  \"description\": \"El cliente reporta que llegó dañado\"\n}"
+            }
+          },
+          "description": "`type`: EXCHANGE o RETURN. Queda en REGISTERED. Guarda el id en {{incidentId}}."
+        },
+        {
+          "name": "Listar incidencias de una orden",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{lastOrderId}}/incidents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{lastOrderId}}",
+                "incidents"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Procesar incidencia",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/incidents/{{incidentId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "incidents",
+                "{{incidentId}}",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_PROCESS\"\n}"
+            }
+          },
+          "description": "`status`: IN_PROCESS, RESOLVED o REJECTED. Al pasar a RESOLVED o REJECTED se guarda resolvedAt."
         }
       ]
     },

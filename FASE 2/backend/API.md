@@ -62,6 +62,22 @@ Lista los productos activos.
 ### `GET /api/products/{id}`
 Un producto. `404` si no existe.
 
+### `POST /api/products`
+Configurar Catálogo de Productos: alta. Deja el producto con existencia en 0 en las 34 ubicaciones (no queda ausente del inventario).
+
+```json
+{ "sku": "EL-010", "name": "Parlante bluetooth", "category": "ELECTRONICA", "price": 350.00 }
+```
+`201` con el producto creado (`active` sale `true`). `409` si el `sku` ya existe. `400` si falta algún campo o `price` es negativo.
+
+### `PUT /api/products/{id}`
+Edita nombre, categoría, precio y si está activo.
+
+```json
+{ "name": "Parlante bluetooth XL", "category": "ELECTRONICA", "price": 420.00, "active": true }
+```
+`active` es opcional (si no se manda, no cambia). `200` con el producto actualizado, `404` si no existe.
+
 ---
 
 ## Clientes
@@ -168,3 +184,22 @@ Estado completo de la orden en una sola consulta — pensado para responder ráp
 }
 ```
 `404` si la orden no existe.
+
+### `POST /api/orders/{orderId}/incidents`
+Registra un cambio o una devolución sobre una orden (Gestión de Incidencias).
+
+```json
+{ "type": "RETURN", "description": "El cliente reporta que llegó dañado" }
+```
+`type` es `EXCHANGE` o `RETURN`. `201` con la incidencia, en estado `REGISTERED`. `404` si la orden no existe.
+
+### `GET /api/orders/{orderId}/incidents`
+Lista las incidencias de una orden.
+
+### `PUT /api/incidents/{id}/status`
+Procesa la incidencia: la mueve a `IN_PROCESS`, `RESOLVED` o `REJECTED`. Al pasarla a `RESOLVED` o `REJECTED` se guarda `resolvedAt`.
+
+```json
+{ "status": "IN_PROCESS" }
+```
+`404` si la incidencia no existe.
