@@ -1,5 +1,5 @@
 import type { PaymentRepository } from './paymentRepository'
-import type { PaymentAttempt, ResultadoCobro } from '../types'
+import type { DatosTarjeta, MetodoPago, PaymentAttempt, ResultadoCobro } from '../types'
 import { mockOrderRepository, RESOLUCION_EN_PROCESO_MS } from '../../orden/api/orderRepository.mock'
 
 const LATENCIA_MS = 200
@@ -48,7 +48,7 @@ function resolverResultado(metodo: string, ultimosDigitos?: string): { resultado
 export const mockPaymentRepository: PaymentRepository = {
   maxIntentosFallidos: MAX_INTENTOS_FALLIDOS,
 
-  async charge(orderId, metodo, tarjeta) {
+  async charge(orderId: string, metodo: MetodoPago, tarjeta?: DatosTarjeta) {
     const intentos = cargarIntentos()
     const { resultado, motivo } = resolverResultado(metodo, tarjeta?.ultimosDigitos)
 
@@ -63,29 +63,26 @@ export const mockPaymentRepository: PaymentRepository = {
     intentos.push(intento)
     guardarIntentos(intentos)
 
+    // El backend real deja la orden en pago_fallido desde el primer rechazo, sin una fase
+    // intermedia de reintento silencioso — el mock refleja el mismo comportamiento. El límite de
+    // reintentos (RF PB-014) lo aplica quien consume countIntentosFallidos (PaymentPage), no este
+    // repositorio.
     if (resultado === 'aprobado') {
       await mockOrderRepository.updateEstado(orderId, 'pagada')
     } else if (resultado === 'en_proceso') {
       await mockOrderRepository.updateEstado(orderId, 'pago_en_proceso')
-      // Resuelve en vivo si la pestaña se queda abierta; si se recarga antes de esto,
-      // orderRepository.getOrder() resuelve igual al leer, por el umbral de tiempo persistido.
       setTimeout(() => {
         mockOrderRepository.updateEstado(orderId, 'pagada')
       }, RESOLUCION_EN_PROCESO_MS)
     } else {
-      const fallidos = intentos.filter((i) => i.orderId === orderId && i.resultado === 'rechazado').length
-      if (fallidos >= MAX_INTENTOS_FALLIDOS) {
-        await mockOrderRepository.updateEstado(orderId, 'pago_fallido')
-      } else {
-        await mockOrderRepository.updateEstado(orderId, 'pendiente_pago')
-      }
+      await mockOrderRepository.updateEstado(orderId, 'pago_fallido')
     }
 
     return esperar(intento)
   },
 
-  async countIntentosFallidos(orderId) {
+  async countIntentosFallidos(orderId: string) {
     const intentos = cargarIntentos()
     return esperar(intentos.filter((i) => i.orderId === orderId && i.resultado === 'rechazado').length)
   },
-}
+} satisfies PaymentRepository

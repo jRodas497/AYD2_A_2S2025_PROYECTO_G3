@@ -5,7 +5,7 @@ import { mockOrderRepository } from '../../orden/api/orderRepository.mock'
 const ITEM = { productId: '1', nombre: 'Refrigeradora', sku: 'LB-1440', cantidad: 1, precioUnitario: 4999 }
 
 async function crearOrden() {
-  return mockOrderRepository.createOrder({ customerId: 'cliente-x', items: [ITEM], metodoEntrega: 'tienda' })
+  return mockOrderRepository.createOrder({ customerId: 'cliente-x', items: [ITEM], direccionEntrega: 'Zona 10' })
 }
 
 describe('mockPaymentRepository', () => {
@@ -13,13 +13,22 @@ describe('mockPaymentRepository', () => {
     localStorage.clear()
   })
 
-  it('una tarjeta terminada en 0000 es rechazada y la orden vuelve a pendiente_pago', async () => {
+  it('una tarjeta terminada en 0000 es rechazada y la orden queda en pago_fallido de inmediato', async () => {
     const orden = await crearOrden()
     const intento = await mockPaymentRepository.charge(orden.id, 'tarjeta', { ultimosDigitos: '0000' })
     expect(intento.resultado).toBe('rechazado')
     expect(intento.motivo).toBeTruthy()
     const actualizada = await mockOrderRepository.getOrder(orden.id)
-    expect(actualizada?.estado).toBe('pendiente_pago')
+    expect(actualizada?.estado).toBe('pago_fallido')
+  })
+
+  it('un rechazo no impide reintentar: un pago posterior aprobado deja la orden pagada', async () => {
+    const orden = await crearOrden()
+    await mockPaymentRepository.charge(orden.id, 'tarjeta', { ultimosDigitos: '0000' })
+    const intento = await mockPaymentRepository.charge(orden.id, 'transferencia')
+    expect(intento.resultado).toBe('aprobado')
+    const actualizada = await mockOrderRepository.getOrder(orden.id)
+    expect(actualizada?.estado).toBe('pagada')
   })
 
   it('una tarjeta terminada en 1111 deja la orden inmediatamente en pago_en_proceso, sin bloquear', async () => {
@@ -41,14 +50,12 @@ describe('mockPaymentRepository', () => {
     expect(actualizada?.estado).toBe('pagada')
   })
 
-  it('tras agotar el máximo de intentos fallidos, la orden queda en pago_fallido', async () => {
+  it('countIntentosFallidos cuenta los rechazos acumulados, sin importar reintentos posteriores', async () => {
     const orden = await crearOrden()
     for (let i = 0; i < mockPaymentRepository.maxIntentosFallidos; i += 1) {
       await mockPaymentRepository.charge(orden.id, 'tarjeta', { ultimosDigitos: '0000' })
     }
     const fallidos = await mockPaymentRepository.countIntentosFallidos(orden.id)
     expect(fallidos).toBe(mockPaymentRepository.maxIntentosFallidos)
-    const actualizada = await mockOrderRepository.getOrder(orden.id)
-    expect(actualizada?.estado).toBe('pago_fallido')
   })
 })
