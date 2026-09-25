@@ -1,11 +1,13 @@
 import { StatCard } from '../../shared/components/StatCard'
 import { DonutBreakdown } from '../../shared/components/DonutBreakdown'
 import { useDashboard } from '../hooks/useDashboard'
+import { ETIQUETA_ESTADO } from '../../../orden/estadoLabels'
 
-const ETIQUETA_ESTADO_ORDEN: Record<'pagada' | 'envio' | 'pendiente', { texto: string; clase: string }> = {
-  pagada: { texto: 'Pagada', clase: 'text-ok' },
-  envio: { texto: 'Envío', clase: 'text-blue-700' },
-  pendiente: { texto: 'Pendiente', clase: 'text-alerta' },
+const CLASE_TONO: Record<'ok' | 'alerta' | 'falla' | 'info', string> = {
+  ok: 'text-ok',
+  alerta: 'text-alerta',
+  falla: 'text-falla',
+  info: 'text-blue-700',
 }
 
 function formatQ(valor: number): string {
@@ -22,13 +24,13 @@ export function DashboardPage() {
       <h1 className="text-2xl font-semibold text-ink mb-1">Resumen general</h1>
       <p className="text-sm text-gray-500 mb-6">Vista general de las operaciones administrativas</p>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 gap-3 mb-6">
         {datos.stats.map((stat) => (
           <StatCard key={stat.id} titulo={stat.titulo} valor={stat.valor} descripcion={stat.descripcion} tono={stat.tono} />
         ))}
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         <div className="bg-white border border-linea rounded p-4">
           <h2 className="text-sm font-medium text-ink mb-3">Órdenes recientes</h2>
           <div className="divide-y divide-linea">
@@ -40,8 +42,8 @@ export function DashboardPage() {
                 </div>
                 <div className="text-xs text-gray-400">{orden.fecha}</div>
                 <div className="w-20 text-right">{formatQ(orden.monto)}</div>
-                <span className={`w-20 text-right text-xs font-medium ${ETIQUETA_ESTADO_ORDEN[orden.estado].clase}`}>
-                  {ETIQUETA_ESTADO_ORDEN[orden.estado].texto}
+                <span className={`w-20 text-right text-xs font-medium ${CLASE_TONO[ETIQUETA_ESTADO[orden.estado].tono]}`}>
+                  {ETIQUETA_ESTADO[orden.estado].texto}
                 </span>
               </div>
             ))}

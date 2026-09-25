@@ -16,8 +16,8 @@ const DASHBOARD_MOCK: DashboardData = {
   ],
   ordenesRecientes: [
     { id: 'ORD-1024', cliente: 'Carlos López', fecha: '23 sep 2026', monto: 1250, estado: 'pagada' },
-    { id: 'ORD-1023', cliente: 'María García', fecha: '23 sep 2026', monto: 850, estado: 'envio' },
-    { id: 'ORD-1022', cliente: 'José Martínez', fecha: '22 sep 2026', monto: 2100, estado: 'pendiente' },
+    { id: 'ORD-1023', cliente: 'María García', fecha: '23 sep 2026', monto: 850, estado: 'pago_en_proceso' },
+    { id: 'ORD-1022', cliente: 'José Martínez', fecha: '22 sep 2026', monto: 2100, estado: 'pendiente_pago' },
     { id: 'ORD-1021', cliente: 'Ana Rodríguez', fecha: '22 sep 2026', monto: 640, estado: 'pagada' },
   ],
   inventario: [

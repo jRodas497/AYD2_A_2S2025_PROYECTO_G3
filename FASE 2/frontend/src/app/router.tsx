@@ -27,7 +27,8 @@ export function AppRouter() {
       <Route path="/mis-ordenes" element={<OrdersListPage />} />
       <Route path="/notificaciones" element={<NotificacionesPlaceholderPage />} />
       <Route path="/perfil" element={<PerfilPlaceholderPage />} />
-      <Route path="/administracion" element={<DashboardPage />} />
+      <Route path="/administracion" element={<Navigate to="/administracion/dashboard" replace />} />
+      <Route path="/administracion/dashboard" element={<DashboardPage />} />
       <Route path="/administracion/ordenes" element={<BackofficePlaceholderPage titulo="Órdenes" />} />
       <Route path="/administracion/incidencias" element={<BackofficePlaceholderPage titulo="Incidencias" />} />
       <Route path="/administracion/devoluciones" element={<BackofficePlaceholderPage titulo="Devoluciones" />} />

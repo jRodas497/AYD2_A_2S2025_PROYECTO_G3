@@ -1,3 +1,5 @@
+import type { EstadoOrden } from '../../orden/types'
+
 export interface DashboardStat {
   id: string
   titulo: string
@@ -11,7 +13,7 @@ export interface OrdenReciente {
   cliente: string
   fecha: string
   monto: number
-  estado: 'pagada' | 'envio' | 'pendiente'
+  estado: EstadoOrden
 }
 
 export interface InventarioResumen {

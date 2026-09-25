@@ -56,7 +56,7 @@ export const NAV_SECTIONS: NavSection[] = [
   },
   {
     titulo: 'Panel administrativo',
-    items: [{ label: 'Dashboard', path: '/administracion', estado: 'activo', icon: LayoutDashboard }],
+    items: [{ label: 'Dashboard', path: '/administracion/dashboard', estado: 'activo', icon: LayoutDashboard }],
   },
   {
     titulo: 'Operaciones (admin)',

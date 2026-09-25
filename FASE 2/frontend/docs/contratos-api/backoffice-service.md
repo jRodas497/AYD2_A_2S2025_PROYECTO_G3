@@ -2,7 +2,7 @@
 
 > Aún no existe implementación real de este servicio. Este documento fija el contrato que el frontend administrativo asume, para que el backend lo implemente o lo corrija.
 
-## GET /api/backoffice/dashboard
+## `GET /bff/backoffice/dashboard`
 
 Respuesta esperada:
 
@@ -20,9 +20,9 @@ Respuesta esperada:
 }
 ```
 
-`tono` en `stats`/`inventario` es una de `ok | alerta | falla | info`. `estado` en `ordenesRecientes` es una de `pagada | envio | pendiente`. El frontend actual usa datos simulados vía `mockDashboardRepository` (`src/features/backoffice/dashboard/api/dashboardRepository.mock.ts`).
+`tono` en `stats`/`inventario` es una de `ok | alerta | falla | info`. `estado` en `ordenesRecientes` reutiliza el mismo enum de estado de orden que ya usa el resto del sistema (`pendiente_pago | pago_en_proceso | pagada | pago_fallido`, ver `docs/contratos-api/order-checkout-service.md`) — no es un estado propio de administración. El frontend actual usa datos simulados vía `mockDashboardRepository` (`src/features/backoffice/dashboard/api/dashboardRepository.mock.ts`).
 
-## GET /api/backoffice/reportes?periodo={30d|90d|anio}
+## `GET /bff/backoffice/reportes?periodo={30d|90d|anio}`
 
 Respuesta esperada:
 

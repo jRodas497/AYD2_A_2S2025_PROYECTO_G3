@@ -48,7 +48,7 @@ export function ReportesPage() {
         <p className="text-sm text-gray-400">Cargando reportes…</p>
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <div className="grid grid-cols-2 gap-3 mb-6">
             {datos.metricas.map((m) => (
               <StatCard
                 key={m.id}
@@ -60,7 +60,7 @@ export function ReportesPage() {
             ))}
           </div>
 
-          <div className="grid md:grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 gap-4 mb-4">
             <VentasChart ventas={datos.ventasMensuales} />
             <BarBreakdown
               titulo="Estado de órdenes"
@@ -68,7 +68,7 @@ export function ReportesPage() {
             />
           </div>
 
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <BarBreakdown
               titulo="Órdenes por mes"
               filas={datos.ordenesPorMes.map((o) => ({ etiqueta: o.mes, porcentaje: Math.round((o.cantidad / Math.max(...datos.ordenesPorMes.map((x) => x.cantidad))) * 100), valor: `${o.cantidad}` }))}
