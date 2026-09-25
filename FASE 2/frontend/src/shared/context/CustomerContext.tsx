@@ -6,6 +6,23 @@ export type { Customer }
 
 const STORAGE_KEY = 'sgo-customer-id'
 
+let creacionEnCurso: Promise<Customer> | null = null
+
+async function obtenerOCrearCliente(): Promise<Customer> {
+  const idGuardado = localStorage.getItem(STORAGE_KEY)
+  if (idGuardado) {
+    const existente = await httpCustomerRepository.getCustomer(idGuardado)
+    if (existente) return existente
+  }
+  if (!creacionEnCurso) {
+    creacionEnCurso = httpCustomerRepository.createCustomer({ nombre: 'Cliente invitado' }).then((cliente) => {
+      localStorage.setItem(STORAGE_KEY, cliente.id)
+      return cliente
+    })
+  }
+  return creacionEnCurso
+}
+
 interface CustomerContextValue {
   customer: Customer
   needsReidentification: boolean
@@ -28,14 +45,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
 
     async function inicializar() {
       try {
-        const idGuardado = localStorage.getItem(STORAGE_KEY)
-        let clienteActual: Customer | null = idGuardado ? await httpCustomerRepository.getCustomer(idGuardado) : null
-
-        if (!clienteActual) {
-          clienteActual = await httpCustomerRepository.createCustomer({ nombre: 'Cliente invitado' })
-          localStorage.setItem(STORAGE_KEY, clienteActual.id)
-        }
-
+        const clienteActual = await obtenerOCrearCliente()
         if (!cancelado) {
           setCustomer(clienteActual)
           setCargando(false)

@@ -5,13 +5,13 @@ Plantilla por pantalla: marcar cada RF de su historia y el RNF aplicable antes d
 ## Catálogo (`/catalogo`) — PB-001, PB-035, PB-036
 
 - [x] Cubre línea blanca, electrónica, ropa y calzado (RF PB-001.1)
-- [x] El precio mostrado incluye promociones vigentes (RF PB-001.2 / PB-036.2)
+- [ ] El precio mostrado incluye promociones vigentes (RF PB-001.2 / PB-036.2) — contra el backend real, `precio.promocion` siempre es `undefined` (no existe Pricing & Promotions Service todavía; ver `docs/contratos-api/catalog-service.md`)
 - [x] La búsqueda filtra por nombre y por categoría (RF PB-035.1)
 - [x] RNF: la carga de productos no bloquea el resto de la pantalla (buscador y filtros siguen interactivos mientras `cargando` es true)
 
 ## Detalle de producto (`/productos/:id`) — PB-035
 
-- [x] Muestra descripción, precio vigente y disponibilidad (RF PB-035.2)
+- [ ] Muestra descripción, precio vigente y disponibilidad (RF PB-035.2) — contra el backend real, `descripcion` siempre es `''` (el backend no tiene ese campo todavía; ver `docs/contratos-api/catalog-service.md`)
 - [x] Desde el detalle se puede agregar al carrito (RF PB-035.3)
 
 ## Promociones (`/promociones`) — PB-036
@@ -78,7 +78,7 @@ Plantilla por pantalla: marcar cada RF de su historia y el RNF aplicable antes d
 - [x] Un producto que ya no existe (`404`) se trata igual que "no encontrado" en el mock — no como error
 - [x] Si la consulta de disponibilidad de un producto falla, el resto del catálogo se sigue mostrando
 - [x] La identidad del cliente ahora es un registro real en la base de datos — se crea una vez por navegador (`localStorage: sgo-customer-id`) y "¿No eres tú?" persiste el cambio contra el backend
-- Para levantar el backend real localmente: `cd "FASE 2" && docker compose up -d --build backend` (también levanta `db`). Ver `FASE 2/backend/API.md`.
+- Para levantar el backend real localmente: `cd "FASE 2" && docker compose up -d --build backend` (también levanta `db`). Ver `FASE 2/backend/API.md`. Si el puerto 5432 ya está ocupado por otro Postgres local, usa `DB_PORT=5435 docker compose up -d --build backend` (el `docker-compose.yml` ya soporta esta variable).
 - Nota: carrito, checkout, pago y órdenes siguen en mock — es la siguiente fase. El panel de administración (Dashboard/Reportes) sigue en mock porque el backend no tiene esos endpoints.
 
 ## Hallazgos pendientes de este plan

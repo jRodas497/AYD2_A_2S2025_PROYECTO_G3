@@ -13,20 +13,23 @@ export function useCatalogo() {
     let cancelado = false
     setCargando(true)
     setError(null)
-    catalogRepository
-      .search(query, categoria)
-      .then((resultado) => {
-        if (cancelado) return
-        setProductos(resultado)
-        setCargando(false)
-      })
-      .catch((e) => {
-        if (cancelado) return
-        setError(e instanceof Error ? e.message : 'No se pudo cargar el catálogo')
-        setCargando(false)
-      })
+    const temporizador = setTimeout(() => {
+      catalogRepository
+        .search(query, categoria)
+        .then((resultado) => {
+          if (cancelado) return
+          setProductos(resultado)
+          setCargando(false)
+        })
+        .catch((e) => {
+          if (cancelado) return
+          setError(e instanceof Error ? e.message : 'No se pudo cargar el catálogo')
+          setCargando(false)
+        })
+    }, 300)
     return () => {
       cancelado = true
+      clearTimeout(temporizador)
     }
   }, [query, categoria])
 

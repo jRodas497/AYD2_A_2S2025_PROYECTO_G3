@@ -62,6 +62,7 @@ export const httpCatalogRepository: CatalogRepository = {
   async getById(id) {
     try {
       const backendProducto = await manejarRespuesta<BackendProduct>(await fetch(`/api/products/${id}`))
+      if (!backendProducto.active) return null
       return await mapearProducto(backendProducto)
     } catch (e) {
       if (e instanceof NotFoundError) return null
