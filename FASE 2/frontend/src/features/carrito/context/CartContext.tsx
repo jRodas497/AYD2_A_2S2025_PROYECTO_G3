@@ -1,34 +1,39 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { mockCartRepository } from '../api/cartRepository.mock'
+import { httpCartRepository } from '../api/cartRepository.http'
 import { EMPTY_CART, type Cart } from '../types'
 import { useCustomer } from '../../../shared/context/CustomerContext'
 
 interface CartContextValue {
   cart: Cart
   cargando: boolean
-  setCart: (cart: Cart) => Promise<void>
+  agregarItem: (productId: string, cantidad: number) => Promise<void>
+  resetearLocal: () => void
 }
 
 const CartContext = createContext<CartContextValue | null>(null)
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const { customer } = useCustomer()
-  const [cart, setCartState] = useState<Cart>(EMPTY_CART)
+  const [cart, setCart] = useState<Cart>(EMPTY_CART)
   const [cargando, setCargando] = useState(true)
 
   useEffect(() => {
-    mockCartRepository.getCart(customer.id).then((resultado) => {
-      setCartState(resultado)
+    httpCartRepository.getCart(customer.id).then((resultado) => {
+      setCart(resultado)
       setCargando(false)
     })
   }, [customer.id])
 
-  async function setCart(nuevoCart: Cart) {
-    setCartState(nuevoCart)
-    await mockCartRepository.saveCart(customer.id, nuevoCart)
+  async function agregarItem(productId: string, cantidad: number) {
+    const nuevoCart = await httpCartRepository.addItem(customer.id, productId, cantidad)
+    setCart(nuevoCart)
   }
 
-  return <CartContext.Provider value={{ cart, cargando, setCart }}>{children}</CartContext.Provider>
+  function resetearLocal() {
+    setCart(EMPTY_CART)
+  }
+
+  return <CartContext.Provider value={{ cart, cargando, agregarItem, resetearLocal }}>{children}</CartContext.Provider>
 }
 
 export function useCartContext(): CartContextValue {

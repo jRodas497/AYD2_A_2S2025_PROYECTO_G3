@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useCarrito } from '../hooks/useCarrito'
 import { Button } from '../../../shared/components/Button'
-import { QuantityStepper } from '../../../shared/components/QuantityStepper'
 import { useNotify } from '../../../shared/notifications/NotificationContext'
 import type { CartItem } from '../types'
 
@@ -10,27 +9,12 @@ function formatQ(valor: number): string {
 }
 
 export function CartPage() {
-  const { cart, cargando, total, actualizarCantidad, eliminarItem } = useCarrito()
+  const { cart, cargando, total, incrementarItem } = useCarrito()
   const { notificar } = useNotify()
 
-  async function handleDecrementar(item: CartItem) {
-    if (item.cantidad <= 1) {
-      await eliminarItem(item.productId)
-      notificar(`${item.nombre} se quitó del carrito`, 'alerta')
-      return
-    }
-    await actualizarCantidad(item.productId, item.cantidad - 1)
-    notificar(`Cantidad de ${item.nombre} actualizada a ${item.cantidad - 1}`, 'ok')
-  }
-
   async function handleIncrementar(item: CartItem) {
-    await actualizarCantidad(item.productId, item.cantidad + 1)
+    await incrementarItem(item.productId)
     notificar(`Cantidad de ${item.nombre} actualizada a ${item.cantidad + 1}`, 'ok')
-  }
-
-  async function handleEliminar(item: CartItem) {
-    await eliminarItem(item.productId)
-    notificar(`${item.nombre} se quitó del carrito`, 'alerta')
   }
 
   if (cargando) return <p className="text-sm text-gray-400">Cargando carrito…</p>
@@ -45,6 +29,10 @@ export function CartPage() {
         </p>
       ) : (
         <>
+          <p className="text-xs text-gray-400 mb-3">
+            Por ahora solo se pueden agregar más unidades desde aquí. Para quitar productos o reducir
+            cantidades, contacta a servicio al cliente.
+          </p>
           <div className="bg-white border border-linea rounded p-4">
             <div className="divide-y divide-linea">
               {cart.items.map((item) => (
@@ -54,22 +42,16 @@ export function CartPage() {
                     <div className="text-sm">{item.nombre}</div>
                     <div className="text-xs text-gray-400">{item.sku}</div>
                   </div>
-                  <QuantityStepper
-                    cantidad={item.cantidad}
-                    min={0}
-                    etiqueta={item.nombre}
-                    onDecrementar={() => handleDecrementar(item)}
-                    onIncrementar={() => handleIncrementar(item)}
-                  />
-                  <div className="text-sm w-24 text-right">{formatQ(item.precioUnitario * item.cantidad)}</div>
+                  <div className="text-sm text-gray-500 w-24 text-center">Cantidad: {item.cantidad}</div>
                   <button
                     type="button"
-                    onClick={() => handleEliminar(item)}
-                    className="text-xs text-falla hover:underline"
-                    aria-label={`Eliminar ${item.nombre} del carrito`}
+                    onClick={() => handleIncrementar(item)}
+                    className="w-8 h-8 flex items-center justify-center border border-linea rounded text-ink hover:bg-crema"
+                    aria-label={`Agregar una unidad más de ${item.nombre}`}
                   >
-                    Eliminar
+                    +
                   </button>
+                  <div className="text-sm w-24 text-right">{formatQ(item.precioUnitario * item.cantidad)}</div>
                 </div>
               ))}
             </div>
