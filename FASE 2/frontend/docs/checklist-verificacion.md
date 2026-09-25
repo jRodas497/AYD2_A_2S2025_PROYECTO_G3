@@ -23,7 +23,8 @@ Plantilla por pantalla: marcar cada RF de su historia y el RNF aplicable antes d
 - [x] Agregar un producto verifica disponibilidad en tiempo real antes de reservar (RF PB-002.3)
 - [x] Si la reserva falla, se muestra el motivo y una sugerencia (RF PB-003.1, PB-003.2)
 - [x] El resto del carrito no se ve afectado cuando un producto falla al agregarse (RF PB-003.3)
-- [x] El carrito persiste tras recargar la página, dentro del mismo navegador (simulación local de "el carrito es del cliente" — pendiente de validar cross-device con backend real)
+- [x] El carrito persiste tras recargar la página — ahora es el carrito real del backend, asociado al cliente (ya no una simulación local)
+- [ ] Permite reducir la cantidad de un producto o eliminarlo del carrito (RF implícito de PB-002/PB-003) — el backend real (`POST /api/customers/{id}/cart/items`) solo soporta agregar o incrementar; no hay endpoint para bajar cantidad ni eliminar un ítem. Ver `docs/contratos-api/order-checkout-service.md` si se documenta un cart-service aparte, o el hallazgo en esta misma sección.
 
 ## Identificación del cliente (transversal) — PB-009
 
@@ -33,7 +34,7 @@ Plantilla por pantalla: marcar cada RF de su historia y el RNF aplicable antes d
 
 ## Checkout (`/checkout`) — PB-004
 
-- [x] Permite elegir centro de distribución, tienda o recogida como método de entrega (RF PB-004.1)
+- [ ] Permite elegir centro de distribución, tienda o recogida como método de entrega (RF PB-004.1) — contra el backend real no existe ese concepto, solo una dirección de entrega en texto libre (`deliveryAddress`); se reemplazó el selector por un campo de dirección. Ver `docs/contratos-api/order-checkout-service.md`.
 - [x] Al confirmar, la orden pasa a estado "pendiente de pago" (RF PB-004.2)
 - [x] Se dispara el flujo hacia la orden creada (RF PB-004.3) — el flujo de pago en sí es PB-010 (siguiente entrega)
 - [x] Un carrito vacío no permite llegar a confirmar una compra sin productos
@@ -47,15 +48,15 @@ Plantilla por pantalla: marcar cada RF de su historia y el RNF aplicable antes d
 
 - [x] Ofrece tarjeta, transferencia y billetera digital (RF PB-010.1)
 - [x] El resultado (aprobado, rechazado o en proceso) se refleja en la orden y se muestra al cliente (RF PB-010.3)
-- [x] Un cobro rechazado devuelve la orden a "pendiente de pago" y muestra el motivo (RF PB-013.1, PB-013.2)
+- [x] Un cobro rechazado muestra el motivo (RF PB-013.2) — contra el backend real, el estado de la orden pasa a "pago fallido" desde el primer rechazo (no "pendiente de pago"), pero sigue siendo reintentable; PB-013.1 se reinterpretó así. Ver `docs/contratos-api/payment-service.md`.
 - [x] Se puede elegir un método de pago distinto sin recrear el carrito/la orden (RF PB-013.3)
-- [x] Existe un máximo de reintentos fallidos; al agotarse, la orden queda "fallido definitivo" (RF PB-014.1, PB-014.2)
+- [x] Existe un máximo de reintentos fallidos; al agotarse, la orden queda "fallido definitivo" (RF PB-014.1, PB-014.2) — el backend real no tiene este límite; se aplica como regla de frontend sobre el historial real de intentos (`GET /api/orders/{orderId}/payments`). Ver `docs/contratos-api/payment-service.md`.
 - [x] El formulario nunca conserva el número completo de tarjeta ni el CVV en su estado tras enviar el intento (DC-08/RC06)
 - [x] RNF: mientras el pago está "en proceso", `OrderStatusPage` sondea sin bloquear la UI (no hay spinner de pantalla completa)
 
 ## Mis órdenes (`/mis-ordenes`) — adelanto de PB-038
 
-- [x] Lista las órdenes del cliente, ordenadas por fecha (RF PB-038.1)
+- [x] Lista las órdenes del cliente, ordenadas por fecha (RF PB-038.1) — el backend real no tiene un endpoint de listado; se mantiene un índice local por cliente (`localStorage`) poblado al hacer checkout, hidratado con el estado real de cada orden. Ver `docs/contratos-api/order-checkout-service.md`.
 - [x] Cada una abre su estado consolidado (RF PB-038.2, vía `/ordenes/:id`)
 - [x] Solo muestra órdenes del cliente identificado (RF PB-038.3)
 - Nota: esta pantalla se adelantó desde Sprint 2 porque, sin ella, no había forma de recuperar una orden tras recargar la página — ver hallazgo corregido abajo. El resto de PB-038 (detalle ampliado) sigue pendiente.
@@ -79,7 +80,16 @@ Plantilla por pantalla: marcar cada RF de su historia y el RNF aplicable antes d
 - [x] Si la consulta de disponibilidad de un producto falla, el resto del catálogo se sigue mostrando
 - [x] La identidad del cliente ahora es un registro real en la base de datos — se crea una vez por navegador (`localStorage: sgo-customer-id`) y "¿No eres tú?" persiste el cambio contra el backend
 - Para levantar el backend real localmente: `cd "FASE 2" && docker compose up -d --build backend` (también levanta `db`). Ver `FASE 2/backend/API.md`. Si el puerto 5432 ya está ocupado por otro Postgres local, usa `DB_PORT=5435 docker compose up -d --build backend` (el `docker-compose.yml` ya soporta esta variable).
-- Nota: carrito, checkout, pago y órdenes siguen en mock — es la siguiente fase. El panel de administración (Dashboard/Reportes) sigue en mock porque el backend no tiene esos endpoints.
+- Nota: carrito, checkout, pago y órdenes ya están conectados al backend real — ver la siguiente sección. El panel de administración (Dashboard/Reportes) sigue en mock porque el backend no tiene esos endpoints.
+
+## Integración real — Carrito, Checkout, Pago y Órdenes
+
+- [x] El carrito (`/carrito`) usa el carrito real del backend (`GET/POST /api/customers/{id}/cart`); solo permite agregar/incrementar, no bajar cantidad ni eliminar (limitación real del backend, ver arriba)
+- [x] El checkout (`/checkout`) pide una dirección de entrega real y crea la orden con `POST /api/orders/checkout`
+- [x] La orden (`/ordenes/:id`) refleja los 9 estados reales del backend, corta el sondeo al llegar a un estado terminal (entregada/cancelada/devuelta) y muestra la guía de envío cuando existe
+- [x] El pago (`/ordenes/:id/pago`) cobra contra el backend real (`POST /api/orders/{id}/payments`) con un token simulado, nunca el número de tarjeta
+- [x] "Mis órdenes" sigue funcionando vía un índice local por cliente, ya que el backend no tiene endpoint de listado
+- Para forzar escenarios de rechazo/timeout de pago en una demo, usar `PUT /api/simulation/payklik` (ver `docs/contratos-api/payment-service.md`) — las tarjetas "mágicas" del mock (`0000`/`1111`) ya no aplican contra el backend real.
 
 ## Hallazgos pendientes de este plan
 

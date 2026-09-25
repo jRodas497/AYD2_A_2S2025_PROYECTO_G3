@@ -1,44 +1,54 @@
-# Contrato asumido — Payment Service (vía BFF)
+# Contrato real — Payment Service
 
-> Consumido hoy por `mockPaymentRepository` (`src/features/pago/api/paymentRepository.mock.ts`).
+> Consumido por `httpPaymentRepository` (`src/features/pago/api/paymentRepository.http.ts`). Documentado en detalle en `FASE 2/backend/API-Transacciones.md`.
 
 ## Regla de seguridad (DC-08 / RC06 de Fase 1)
 
-El frontend **nunca envía ni persiste el número completo de tarjeta ni el CVV**. El formulario de pago limpia esos campos de su estado en cuanto se envía el intento; solo se usan los últimos 4 dígitos para identificar el método en la UI. Se asume que el token/referencia real de la pasarela (PayKlik) lo genera y guarda el backend — el frontend nunca lo ve ni lo necesita.
+Sigue vigente: el frontend nunca envía ni persiste el número completo de tarjeta ni el CVV. Contra el backend real esto además es una regla que el propio backend hace cumplir: si el cuerpo trae un campo `cardNumber`, o si `cardToken` contiene algo que parece un número de tarjeta, responde `400` sin guardar nada. Como no existe un widget real de PayKlik en este entorno, `httpPaymentRepository` genera un token simulado (`tok_<aleatorio>`) que nunca deriva del número ingresado — simula el límite que tendría un formulario real de la pasarela.
 
-## `POST /bff/orders/{id}/payments`
-
-Registra un intento de cobro para una orden.
+## `POST /api/orders/{orderId}/payments`
 
 **Request**
 ```json
-{
-  "metodo": "tarjeta | transferencia | billetera",
-  "tarjeta": { "ultimosDigitos": "0000" }
-}
+{ "method": "CARD", "cardToken": "tok_demo123", "cardLast4": "4242" }
 ```
+`method` es opcional (`CARD` por defecto): `CARD`, `TRANSFER` o `WALLET` — mapeado desde `tarjeta`/`transferencia`/`billetera`. `cardToken` es obligatorio; `cardLast4` obligatorio si el método es `CARD`.
 
-**Response 200**
+**Response 201**
 ```json
-{
-  "id": "PAY-000001",
-  "orderId": "SGO-000001",
-  "metodo": "tarjeta",
-  "resultado": "aprobado | en_proceso | rechazado",
-  "motivo": "string | null",
-  "fecha": "ISO-8601"
-}
+{ "orderId": 12, "attemptNumber": 1, "result": "APPROVED", "orderStatus": "PAID", "providerReference": "PK-899B2F4A", "latencyMs": 81, "message": "cobro aprobado" }
 ```
+`404` si la orden no existe. `409` si ya está pagada, tiene un cobro en proceso, o está cancelada/devuelta.
 
-## Estados y reglas asumidas
+## Mapeo de resultado
 
-- **`aprobado`**: la orden pasa a `pagada` de inmediato.
-- **`en_proceso`**: la orden pasa a `pago_en_proceso`; el backend resuelve el resultado de forma asíncrona (Outbox + Circuit Breaker, ADR-0002) y el frontend debe re-consultar la orden hasta ver el cambio — no hay webhook/push al frontend en este contrato, por eso `OrderStatusPage` hace polling cada 2s en vez de esperar una notificación. **Supuesto a validar con Backend**: si el BFF expone un mecanismo de push (SSE/WebSocket), el polling se puede reemplazar sin tocar el resto de la UI.
-- **`rechazado`**: la orden vuelve a `pendiente_pago` (para permitir reintento con otro método, PB-013) — salvo que se alcance el máximo de intentos fallidos, caso en el que pasa a `pago_fallido` (fallido definitivo, PB-014).
-- **Máximo de reintentos fallidos**: el mock usa `3` como placeholder fijo (`mockPaymentRepository.maxIntentosFallidos`). El valor real lo controla el backend — falta que Payment Service confirme el número y si es configurable por tipo de orden o global.
+| Backend `result` | Frontend `ResultadoCobro` | `orderStatus` real |
+|---|---|---|
+| `APPROVED` | `aprobado` | `PAID` |
+| `DECLINED` | `rechazado` | `PAYMENT_FAILED` |
+| `TIMEOUT` | `en_proceso` | `PAYMENT_IN_PROGRESS` |
+| `ERROR` | `en_proceso` | `PAYMENT_IN_PROGRESS` |
 
-## Datos mágicos usados por el mock (ver también `escenarios-mock.md`)
+`TIMEOUT`/`ERROR` no deben tratarse como fallo — el backend reintenta el cobro solo (cola de contingencia); el frontend solo debe dejar la orden visible y seguir sondeando `GET /api/orders/{id}` (`OrderStatusPage` ya lo hace).
 
-- Tarjeta terminada en `0000` → rechazo inmediato con motivo "Fondos insuficientes".
-- Tarjeta terminada en `1111` → `en_proceso`, resuelve a `aprobado` tras ~4s.
-- Cualquier otro método o tarjeta → `aprobado` inmediato.
+## `GET /api/orders/{orderId}/payments` — historial de intentos
+
+```json
+[{ "id": 1, "attemptNumber": 1, "result": "ERROR", "amount": 4200.00, "providerReference": null, "cardLast4": "4242", "failureReason": "PayKlik no respondió a la solicitud de cobro", "latencyMs": 0, "attemptedAt": "2026-09-23T04:36:20Z" }]
+```
+`httpPaymentRepository.countIntentosFallidos` cuenta los elementos con `result: "DECLINED"`.
+
+## Límite de reintentos (PB-014) — regla de frontend, no del backend
+
+**El backend no tiene un concepto de "fallido definitivo".** Un solo `DECLINED` ya deja la orden en `PAYMENT_FAILED`, y nada impide un nuevo intento después (el propio backend dice "puede reintentar con otro método"). PB-014 exige un máximo de reintentos con un estado terminal — `maxIntentosFallidos = 3` se mantiene como una regla de negocio aplicada enteramente en el frontend (`PaymentPage`), contando los `DECLINED` reales del historial (`GET /api/orders/{orderId}/payments`), no el estado crudo de la orden. Esto es una decisión de producto, no una limitación técnica: el backend permitiría seguir intentando indefinidamente.
+
+## Forzar escenarios de fallo para pruebas/demo
+
+Como ya no existen las tarjetas "mágicas" del mock (`0000` rechaza, `1111` deja en proceso), los escenarios de rechazo/timeout se fuerzan cambiando el modo del simulador de PayKlik (fuera del frontend, vía Postman/curl):
+```
+PUT /api/simulation/payklik
+{ "mode": "REJECT" }   // próximo cobro: DECLINED
+{ "mode": "DOWN" }     // próximo cobro: se cae, entra a la cola de contingencia (PAYMENT_IN_PROGRESS)
+{ "mode": "NORMAL" }   // vuelve a la normalidad
+```
+Ver `FASE 2/backend/API-Transacciones.md`, sección "Simulación de terceros".

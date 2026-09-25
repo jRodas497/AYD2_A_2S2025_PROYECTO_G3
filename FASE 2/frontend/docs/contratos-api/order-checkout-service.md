@@ -1,42 +1,50 @@
-# Contrato asumido — Order / Checkout Service (vía BFF)
+# Contrato real — Order / Checkout Service
 
-> Consumido hoy por `mockOrderRepository` (`src/features/orden/api/orderRepository.mock.ts`).
+> Consumido por `httpOrderRepository` (`src/features/orden/api/orderRepository.http.ts`). El frontend llama directo al backend (Backend 1) vía el proxy de Vite — no existe un BFF de agregación; el supuesto original de este documento (agregación por BFF) no se cumplió, igual que le pasó a `catalog-service.md`.
 
-## `POST /bff/orders`
+## `POST /api/orders/checkout`
 
-Crea una orden a partir del carrito confirmado (PB-004).
+Convierte el carrito activo del cliente en una orden — reserva stock y crea la orden en `PENDING_PAYMENT`.
 
 **Request**
 ```json
-{
-  "customerId": "string",
-  "items": [{ "productId": "string", "cantidad": 0, "precioUnitario": 0 }],
-  "metodoEntrega": "centro_distribucion | tienda | recogida"
-}
+{ "customerId": 1, "deliveryAddress": "Zona 10, Ciudad de Guatemala" }
 ```
 
 **Response 201**
 ```json
+{ "id": 1, "cartId": 1, "customerId": 1, "channel": "WEB", "status": "PENDING_PAYMENT", "total": 4500.00, "deliveryAddress": "Zona 10, Ciudad de Guatemala", "createdAt": null, "updatedAt": "2026-09-22T04:05:48Z" }
+```
+`createdAt` sale `null` en esta respuesta puntual (limitación conocida del backend) — `httpOrderRepository` usa `updatedAt` como `creadaEn` para este caso. `400` si el cliente no tiene carrito activo o está vacío; `409` si algún producto ya no está activo o no alcanza el stock — se muestran como texto en `CheckoutPage`.
+
+**No lleva `items` en el request.** El backend usa el carrito activo del cliente tal cual está en el servidor. El frontend guarda localmente (`orderItemsSnapshot.ts`) los ítems que tenía el carrito justo antes de confirmar, solo para mostrarlos después — el backend no los devuelve en ningún endpoint de orden.
+
+**No existe el concepto de "método de entrega"** (centro de distribución/tienda/recogida) que asumía este documento — solo `deliveryAddress`, texto libre. PB-004.1 ("elegir centro de distribución, tienda o recogida") queda no cumplido contra el backend real; se reemplazó por un campo de dirección.
+
+## `GET /api/orders/{id}`
+
+Estado completo de la orden en una sola consulta.
+
+**Response 200**
+```json
 {
-  "id": "SGO-000001",
-  "customerId": "string",
-  "items": [{ "productId": "string", "nombre": "string", "sku": "string", "cantidad": 0, "precioUnitario": 0 }],
-  "total": 0,
-  "metodoEntrega": "centro_distribucion | tienda | recogida",
-  "estado": "pendiente_pago",
-  "creadaEn": "ISO-8601"
+  "orderId": 1, "createdAt": "2026-09-22T04:05:48Z", "customerId": 1, "customer": "Cliente de prueba 1",
+  "channel": "WEB", "status": "PENDING_PAYMENT", "total": 4500.00, "lastPaymentResult": null,
+  "paymentAttempts": null, "invoiceStatus": null, "shipmentStatus": null, "trackingNumber": null
 }
 ```
+`404` si la orden no existe — `httpOrderRepository.getOrder` lo traduce a `null`.
 
-Se asume que el backend reserva el inventario (Inventory Service) como parte de esta misma llamada, antes de responder — el mock no simula ese paso porque ya se validó disponibilidad al agregar al carrito (CDU-01).
+**No trae line items ni dirección de entrega.** `httpOrderRepository.getOrder` los rellena desde el snapshot local guardado al momento del checkout (`orderItemsSnapshot.ts`) — si no existe (otro navegador, `localStorage` limpiado), `items` queda `[]` y `direccionEntrega` queda `''`; la UI lo muestra como "no tenemos el detalle en este navegador" en vez de fallar.
 
-## `GET /bff/orders/{id}`
+## Estados reales de la orden
 
-Consulta el estado de una orden — versión mínima hoy (solo lo necesario para PB-004: eco de lo creado). La vista consolidada completa (pago, despacho, entrega, incidencias) es PB-025, todavía no implementada.
+`PENDING_PAYMENT, PAYMENT_IN_PROGRESS, PAYMENT_FAILED, PAID, INVOICED, IN_DISPATCH, DELIVERED, CANCELLED, RETURNED` — mapeados 1:1 a `EstadoOrden` (`pendiente_pago`, `pago_en_proceso`, `pago_fallido`, `pagada`, `facturada`, `en_despacho`, `entregada`, `cancelada`, `devuelta`). `entregada`/`cancelada`/`devuelta` son terminales — `OrderStatusPage` deja de sondear al llegar a cualquiera de ellos.
 
-**Response 200:** mismo shape que la creación.
-**Response 404:** orden no encontrada.
+## "Mis órdenes" — sin endpoint de listado
+
+El backend no tiene ningún `GET /api/customers/{id}/orders` ni equivalente. `httpOrderRepository.listOrders` mantiene un índice local por cliente (`orderIndex.ts`, `localStorage: sgo-order-ids-<customerId>`), poblado al crear cada orden (`createOrder`), y consulta el estado real de cada una con `GET /api/orders/{id}`. Esto es un índice de conveniencia del navegador, no autorización real — el endpoint de consulta de una orden sigue abierto para cualquier id, igual que el resto de la API hoy.
 
 ## Identificación / reidentificación (PB-009)
 
-No es un endpoint de Order/Checkout — se asume que Customer Service es quien resuelve la identidad del cliente por sesión, teléfono o cuenta, y que el frontend solo necesita saber "sí/no" para decidir si pide reidentificación. El mock simula la reidentificación con un formulario manual (nombre + teléfono) disparado por un control en la sidebar ("¿No eres tú?"), ya que no hay canales reales que forzar el escenario. Falta que Customer Service confirme el mecanismo real de detección.
+Sigue sin ser un endpoint de Order/Checkout — ver `customer-service.md`. Sin cambios respecto a la fase anterior.
