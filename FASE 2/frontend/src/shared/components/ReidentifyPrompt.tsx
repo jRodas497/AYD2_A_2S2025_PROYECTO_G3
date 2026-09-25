@@ -3,15 +3,15 @@ import { useCustomer } from '../context/CustomerContext'
 import { Button } from './Button'
 
 export function ReidentifyPrompt() {
-  const { customer, needsReidentification, identify } = useCustomer()
+  const { customer, needsReidentification, identify, identifyError } = useCustomer()
   const [nombre, setNombre] = useState(customer.nombre)
   const [telefono, setTelefono] = useState(customer.telefono)
 
   if (!needsReidentification) return null
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    identify({ nombre, telefono })
+    await identify({ nombre, telefono })
   }
 
   return (
@@ -21,6 +21,8 @@ export function ReidentifyPrompt() {
         <p className="text-sm text-gray-500 mb-4">
           No reconocemos tu sesión en este canal. Identifícate para recuperar tu carrito e historial.
         </p>
+
+        {identifyError && <p className="text-xs text-falla mb-3">{identifyError}</p>}
 
         <label className="block text-xs text-gray-500 mb-1">Nombre</label>
         <input
