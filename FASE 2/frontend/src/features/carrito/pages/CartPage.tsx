@@ -9,15 +9,20 @@ function formatQ(valor: number): string {
 }
 
 export function CartPage() {
-  const { cart, cargando, total, incrementarItem } = useCarrito()
+  const { cart, cargando, error, total, incrementarItem } = useCarrito()
   const { notificar } = useNotify()
 
   async function handleIncrementar(item: CartItem) {
-    await incrementarItem(item.productId)
-    notificar(`Cantidad de ${item.nombre} actualizada a ${item.cantidad + 1}`, 'ok')
+    const resultado = await incrementarItem(item.productId)
+    if (resultado.ok) {
+      notificar(`Cantidad de ${item.nombre} actualizada a ${item.cantidad + 1}`, 'ok')
+    } else {
+      notificar(resultado.motivo, 'falla')
+    }
   }
 
   if (cargando) return <p className="text-sm text-gray-400">Cargando carrito…</p>
+  if (error) return <p className="text-sm text-falla">{error}</p>
 
   return (
     <div>
