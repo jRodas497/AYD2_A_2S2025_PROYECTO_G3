@@ -20,21 +20,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    let cancelado = false
+    setCargando(true)
+    setError(null)
     httpCartRepository
       .getCart(customer.id)
       .then((resultado) => {
+        if (cancelado) return
         setCart(resultado)
         setCargando(false)
       })
       .catch((e) => {
+        if (cancelado) return
         setError(e instanceof Error ? e.message : 'No se pudo cargar el carrito')
         setCargando(false)
       })
+    return () => {
+      cancelado = true
+    }
   }, [customer.id])
 
   async function agregarItem(productId: string, cantidad: number) {
     const nuevoCart = await httpCartRepository.addItem(customer.id, productId, cantidad)
     setCart(nuevoCart)
+    setError(null)
   }
 
   function resetearLocal() {

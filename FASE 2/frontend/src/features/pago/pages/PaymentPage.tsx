@@ -51,11 +51,29 @@ export function PaymentPage() {
   if (error) return <p className="text-sm text-falla">{error}</p>
   if (!orden) return <p className="text-sm text-falla">No encontramos una orden con ese número.</p>
 
-  if (orden.estado === 'pagada') {
+  if (orden.estado === 'pagada' || orden.estado === 'facturada' || orden.estado === 'en_despacho' || orden.estado === 'entregada') {
     return (
       <div>
         <BackLink to={`/ordenes/${orden.id}`} label="Volver a la orden" />
         <p className="text-sm text-ok">Esta orden ya está pagada.</p>
+      </div>
+    )
+  }
+
+  if (orden.estado === 'cancelada' || orden.estado === 'devuelta') {
+    return (
+      <div>
+        <BackLink to={`/ordenes/${orden.id}`} label="Volver a la orden" />
+        <p className="text-sm text-falla">Esta orden ya no admite pagos.</p>
+      </div>
+    )
+  }
+
+  if (orden.estado === 'pago_en_proceso') {
+    return (
+      <div>
+        <BackLink to={`/ordenes/${orden.id}`} label="Volver a la orden" />
+        <p className="text-sm text-gray-400">Tu pago se está confirmando. Consulta el estado de la orden para ver el resultado.</p>
       </div>
     )
   }
@@ -80,6 +98,13 @@ export function PaymentPage() {
     setRechazoMotivo(null)
 
     const ultimosDigitos = numeroTarjeta.replace(/\D/g, '').slice(-4)
+
+    if (metodo === 'tarjeta' && ultimosDigitos.length !== 4) {
+      notificar('Ingresa un número de tarjeta válido', 'falla')
+      setEnviando(false)
+      return
+    }
+
     setNumeroTarjeta('')
     setCvv('')
 

@@ -24,7 +24,7 @@ Plantilla por pantalla: marcar cada RF de su historia y el RNF aplicable antes d
 - [x] Si la reserva falla, se muestra el motivo y una sugerencia (RF PB-003.1, PB-003.2)
 - [x] El resto del carrito no se ve afectado cuando un producto falla al agregarse (RF PB-003.3)
 - [x] El carrito persiste tras recargar la página — ahora es el carrito real del backend, asociado al cliente (ya no una simulación local)
-- [ ] Permite reducir la cantidad de un producto o eliminarlo del carrito (RF implícito de PB-002/PB-003) — el backend real (`POST /api/customers/{id}/cart/items`) solo soporta agregar o incrementar; no hay endpoint para bajar cantidad ni eliminar un ítem. Ver `docs/contratos-api/order-checkout-service.md` si se documenta un cart-service aparte, o el hallazgo en esta misma sección.
+- [ ] Permite reducir la cantidad de un producto o eliminarlo del carrito (RF implícito de PB-002/PB-003) — el backend real (`POST /api/customers/{id}/cart/items`) solo soporta agregar o incrementar; no hay endpoint para bajar cantidad ni eliminar un ítem. Es una limitación real del backend, documentada en el contrato del checkout.
 
 ## Identificación del cliente (transversal) — PB-009
 
@@ -41,7 +41,7 @@ Plantilla por pantalla: marcar cada RF de su historia y el RNF aplicable antes d
 
 ## Estado de orden (`/ordenes/:id`) — base para PB-025
 
-- [x] Muestra número de orden, ítems, total, método de entrega y estado
+- [x] Muestra número de orden, ítems, total, dirección de entrega y estado
 - [x] Un id de orden inexistente responde con mensaje claro, sin exponer otras órdenes
 
 ## Pago (`/ordenes/:id/pago`) — PB-010, PB-013, PB-014
@@ -95,5 +95,5 @@ Plantilla por pantalla: marcar cada RF de su historia y el RNF aplicable antes d
 
 - La sugerencia de producto/tienda alternativa en PB-003 es un texto fijo de demo — falta contrato real del backend para dato dinámico (ver `docs/contratos-api/catalog-service.md`).
 - La reidentificación (PB-009) se dispara manualmente desde la sidebar, no automáticamente al detectar una sesión perdida — falta que Customer Service defina el mecanismo real de detección (ver `docs/contratos-api/order-checkout-service.md`).
-- `/ordenes/:id` hoy solo muestra lo que devuelve la creación de la orden — la vista consolidada completa (pago, despacho, entrega, incidencias) es PB-025, todavía no implementada.
+- `/ordenes/:id` ahora consulta el estado real en vivo (`GET /api/orders/{id}`), pero la vista consolidada de incidencias sigue siendo PB-025, todavía no implementada.
 - PB-014 AC3 pide que el cliente "reciba una notificación" al fallar definitivamente — hoy es solo un mensaje inline en `/ordenes/:id` y `/ordenes/:id/pago`; la notificación real (SMS/correo/in-app) depende de Notification Service y de PB-040, todavía no implementado.

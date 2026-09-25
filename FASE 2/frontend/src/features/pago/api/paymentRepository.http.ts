@@ -1,6 +1,6 @@
 import type { PaymentRepository } from './paymentRepository'
 import type { DatosTarjeta, MetodoPago, PaymentAttempt, ResultadoCobro } from '../types'
-import { manejarRespuesta } from '../../../shared/api/httpErrors'
+import { NotFoundError, manejarRespuesta } from '../../../shared/api/httpErrors'
 
 const MAX_INTENTOS_FALLIDOS = 3
 
@@ -74,7 +74,12 @@ export const httpPaymentRepository: PaymentRepository = {
   },
 
   async countIntentosFallidos(orderId) {
-    const intentos = await manejarRespuesta<BackendPaymentAttempt[]>(await fetch(`/api/orders/${orderId}/payments`))
-    return intentos.filter((i) => i.result === 'DECLINED').length
+    try {
+      const intentos = await manejarRespuesta<BackendPaymentAttempt[]>(await fetch(`/api/orders/${orderId}/payments`))
+      return intentos.filter((i) => i.result === 'DECLINED').length
+    } catch (e) {
+      if (e instanceof NotFoundError) return 0
+      throw e
+    }
   },
 }

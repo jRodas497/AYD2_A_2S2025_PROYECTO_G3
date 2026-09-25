@@ -85,4 +85,4 @@ export const mockPaymentRepository: PaymentRepository = {
     const intentos = cargarIntentos()
     return esperar(intentos.filter((i) => i.orderId === orderId && i.resultado === 'rechazado').length)
   },
-} satisfies PaymentRepository
+}

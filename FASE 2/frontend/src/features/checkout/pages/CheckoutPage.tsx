@@ -11,7 +11,7 @@ function formatQ(valor: number): string {
 }
 
 export function CheckoutPage() {
-  const { cart, cargando, total, resetearCarritoLocal } = useCarrito()
+  const { cart, cargando, error: errorCarrito, total, resetearCarritoLocal } = useCarrito()
   const { customer } = useCustomer()
   const navigate = useNavigate()
   const [direccionEntrega, setDireccionEntrega] = useState('')
@@ -19,6 +19,7 @@ export function CheckoutPage() {
   const [error, setError] = useState<string | null>(null)
 
   if (cargando) return <p className="text-sm text-gray-400">Cargando…</p>
+  if (errorCarrito) return <p className="text-sm text-falla">{errorCarrito}</p>
 
   if (cart.items.length === 0) {
     return (

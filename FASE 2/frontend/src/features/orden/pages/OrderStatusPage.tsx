@@ -5,6 +5,7 @@ import { BackLink } from '../../../shared/components/BackLink'
 import { Button } from '../../../shared/components/Button'
 import { useNotify } from '../../../shared/notifications/NotificationContext'
 import { httpOrderRepository } from '../api/orderRepository.http'
+import { httpPaymentRepository } from '../../pago/api/paymentRepository.http'
 import { ESTADOS_TERMINALES, ETIQUETA_ESTADO } from '../estadoLabels'
 import type { Order } from '../types'
 
@@ -29,8 +30,10 @@ export function OrderStatusPage() {
   const [orden, setOrden] = useState<Order | null>(null)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [intentosFallidos, setIntentosFallidos] = useState(0)
   const { notificar } = useNotify()
   const estadoAnteriorRef = useRef<Order['estado'] | null>(null)
+  const tieneOrdenCargadaRef = useRef(false)
 
   useEffect(() => {
     if (!id) return
@@ -41,6 +44,7 @@ export function OrderStatusPage() {
       try {
         const resultado = await httpOrderRepository.getOrder(id!)
         if (cancelado) return
+
         if (resultado) {
           const anterior = estadoAnteriorRef.current
           if (anterior && anterior !== resultado.estado) {
@@ -48,17 +52,41 @@ export function OrderStatusPage() {
             if (transicion) notificar(transicion.texto, transicion.tono)
           }
           estadoAnteriorRef.current = resultado.estado
-          if (ESTADOS_TERMINALES.includes(resultado.estado) && intervalo) {
+
+          let fallidos = 0
+          if (resultado.estado === 'pago_fallido') {
+            try {
+              fallidos = await httpPaymentRepository.countIntentosFallidos(resultado.id)
+            } catch {
+              // Si no se puede confirmar el conteo real, no se trata como fallo definitivo —
+              // se sigue ofreciendo reintentar en vez de dejar la pantalla colgada.
+            }
+          }
+          if (cancelado) return
+          setIntentosFallidos(fallidos)
+
+          const esFalloDefinitivo = resultado.estado === 'pago_fallido' && fallidos >= httpPaymentRepository.maxIntentosFallidos
+          if ((ESTADOS_TERMINALES.includes(resultado.estado) || esFalloDefinitivo) && intervalo) {
             clearInterval(intervalo)
           }
+        } else if (intervalo) {
+          // La orden no existe (404) — no tiene sentido seguir sondeando para siempre.
+          clearInterval(intervalo)
         }
+
+        tieneOrdenCargadaRef.current = resultado !== null
         setOrden(resultado)
+        setError(null)
         setCargando(false)
       } catch (e) {
         if (cancelado) return
-        setError(e instanceof Error ? e.message : 'No se pudo consultar la orden')
         setCargando(false)
-        if (intervalo) clearInterval(intervalo)
+        // Un fallo puntual de red no descarta lo último que sí se cargó bien — solo se muestra
+        // como error de pantalla completa si nunca se logró cargar la orden.
+        if (!tieneOrdenCargadaRef.current) {
+          setError(e instanceof Error ? e.message : 'No se pudo consultar la orden')
+          if (intervalo) clearInterval(intervalo)
+        }
       }
     }
 
@@ -66,7 +94,8 @@ export function OrderStatusPage() {
 
     // Mientras el pago está en proceso (o la orden sigue avanzando), se sondea sin bloquear la UI
     // — el backend real resuelve el flujo de forma asíncrona (cobro, factura, despacho, guía).
-    // El sondeo se corta apenas se llega a un estado terminal (ver ESTADOS_TERMINALES).
+    // El sondeo se corta apenas se llega a un estado terminal, a un fallo de pago definitivo, o a
+    // que la orden deje de existir.
     intervalo = setInterval(() => {
       if (!cancelado) consultar()
     }, INTERVALO_SONDEO_MS)
@@ -115,7 +144,14 @@ export function OrderStatusPage() {
       {orden.direccionEntrega && <p className="text-sm text-gray-500 mb-1">Entrega: {orden.direccionEntrega}</p>}
       {orden.trackingNumber && <p className="text-sm text-gray-500 mb-4">Guía de envío: {orden.trackingNumber}</p>}
 
-      {(orden.estado === 'pendiente_pago' || orden.estado === 'pago_fallido') && (
+      {orden.estado === 'pago_fallido' && intentosFallidos >= httpPaymentRepository.maxIntentosFallidos && (
+        <p className="text-sm text-falla">
+          Se agotaron los intentos de cobro para esta orden. Te notificaremos para que puedas reintentar más tarde.
+        </p>
+      )}
+
+      {(orden.estado === 'pendiente_pago' ||
+        (orden.estado === 'pago_fallido' && intentosFallidos < httpPaymentRepository.maxIntentosFallidos)) && (
         <>
           {orden.estado === 'pago_fallido' && <p className="text-sm text-falla mb-2">El pago no se pudo confirmar.</p>}
           <Link to={`/ordenes/${orden.id}/pago`}>

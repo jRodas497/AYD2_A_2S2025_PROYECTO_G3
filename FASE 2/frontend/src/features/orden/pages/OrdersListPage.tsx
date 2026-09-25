@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Pill } from '../../../shared/components/Pill'
 import { useCustomer } from '../../../shared/context/CustomerContext'
-import { mockOrderRepository } from '../api/orderRepository.mock'
+import { httpOrderRepository } from '../api/orderRepository.http'
 import { ETIQUETA_ESTADO } from '../estadoLabels'
 import type { Order } from '../types'
 
@@ -18,12 +18,19 @@ export function OrdersListPage() {
   const { customer } = useCustomer()
   const [ordenes, setOrdenes] = useState<Order[]>([])
   const [cargando, setCargando] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    mockOrderRepository.listOrders(customer.id).then((resultado) => {
-      setOrdenes(resultado)
-      setCargando(false)
-    })
+    httpOrderRepository
+      .listOrders(customer.id)
+      .then((resultado) => {
+        setOrdenes(resultado)
+        setCargando(false)
+      })
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : 'No se pudieron cargar tus órdenes')
+        setCargando(false)
+      })
   }, [customer.id])
 
   return (
@@ -32,6 +39,8 @@ export function OrdersListPage() {
 
       {cargando ? (
         <p className="text-sm text-gray-400">Cargando órdenes…</p>
+      ) : error ? (
+        <p className="text-sm text-falla">{error}</p>
       ) : ordenes.length === 0 ? (
         <p className="text-sm text-gray-400">
           Todavía no tienes órdenes. <Link to="/catalogo" className="text-brand underline">Ver catálogo</Link>

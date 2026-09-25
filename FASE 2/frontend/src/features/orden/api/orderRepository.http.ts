@@ -98,7 +98,15 @@ export const httpOrderRepository: OrderRepository = {
 
   async listOrders(customerId) {
     const ids = listarIdsOrdenes(customerId)
-    const ordenes = await Promise.all(ids.map((id) => httpOrderRepository.getOrder(id)))
+    const ordenes = await Promise.all(
+      ids.map(async (id) => {
+        try {
+          return await httpOrderRepository.getOrder(id)
+        } catch {
+          return null
+        }
+      }),
+    )
     return ordenes.filter((o): o is Order => o !== null).sort((a, b) => b.creadaEn.localeCompare(a.creadaEn))
   },
 }
