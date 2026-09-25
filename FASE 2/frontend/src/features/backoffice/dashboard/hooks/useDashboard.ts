@@ -7,10 +7,15 @@ export function useDashboard() {
   const [cargando, setCargando] = useState(true)
 
   useEffect(() => {
+    let cancelado = false
     mockDashboardRepository.getDashboard().then((resultado) => {
+      if (cancelado) return
       setDatos(resultado)
       setCargando(false)
     })
+    return () => {
+      cancelado = true
+    }
   }, [])
 
   return { datos, cargando }
