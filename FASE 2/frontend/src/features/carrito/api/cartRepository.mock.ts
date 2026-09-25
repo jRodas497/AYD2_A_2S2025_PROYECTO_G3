@@ -1,5 +1,6 @@
 import type { CartRepository } from './cartRepository'
-import { EMPTY_CART, type Cart } from '../types'
+import { mockCatalogRepository } from '../../catalogo/api/catalogRepository.mock'
+import { EMPTY_CART, type Cart, type CartItem } from '../types'
 
 const LATENCIA_MS = 150
 
@@ -11,18 +12,43 @@ function claveDe(customerId: string): string {
   return `sgo-cart-${customerId}`
 }
 
-export const mockCartRepository: CartRepository = {
-  async getCart(customerId) {
-    const crudo = localStorage.getItem(claveDe(customerId))
-    if (!crudo) return esperar(EMPTY_CART)
-    try {
-      return esperar(JSON.parse(crudo) as Cart)
-    } catch {
-      return esperar(EMPTY_CART)
-    }
-  },
-  async saveCart(customerId, cart) {
-    localStorage.setItem(claveDe(customerId), JSON.stringify(cart))
-    return esperar(undefined)
-  },
+function cargarCarrito(customerId: string): Cart {
+  const crudo = localStorage.getItem(claveDe(customerId))
+  if (!crudo) return EMPTY_CART
+  try {
+    return JSON.parse(crudo) as Cart
+  } catch {
+    return EMPTY_CART
+  }
 }
+
+function guardarCarrito(customerId: string, cart: Cart): void {
+  localStorage.setItem(claveDe(customerId), JSON.stringify(cart))
+}
+
+export const mockCartRepository = {
+  async getCart(customerId: string) {
+    return esperar(cargarCarrito(customerId))
+  },
+
+  async addItem(customerId: string, productId: string, cantidad: number) {
+    const cart = cargarCarrito(customerId)
+    const items: CartItem[] = cart.items.map((item) => ({ ...item }))
+    const existente = items.find((i) => i.productId === productId)
+    if (existente) {
+      existente.cantidad += cantidad
+    } else {
+      const producto = await mockCatalogRepository.getById(productId)
+      items.push({
+        productId,
+        nombre: producto?.nombre ?? '',
+        sku: producto?.sku ?? '',
+        cantidad,
+        precioUnitario: producto?.precio.final ?? 0,
+      })
+    }
+    const nuevoCart = { items }
+    guardarCarrito(customerId, nuevoCart)
+    return esperar(nuevoCart)
+  },
+} satisfies CartRepository

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { mockCartRepository } from './cartRepository.mock'
-import { EMPTY_CART, type Cart } from '../types'
+import { EMPTY_CART } from '../types'
 
 describe('mockCartRepository', () => {
   beforeEach(() => {
@@ -12,19 +12,28 @@ describe('mockCartRepository', () => {
     expect(cart).toEqual(EMPTY_CART)
   })
 
-  it('el round-trip de localStorage no corrompe el carrito', async () => {
-    const cart: Cart = {
-      items: [{ productId: '1', nombre: 'Refrigeradora', sku: 'LB-1440', cantidad: 2, precioUnitario: 4999 }],
-    }
-    await mockCartRepository.saveCart('cliente-x', cart)
+  it('addItem agrega un producto nuevo con sus datos del catálogo mock', async () => {
+    const cart = await mockCartRepository.addItem('cliente-x', '1', 2)
+    expect(cart.items).toEqual([
+      { productId: '1', nombre: 'Refrigeradora 14 pies³', sku: 'LB-1440', cantidad: 2, precioUnitario: 4999 },
+    ])
+  })
+
+  it('addItem incrementa la cantidad si el producto ya estaba en el carrito', async () => {
+    await mockCartRepository.addItem('cliente-x', '1', 1)
+    const cart = await mockCartRepository.addItem('cliente-x', '1', 2)
+    expect(cart.items).toHaveLength(1)
+    expect(cart.items[0].cantidad).toBe(3)
+  })
+
+  it('el carrito persiste tras un round-trip de localStorage', async () => {
+    await mockCartRepository.addItem('cliente-x', '1', 1)
     const recuperado = await mockCartRepository.getCart('cliente-x')
-    expect(recuperado).toEqual(cart)
+    expect(recuperado.items).toHaveLength(1)
   })
 
   it('el carrito queda aislado por cliente', async () => {
-    await mockCartRepository.saveCart('cliente-a', {
-      items: [{ productId: '1', nombre: 'A', sku: 'A', cantidad: 1, precioUnitario: 10 }],
-    })
+    await mockCartRepository.addItem('cliente-a', '1', 1)
     const carritoB = await mockCartRepository.getCart('cliente-b')
     expect(carritoB).toEqual(EMPTY_CART)
   })
