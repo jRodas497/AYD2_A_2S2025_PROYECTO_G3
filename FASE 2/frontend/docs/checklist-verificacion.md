@@ -71,6 +71,16 @@ Plantilla por pantalla: marcar cada RF de su historia y el RNF aplicable antes d
 
 - **Órdenes y pagos se perdían al recargar la página.** `orderRepository` y `paymentRepository` guardaban todo en un array en memoria (como `ChannelTabs`, pero peor: sin persistencia alguna). Ahora ambos usan `localStorage`, igual que el carrito. Una orden en "pago en proceso" además se resuelve sola al leerla si ya pasó el tiempo de espera — así, si recargas antes de que el temporizador en memoria dispare, no se queda "en proceso" para siempre.
 
+## Integración real — Catálogo y Clientes
+
+- [x] El catálogo (`/catalogo`, `/productos/:id`) llama al backend real (`GET /api/products`, `GET /api/products/{id}`, `GET /api/inventory/products/{id}/availability`) vía el proxy de Vite — ya no usa datos hardcodeados
+- [x] Un error de red o del backend se muestra como texto en la pantalla, no como pantalla en blanco o error de consola
+- [x] Un producto que ya no existe (`404`) se trata igual que "no encontrado" en el mock — no como error
+- [x] Si la consulta de disponibilidad de un producto falla, el resto del catálogo se sigue mostrando
+- [x] La identidad del cliente ahora es un registro real en la base de datos — se crea una vez por navegador (`localStorage: sgo-customer-id`) y "¿No eres tú?" persiste el cambio contra el backend
+- Para levantar el backend real localmente: `cd "FASE 2" && docker compose up -d --build backend` (también levanta `db`). Ver `FASE 2/backend/API.md`.
+- Nota: carrito, checkout, pago y órdenes siguen en mock — es la siguiente fase. El panel de administración (Dashboard/Reportes) sigue en mock porque el backend no tiene esos endpoints.
+
 ## Hallazgos pendientes de este plan
 
 - La sugerencia de producto/tienda alternativa en PB-003 es un texto fijo de demo — falta contrato real del backend para dato dinámico (ver `docs/contratos-api/catalog-service.md`).
