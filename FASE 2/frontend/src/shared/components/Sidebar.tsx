@@ -10,7 +10,7 @@ export function Sidebar() {
       <div className="px-5 py-5 text-lg font-semibold tracking-tight border-b border-white/15">
         MegaStore
       </div>
-      <nav className="flex-1 overflow-y-auto py-4">
+      <nav className="sidebar-nav flex-1 overflow-y-auto py-4">
         {NAV_SECTIONS.map((seccion) => (
           <div key={seccion.titulo} className="mb-5 px-3">
             <div className="px-2 mb-1 text-[11px] font-medium text-white/60">{seccion.titulo}</div>
