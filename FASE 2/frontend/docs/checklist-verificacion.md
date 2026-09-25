@@ -60,6 +60,13 @@ Plantilla por pantalla: marcar cada RF de su historia y el RNF aplicable antes d
 - [x] Solo muestra órdenes del cliente identificado (RF PB-038.3)
 - Nota: esta pantalla se adelantó desde Sprint 2 porque, sin ella, no había forma de recuperar una orden tras recargar la página — ver hallazgo corregido abajo. El resto de PB-038 (detalle ampliado) sigue pendiente.
 
+## Dashboard y Reportes administrativos (`/administracion`, `/administracion/reportes`)
+
+- [x] El Dashboard muestra tarjetas resumen, órdenes recientes e inventario con datos simulados (adelanto de administración, sin historia de backlog asignada todavía)
+- [x] Reportes conecta el selector de período a datos reales del mock (antes era decorativo en frontend2)
+- [x] Las 10 secciones restantes del menú de administración son placeholders "Próximamente", igual convención que Notificaciones/Perfil
+- Nota: frontend2 (proyecto separado de un compañero de equipo) fue portado a este mismo codebase y eliminado del repo — ver `docs/contratos-api/backoffice-service.md` para el contrato asumido de estas dos pantallas.
+
 ## Hallazgos corregidos
 
 - **Órdenes y pagos se perdían al recargar la página.** `orderRepository` y `paymentRepository` guardaban todo en un array en memoria (como `ChannelTabs`, pero peor: sin persistencia alguna). Ahora ambos usan `localStorage`, igual que el carrito. Una orden en "pago en proceso" además se resuelve sola al leerla si ya pasó el tiempo de espera — así, si recargas antes de que el temporizador en memoria dispare, no se queda "en proceso" para siempre.
