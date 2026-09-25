@@ -1,22 +1,30 @@
 import type { CartItem } from '../carrito/types'
 
-export type MetodoEntrega = 'centro_distribucion' | 'tienda' | 'recogida'
-
-export type EstadoOrden = 'pendiente_pago' | 'pago_en_proceso' | 'pagada' | 'pago_fallido'
+export type EstadoOrden =
+  | 'pendiente_pago'
+  | 'pago_en_proceso'
+  | 'pago_fallido'
+  | 'pagada'
+  | 'facturada'
+  | 'en_despacho'
+  | 'entregada'
+  | 'cancelada'
+  | 'devuelta'
 
 export interface Order {
   id: string
   customerId: string
   items: CartItem[]
   total: number
-  metodoEntrega: MetodoEntrega
+  direccionEntrega: string
   estado: EstadoOrden
   creadaEn: string
   enProcesoDesde?: string
+  trackingNumber?: string
 }
 
 export interface CrearOrdenInput {
   customerId: string
   items: CartItem[]
-  metodoEntrega: MetodoEntrega
+  direccionEntrega: string
 }
