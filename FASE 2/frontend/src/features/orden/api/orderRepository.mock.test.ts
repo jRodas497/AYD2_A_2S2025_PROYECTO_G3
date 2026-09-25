@@ -12,17 +12,17 @@ describe('mockOrderRepository', () => {
     const orden = await mockOrderRepository.createOrder({
       customerId: 'cliente-x',
       items: [ITEM],
-      metodoEntrega: 'tienda',
+      direccionEntrega: 'Zona 10, Ciudad de Guatemala',
     })
     expect(orden.estado).toBe('pendiente_pago')
     expect(orden.total).toBe(4999)
-    expect(orden.metodoEntrega).toBe('tienda')
+    expect(orden.direccionEntrega).toBe('Zona 10, Ciudad de Guatemala')
     expect(orden.id).toBeTruthy()
   })
 
   it('cada orden creada tiene un id distinto', async () => {
-    const a = await mockOrderRepository.createOrder({ customerId: 'c', items: [ITEM], metodoEntrega: 'tienda' })
-    const b = await mockOrderRepository.createOrder({ customerId: 'c', items: [ITEM], metodoEntrega: 'tienda' })
+    const a = await mockOrderRepository.createOrder({ customerId: 'c', items: [ITEM], direccionEntrega: 'Zona 1' })
+    const b = await mockOrderRepository.createOrder({ customerId: 'c', items: [ITEM], direccionEntrega: 'Zona 1' })
     expect(a.id).not.toBe(b.id)
   })
 
@@ -30,7 +30,7 @@ describe('mockOrderRepository', () => {
     const creada = await mockOrderRepository.createOrder({
       customerId: 'cliente-x',
       items: [ITEM],
-      metodoEntrega: 'recogida',
+      direccionEntrega: 'Zona 2',
     })
     const recuperada = await mockOrderRepository.getOrder(creada.id)
     expect(recuperada).toEqual(creada)
@@ -45,7 +45,7 @@ describe('mockOrderRepository', () => {
     const creada = await mockOrderRepository.createOrder({
       customerId: 'cliente-x',
       items: [ITEM],
-      metodoEntrega: 'tienda',
+      direccionEntrega: 'Zona 2',
     })
     const actualizada = await mockOrderRepository.updateEstado(creada.id, 'pagada')
     expect(actualizada?.estado).toBe('pagada')
@@ -62,7 +62,7 @@ describe('mockOrderRepository', () => {
     const creada = await mockOrderRepository.createOrder({
       customerId: 'cliente-x',
       items: [ITEM],
-      metodoEntrega: 'tienda',
+      direccionEntrega: 'Zona 2',
     })
     const crudo = localStorage.getItem(ORDERS_STORAGE_KEY)
     expect(crudo).toBeTruthy()
@@ -77,9 +77,9 @@ describe('mockOrderRepository', () => {
   })
 
   it('listOrders retorna solo las órdenes del cliente indicado, más reciente primero', async () => {
-    const a = await mockOrderRepository.createOrder({ customerId: 'cliente-a', items: [ITEM], metodoEntrega: 'tienda' })
-    await mockOrderRepository.createOrder({ customerId: 'cliente-b', items: [ITEM], metodoEntrega: 'tienda' })
-    const c = await mockOrderRepository.createOrder({ customerId: 'cliente-a', items: [ITEM], metodoEntrega: 'tienda' })
+    const a = await mockOrderRepository.createOrder({ customerId: 'cliente-a', items: [ITEM], direccionEntrega: 'Zona 2' })
+    await mockOrderRepository.createOrder({ customerId: 'cliente-b', items: [ITEM], direccionEntrega: 'Zona 2' })
+    const c = await mockOrderRepository.createOrder({ customerId: 'cliente-a', items: [ITEM], direccionEntrega: 'Zona 2' })
 
     const propias = await mockOrderRepository.listOrders('cliente-a')
     expect(propias.map((o) => o.id)).toEqual([c.id, a.id])
@@ -89,11 +89,10 @@ describe('mockOrderRepository', () => {
     const creada = await mockOrderRepository.createOrder({
       customerId: 'cliente-x',
       items: [ITEM],
-      metodoEntrega: 'tienda',
+      direccionEntrega: 'Zona 2',
     })
     await mockOrderRepository.updateEstado(creada.id, 'pago_en_proceso')
 
-    // Simula que el tiempo ya pasó y la pestaña se recargó (el setTimeout en memoria se perdió).
     const ordenes = JSON.parse(localStorage.getItem(ORDERS_STORAGE_KEY)!)
     const idx = ordenes.findIndex((o: { id: string }) => o.id === creada.id)
     ordenes[idx].enProcesoDesde = new Date(Date.now() - RESOLUCION_EN_PROCESO_MS - 1000).toISOString()

@@ -35,11 +35,6 @@ function generarId(ordenes: Order[]): string {
   return `SGO-${String(maximo + 1).padStart(6, '0')}`
 }
 
-/**
- * Si una orden lleva más del umbral en "pago en proceso", se resuelve a "pagada" al leerla.
- * Sin esto, recargar la página mientras el pago está en proceso pierde el setTimeout en
- * memoria de paymentRepository y la orden quedaría "en proceso" para siempre.
- */
 function resolverSiCorresponde(orden: Order): Order {
   if (orden.estado !== 'pago_en_proceso' || !orden.enProcesoDesde) return orden
   const transcurrido = Date.now() - new Date(orden.enProcesoDesde).getTime()
@@ -49,15 +44,15 @@ function resolverSiCorresponde(orden: Order): Order {
   return orden
 }
 
-export const mockOrderRepository: OrderRepository = {
-  async createOrder(input) {
+export const mockOrderRepository = {
+  async createOrder(input: CrearOrdenInput) {
     const ordenes = cargarOrdenes()
     const orden: Order = {
       id: generarId(ordenes),
       customerId: input.customerId,
       items: input.items,
       total: calcularTotal(input.items),
-      metodoEntrega: input.metodoEntrega,
+      direccionEntrega: input.direccionEntrega,
       estado: 'pendiente_pago',
       creadaEn: new Date().toISOString(),
     }
@@ -66,7 +61,7 @@ export const mockOrderRepository: OrderRepository = {
     return esperar(orden)
   },
 
-  async getOrder(id) {
+  async getOrder(id: string) {
     const ordenes = cargarOrdenes()
     const encontrada = ordenes.find((o) => o.id === id)
     if (!encontrada) return esperar(null)
@@ -78,7 +73,7 @@ export const mockOrderRepository: OrderRepository = {
     return esperar(resuelta)
   },
 
-  async updateEstado(id, estado) {
+  async updateEstado(id: string, estado: Order['estado']) {
     const ordenes = cargarOrdenes()
     const idx = ordenes.findIndex((o) => o.id === id)
     if (idx === -1) return esperar(null)
@@ -92,11 +87,11 @@ export const mockOrderRepository: OrderRepository = {
     return esperar(ordenes[idx])
   },
 
-  async listOrders(customerId) {
+  async listOrders(customerId: string) {
     const ordenes = cargarOrdenes()
       .filter((o) => o.customerId === customerId)
       .map(resolverSiCorresponde)
       .sort((a, b) => b.creadaEn.localeCompare(a.creadaEn))
     return esperar(ordenes)
   },
-}
+} satisfies OrderRepository
