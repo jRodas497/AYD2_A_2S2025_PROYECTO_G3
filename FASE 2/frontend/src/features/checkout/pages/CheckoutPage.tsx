@@ -4,25 +4,19 @@ import { BackLink } from '../../../shared/components/BackLink'
 import { Button } from '../../../shared/components/Button'
 import { useCarrito } from '../../carrito/hooks/useCarrito'
 import { useCustomer } from '../../../shared/context/CustomerContext'
-import { mockOrderRepository } from '../../orden/api/orderRepository.mock'
-import type { MetodoEntrega } from '../../orden/types'
-
-const OPCIONES_ENTREGA: { valor: MetodoEntrega; etiqueta: string; descripcion: string }[] = [
-  { valor: 'centro_distribucion', etiqueta: 'Centro de distribución', descripcion: 'Recibe en el CD más cercano.' },
-  { valor: 'tienda', etiqueta: 'Tienda', descripcion: 'Recoge en la tienda de tu preferencia.' },
-  { valor: 'recogida', etiqueta: 'Recogida', descripcion: 'Recogida en punto acordado.' },
-]
+import { httpOrderRepository } from '../../orden/api/orderRepository.http'
 
 function formatQ(valor: number): string {
   return `Q ${valor.toFixed(2)}`
 }
 
 export function CheckoutPage() {
-  const { cart, cargando, total, vaciarCarrito } = useCarrito()
+  const { cart, cargando, total, resetearCarritoLocal } = useCarrito()
   const { customer } = useCustomer()
   const navigate = useNavigate()
-  const [metodoEntrega, setMetodoEntrega] = useState<MetodoEntrega>('centro_distribucion')
+  const [direccionEntrega, setDireccionEntrega] = useState('')
   const [confirmando, setConfirmando] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   if (cargando) return <p className="text-sm text-gray-400">Cargando…</p>
 
@@ -38,14 +32,21 @@ export function CheckoutPage() {
   }
 
   async function handleConfirmar() {
+    if (!direccionEntrega.trim()) return
     setConfirmando(true)
-    const orden = await mockOrderRepository.createOrder({
-      customerId: customer.id,
-      items: cart.items,
-      metodoEntrega,
-    })
-    await vaciarCarrito()
-    navigate(`/ordenes/${orden.id}`)
+    setError(null)
+    try {
+      const orden = await httpOrderRepository.createOrder({
+        customerId: customer.id,
+        items: cart.items,
+        direccionEntrega: direccionEntrega.trim(),
+      })
+      resetearCarritoLocal()
+      navigate(`/ordenes/${orden.id}`)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo confirmar la compra')
+      setConfirmando(false)
+    }
   }
 
   return (
@@ -53,30 +54,16 @@ export function CheckoutPage() {
       <BackLink to="/carrito" label="Volver al carrito" />
       <h1 className="text-2xl font-semibold text-ink mb-6">Checkout</h1>
 
-      <h2 className="text-sm font-medium text-ink mb-2">Método de entrega</h2>
-      <div className="space-y-2 mb-6">
-        {OPCIONES_ENTREGA.map((opcion) => (
-          <label
-            key={opcion.valor}
-            className={`flex items-start gap-3 border rounded p-3 cursor-pointer bg-white ${
-              metodoEntrega === opcion.valor ? 'border-brand border-2' : 'border-linea'
-            }`}
-          >
-            <input
-              type="radio"
-              name="metodoEntrega"
-              value={opcion.valor}
-              checked={metodoEntrega === opcion.valor}
-              onChange={() => setMetodoEntrega(opcion.valor)}
-              className="mt-1"
-            />
-            <span>
-              <span className="block text-sm font-medium text-ink">{opcion.etiqueta}</span>
-              <span className="block text-xs text-gray-500">{opcion.descripcion}</span>
-            </span>
-          </label>
-        ))}
-      </div>
+      <h2 className="text-sm font-medium text-ink mb-2">Dirección de entrega</h2>
+      <input
+        value={direccionEntrega}
+        onChange={(e) => setDireccionEntrega(e.target.value)}
+        placeholder="Zona 10, Ciudad de Guatemala"
+        required
+        className="w-full border border-linea rounded px-3 py-2 text-sm bg-white mb-6"
+      />
+
+      {error && <p className="text-sm text-falla mb-4">{error}</p>}
 
       <div className="bg-white border border-linea rounded p-4 mb-6">
         <div className="flex justify-between text-sm font-bold">
@@ -85,7 +72,7 @@ export function CheckoutPage() {
         </div>
       </div>
 
-      <Button onClick={handleConfirmar} disabled={confirmando}>
+      <Button onClick={handleConfirmar} disabled={confirmando || !direccionEntrega.trim()}>
         {confirmando ? 'Confirmando…' : 'Confirmar compra'}
       </Button>
     </div>
