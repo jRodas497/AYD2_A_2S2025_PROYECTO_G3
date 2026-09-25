@@ -4,8 +4,8 @@ import { BackLink } from '../../../shared/components/BackLink'
 import { Button } from '../../../shared/components/Button'
 import { Pill } from '../../../shared/components/Pill'
 import { useNotify } from '../../../shared/notifications/NotificationContext'
-import { mockOrderRepository } from '../../orden/api/orderRepository.mock'
-import { mockPaymentRepository } from '../api/paymentRepository.mock'
+import { httpOrderRepository } from '../../orden/api/orderRepository.http'
+import { httpPaymentRepository } from '../api/paymentRepository.http'
 import type { Order } from '../../orden/types'
 import type { MetodoPago } from '../types'
 
@@ -24,7 +24,9 @@ export function PaymentPage() {
   const navigate = useNavigate()
   const { notificar } = useNotify()
   const [orden, setOrden] = useState<Order | null>(null)
+  const [intentosFallidos, setIntentosFallidos] = useState(0)
   const [cargando, setCargando] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [metodo, setMetodo] = useState<MetodoPago>('tarjeta')
   const [numeroTarjeta, setNumeroTarjeta] = useState('')
   const [cvv, setCvv] = useState('')
@@ -33,13 +35,20 @@ export function PaymentPage() {
 
   useEffect(() => {
     if (!id) return
-    mockOrderRepository.getOrder(id).then((resultado) => {
-      setOrden(resultado)
-      setCargando(false)
-    })
+    Promise.all([httpOrderRepository.getOrder(id), httpPaymentRepository.countIntentosFallidos(id)])
+      .then(([resultadoOrden, fallidos]) => {
+        setOrden(resultadoOrden)
+        setIntentosFallidos(fallidos)
+        setCargando(false)
+      })
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : 'No se pudo cargar la información de pago')
+        setCargando(false)
+      })
   }, [id])
 
   if (cargando) return <p className="text-sm text-gray-400">Cargando…</p>
+  if (error) return <p className="text-sm text-falla">{error}</p>
   if (!orden) return <p className="text-sm text-falla">No encontramos una orden con ese número.</p>
 
   if (orden.estado === 'pagada') {
@@ -51,7 +60,7 @@ export function PaymentPage() {
     )
   }
 
-  if (orden.estado === 'pago_fallido') {
+  if (intentosFallidos >= httpPaymentRepository.maxIntentosFallidos) {
     return (
       <div>
         <BackLink to={`/ordenes/${orden.id}`} label="Volver a la orden" />
@@ -70,16 +79,22 @@ export function PaymentPage() {
     setEnviando(true)
     setRechazoMotivo(null)
 
-    // Nunca se envía ni persiste el número completo de tarjeta — solo los últimos 4 dígitos.
     const ultimosDigitos = numeroTarjeta.replace(/\D/g, '').slice(-4)
     setNumeroTarjeta('')
     setCvv('')
 
-    const intento = await mockPaymentRepository.charge(
-      orden.id,
-      metodo,
-      metodo === 'tarjeta' ? { ultimosDigitos } : undefined,
-    )
+    let intento
+    try {
+      intento = await httpPaymentRepository.charge(
+        orden.id,
+        metodo,
+        metodo === 'tarjeta' ? { ultimosDigitos } : undefined,
+      )
+    } catch (err) {
+      notificar(err instanceof Error ? err.message : 'No se pudo procesar el pago', 'falla')
+      setEnviando(false)
+      return
+    }
 
     if (intento.resultado === 'aprobado') {
       notificar('Pago aprobado. Tu orden fue confirmada.', 'ok')
@@ -93,9 +108,13 @@ export function PaymentPage() {
       return
     }
 
-    // Rechazado: releer la orden, porque el repositorio ya pudo haberla marcado pago_fallido.
-    const actualizada = await mockOrderRepository.getOrder(orden.id)
-    setOrden(actualizada)
+    try {
+      const fallidosActualizados = await httpPaymentRepository.countIntentosFallidos(orden.id)
+      setIntentosFallidos(fallidosActualizados)
+    } catch {
+      // Si no se puede confirmar el conteo real de rechazos, no se bloquea el reintento — se
+      // mantiene el conteo local ya conocido en vez de dejar la pantalla colgada.
+    }
     const motivo = intento.motivo ?? 'El cobro fue rechazado'
     setRechazoMotivo(motivo)
     notificar(`Pago rechazado: ${motivo}`, 'falla')
