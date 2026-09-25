@@ -12,13 +12,14 @@ import { UnavailableNotice } from '../../carrito/components/UnavailableNotice'
 
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const { producto, cargando } = useProducto(id)
+  const { producto, cargando, error: errorCarga } = useProducto(id)
   const { agregarProducto } = useCarrito()
   const { notificar } = useNotify()
   const [cantidad, setCantidad] = useState(1)
   const [error, setError] = useState<string | null>(null)
 
   if (cargando) return <p className="text-sm text-gray-400">Cargando producto…</p>
+  if (errorCarga) return <p className="text-sm text-falla">{errorCarga}</p>
   if (!producto) return <p className="text-sm text-falla">Producto no encontrado.</p>
 
   async function handleAgregar() {

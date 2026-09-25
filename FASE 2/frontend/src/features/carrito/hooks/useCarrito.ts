@@ -1,4 +1,4 @@
-import { mockCatalogRepository } from '../../catalogo/api/catalogRepository.mock'
+import { httpCatalogRepository } from '../../catalogo/api/catalogRepository.http'
 import type { Product } from '../../catalogo/types'
 import { useCartContext } from '../context/CartContext'
 
@@ -8,7 +8,12 @@ export function useCarrito() {
   const { cart, cargando, setCart } = useCartContext()
 
   async function agregarProducto(producto: Product, cantidad = 1): Promise<ResultadoAgregar> {
-    const actual = await mockCatalogRepository.getById(producto.id)
+    let actual: Product | null
+    try {
+      actual = await httpCatalogRepository.getById(producto.id)
+    } catch (e) {
+      return { ok: false, motivo: e instanceof Error ? e.message : 'No se pudo verificar el producto' }
+    }
     if (!actual || !actual.disponible) {
       return { ok: false, motivo: actual?.disponibilidadMotivo ?? 'Producto sin existencia disponible' }
     }

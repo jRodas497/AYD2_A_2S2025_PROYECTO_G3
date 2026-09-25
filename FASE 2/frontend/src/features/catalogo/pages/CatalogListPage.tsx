@@ -11,7 +11,7 @@ const CATEGORIAS: { valor: Categoria | undefined; etiqueta: string }[] = [
 ]
 
 export function CatalogListPage() {
-  const { productos, cargando, categoria, setCategoria, query, setQuery } = useCatalogo()
+  const { productos, cargando, error, categoria, setCategoria, query, setQuery } = useCatalogo()
 
   return (
     <div>
@@ -41,6 +41,8 @@ export function CatalogListPage() {
 
       {cargando ? (
         <p className="text-sm text-gray-400">Cargando catálogo…</p>
+      ) : error ? (
+        <p className="text-sm text-falla">{error}</p>
       ) : productos.length === 0 ? (
         <p className="text-sm text-gray-400">No se encontraron productos.</p>
       ) : (

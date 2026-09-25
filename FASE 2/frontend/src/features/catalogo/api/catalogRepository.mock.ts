@@ -67,7 +67,7 @@ const PRODUCTOS: Product[] = [
   },
 ]
 
-function coincide(producto: Product, query: string, categoria?: Categoria): boolean {
+export function coincide(producto: Product, query: string, categoria?: Categoria): boolean {
   const coincideCategoria = !categoria || producto.categoria === categoria
   const coincideTexto = !query || producto.nombre.toLowerCase().includes(query.toLowerCase())
   return coincideCategoria && coincideTexto

@@ -1,35 +1,29 @@
-# Contrato asumido — Catalog / Product Service (vía BFF)
+# Contrato real — Catalog / Product Service
 
-> Consumido hoy por `mockCatalogRepository` (`src/features/catalogo/api/catalogRepository.mock.ts`). El frontend nunca llama a Catalog/Product Service directamente — todo pasa por el API Gateway/BFF Omnicanal.
+> Consumido por `httpCatalogRepository` (`src/features/catalogo/api/catalogRepository.http.ts`). El frontend llama directo al backend (Backend 1) vía el proxy de desarrollo de Vite (`/api/*` → `http://localhost:8080`) — no existe un BFF de agregación; el supuesto original de este documento (agregación por BFF) no se cumplió.
 
-## Supuesto de agregación (a validar con Backend 1)
+## `GET /api/products`
 
-Se asume que el BFF agrega, en una sola respuesta por producto, el precio con descuento (Pricing & Promotions Service) y la disponibilidad (Inventory Service). Si Backend decide no agregar, el frontend necesita 2-3 llamadas por pantalla en vez de una — el cambio queda aislado en `useCatalogo`/`useProducto` sin tocar componentes de UI.
-
-## `GET /bff/catalog?search={texto}&categoria={categoria}`
-
-**Response 200**
+Lista los productos activos. **Response 200:**
 ```json
-{
-  "productos": [
-    {
-      "id": "string",
-      "sku": "string",
-      "nombre": "string",
-      "categoria": "linea_blanca | electronica | ropa | calzado",
-      "precio": { "original": 0, "final": 0, "promocion": "string | null" },
-      "disponible": true,
-      "disponibilidadMotivo": "string | null"
-    }
-  ]
-}
+[{ "id": 1, "sku": "LB-003", "name": "Estufa de 4 quemadores", "category": "LINEA_BLANCA", "price": 2100.00, "active": true }]
 ```
 
-## `GET /bff/catalog/{id}`
+## `GET /api/products/{id}`
 
-**Response 200:** mismo shape de un producto individual, más `descripcion: string`.
-**Response 404:** producto no existe.
+Un producto, mismo shape. **Response 404** si no existe — `httpCatalogRepository.getById` lo traduce a `null`.
 
-## Caso de excepción — producto sin disponibilidad (PB-003)
+## `GET /api/inventory/products/{id}/availability`
 
-Cuando `disponible: false`, se asume que `disponibilidadMotivo` viene poblado por el backend con el motivo (ej. "Sin existencia en el centro de distribución más cercano"). La sugerencia de alternativa/tienda cercana (PB-003 AC2) **no está en este contrato todavía** — el mock la muestra como texto fijo de demo; falta que Backend defina si esa sugerencia viaja en este mismo response o en un endpoint aparte.
+Llamada aparte (no viene agregada en el producto). **Response 200:**
+```json
+{ "productId": 1, "totalAvailable": 920, "byLocation": [{ "locationCode": "CD-01", "locationName": "Centro de distribución 1", "available": 199 }] }
+```
+`disponible = totalAvailable > 0`. `list()` la pide en paralelo para cada producto — a la escala actual (12 productos sembrados) el costo es insignificante; si el catálogo real crece mucho, esto necesitará un endpoint de disponibilidad en lote.
+
+## Limitaciones conocidas (no son errores de implementación, son huecos reales del backend actual)
+
+- **Sin búsqueda en el backend.** No existe un `GET /api/products?search=...`. `search()` pide el catálogo completo y filtra en el cliente (mismo criterio que ya usaba el mock). No escala si el catálogo crece mucho más allá de la demo.
+- **Sin descripción de producto.** El backend no devuelve ningún campo de descripción — `Product.descripcion` queda siempre `''` contra el backend real. `ProductDetailPage` sigue reservando el espacio, pero no muestra texto.
+- **Sin promociones.** No existe Pricing & Promotions Service — `precio.promocion` queda siempre `undefined`, `precio.original === precio.final` siempre.
+- La sugerencia de producto/tienda alternativa en PB-003 (cuando un producto no tiene existencia) sigue siendo un texto fijo de demo en `ProductDetailPage` — no hay ningún endpoint, real o asumido, que la provea todavía.
