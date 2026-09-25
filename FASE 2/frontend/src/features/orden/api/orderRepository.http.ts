@@ -1,5 +1,5 @@
 import type { OrderRepository } from './orderRepository'
-import type { CrearOrdenInput, EstadoOrden, Order } from '../types'
+import type { EstadoOrden, Order } from '../types'
 import { NotFoundError, manejarRespuesta } from '../../../shared/api/httpErrors'
 import { listarIdsOrdenes, registrarOrden } from './orderIndex'
 import { guardarSnapshot, obtenerSnapshot } from './orderItemsSnapshot'

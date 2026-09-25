@@ -1,4 +1,4 @@
-import type { CartItem } from '../carrito/types'
+import type { CartItem } from '../../carrito/types'
 
 export interface OrderSnapshot {
   items: CartItem[]
