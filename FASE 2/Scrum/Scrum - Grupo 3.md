@@ -15,11 +15,11 @@ title: Scrum - Grupo 3
 ### Integrantes del Grupo
 | Nombre | Carnet | Rol en el equipo |
 |---|---|---|
-| Estudiante 1 | | Backend 1 — Núcleo comercial |
-| Estudiante 2 | | Backend 2 — Transacciones e integraciones |
-| Estudiante 3 | | Frontend 1 — Cliente / Compra omnicanal |
-| Estudiante 4 | | Frontend 2 — Operación interna / Backoffice |
-| Estudiante 5 | | Documentación, Docker y pruebas E2E |
+| Hernán Ricardo Ávila Castillo | 9516085 | Backend 1 — Núcleo comercial |
+| Sebastián Alejandro Vásquez Cartagena | 202109114 | Backend 2 — Transacciones e integraciones |
+| Juan José Rodas Mansilla | 202200389 | Frontend 1 — Cliente / Compra omnicanal |
+| Williams Bramlley Constanza Oscal | 199919737 | Frontend 2 — Operación interna / Backoffice |
+| Carmen María Marroquín Llamas | 202001132 | Documentación, Docker y pruebas E2E |
 
 ---
 
