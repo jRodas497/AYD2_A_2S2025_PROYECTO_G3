@@ -6,8 +6,8 @@ title: Scrum - Grupo 3
 ## Universidad de San Carlos de Guatemala | Facultad de Ingeniería
 ### Análisis y Diseño de Sistemas 2
 ### Sección: A
-#### Catedrático: _(pendiente)_
-#### Auxiliar: _(pendiente)_
+#### Catedrático: Ing. Claudia Rojas de Morán
+#### Auxiliar: Kevin Josué Hernández Gómez
 
 ### Sistema de Gestión de Órdenes y Logística Omnicanal — SGO-Logic (Fase 2)
 ### Scrum del Grupo 3
@@ -35,9 +35,9 @@ title: Scrum - Grupo 3
 
 ## Product Backlog
 
-> Historias derivadas de `FASE 2/DDA/driversArquitectonicos.md` (RF/RC/R) y de los CDU expandidos de Fase 1 (`FASE 1/Docs/DDA/casos-de-uso/`), agrupadas por el componente de `FASE 2/DRAWIO/Diagrama-Componentes-SGO-Logic-Fase2.drawio` que las realiza. Cada bloque indica el componente y el backend responsable (Backend 1 = núcleo comercial; Backend 2 = transacciones e integraciones). La pantalla de frontend se marca por historia: **[F1]** = Frontend 1 (Cliente / Compra omnicanal), **[F2]** = Frontend 2 (Operación interna / Backoffice); una historia sin marca no tiene pantalla propia. Integrante 5 = documentación, Docker y E2E.
->
-> `Sprint sugerido` es una propuesta de secuenciación por dependencia (backbone → integraciones externas → cierre/calidad), **no un compromiso** — el compromiso real de sprint, fechas y story points se define en Sprint Planning de cada sprint.
+Historias derivadas de `FASE 2/DDA/driversArquitectonicos.md` (RF/RC/R) y de los CDU expandidos de Fase 1 (`FASE 1/Docs/DDA/casos-de-uso/`), agrupadas por el componente de `FASE 2/DRAWIO/Diagrama-Componentes-SGO-Logic-Fase2.drawio` que las realiza. Cada bloque indica el componente y el backend responsable (Backend 1 = núcleo comercial; Backend 2 = transacciones e integraciones). La pantalla de frontend se marca por historia: **[F1]** = Frontend 1 (Cliente / Compra omnicanal), **[F2]** = Frontend 2 (Operación interna / Backoffice); una historia sin marca no tiene pantalla propia. Integrante 5 = documentación, Docker y E2E.
+
+`Sprint sugerido` es una propuesta de secuenciación por dependencia (backbone → integraciones externas → cierre/calidad), **no un compromiso** — el compromiso real de sprint, fechas y story points se define en Sprint Planning de cada sprint.
 
 **Bloque: Catálogo, precios y carrito omnicanal** — *Order/Checkout Service, Catalog/Product Service, Pricing & Promotions Service* · Backend 1 · RF01, CDU-01
 
@@ -152,7 +152,7 @@ title: Scrum - Grupo 3
 
 # Sprint Planning y Sprint Backlog
 
-> Reconstruido a partir del historial real de `git log` (commits, autores y fechas) sobre `develop`, no de actas de reunión — el equipo no dejó minutas de las ceremonias. Se hicieron 3 Sprint Planning, uno cada lunes: 2026-09-07, 2026-09-14 y 2026-09-21. Los dos primeros continuaron el DDA de Fase 1 (sin código todavía); el tercero fue el sprint de implementación del MVP.
+Reconstruido a partir del historial real de `git log` (commits, autores y fechas) sobre `develop`, no de actas de reunión — el equipo no dejó minutas de las ceremonias. Se hicieron 3 Sprint Planning, uno cada lunes: 2026-09-07, 2026-09-14 y 2026-09-21. Los dos primeros continuaron el DDA de Fase 1 (sin código todavía); el tercero fue el sprint de implementación del MVP.
 
 ## Sprint Planning
 
@@ -243,7 +243,7 @@ Sin commits propios de Carmen María Marroquín Llamas en ningún sprint de Fase
 
 ## Daily Scrum
 
-> Reconstruido de los commits reales; solo se listan integrante y día con actividad registrada en `git log`. Formato exigido por el enunciado de Fase 2: (1) qué se materializó/refactorizó ayer y su resultado numérico o funcional, (2) qué se codificará hoy con trazabilidad a drivers/EAC/restricciones, (3) impedimentos técnicos.
+Reconstruido de los commits reales; solo se listan integrante y día con actividad registrada en `git log`. Formato exigido por el enunciado de Fase 2: (1) qué se materializó/refactorizó ayer y su resultado numérico o funcional, (2) qué se codificará hoy con trazabilidad a drivers/EAC/restricciones, (3) impedimentos técnicos.
 
 ### Sprint 1
 
@@ -352,7 +352,7 @@ Sin actividad registrada de Carmen María Marroquín Llamas en ningún día de l
 
 ## Sprint Retrospective
 
-> Reconstruida de los commits reales, no de una sesión de retrospectiva documentada por el equipo — no se encontró un registro propio de esta ceremonia.
+Reconstruida de los commits reales, no de una sesión de retrospectiva documentada por el equipo — no se encontró un registro propio de esta ceremonia.
 
 ### Sprint 1
 
@@ -368,6 +368,6 @@ Sin actividad registrada de Carmen María Marroquín Llamas en ningún día de l
 
 ### Sprint 3
 
-1. **¿Qué decisiones y patrones se consolidaron con éxito al interactuar con el código real?** El outbox transaccional en la base de datos (ADR-0007, sin broker externo) sostuvo 80 checkouts concurrentes sin sobreventa y sin órdenes a medias; la reserva atómica de inventario (`UPDATE ... WHERE on_hand - reserved >= :cantidad`) se verificó en 3 corridas seguidas. El rendimiento de consulta de orden y auditoría quedó dos órdenes de magnitud por debajo de sus metas (p99 36 ms contra metas de 1-5 segundos).
+1. **¿Qué decisiones y patrones se consolidaron con éxito al interactuar con el código real?** El outbox transaccional en la base de datos (ADR-0007, sin broker externo) sostuvo 80 checkouts concurrentes sin sobreventa y sin órdenes a medias; la reserva atómica de inventario se verificó en 3 corridas seguidas. El rendimiento de consulta de orden y auditoría quedó dos órdenes de magnitud por debajo de sus metas (p99 36 ms contra metas de 1-5 segundos).
 2. **¿Qué supuestos de la Fase 1 fallaron o requirieron refactorización de emergencia?** El ADR-0001 y el ADR-0005 pedían los componentes en contenedores Docker independientes; el equipo los implementó en un solo contenedor por razones de tiempo y consistencia transaccional del checkout — desviación registrada y justificada en el ADR-0009, no ocultada. El paso 10 del flujo principal ("eventos hacia el POS") no ocurría en el camino feliz tal como estaba diseñado, porque el despacho normal sale de un centro de distribución, no de una tienda; se corrigió emitiendo la existencia consolidada a las 32 tiendas al cerrar cada ventana del ERP. El tiempo de reserva de inventario estaba en 15 minutos en la base cuando CDU-01/CDU-08 fijan 20 — corregido con una migración dedicada (`V8`).
 3. **¿Qué mejoras técnicas concretas se proponen?** Agregar pruebas unitarias de backend (`src/test/java` está vacío hoy); dockerizar el frontend para que el `docker-compose.yml` levante el sistema completo, no solo base de datos y backend; y — la más urgente para la nota de este sprint — que Carmen María Marroquín Llamas, responsable de documentación/Docker/pruebas E2E, no tiene ningún commit propio en los 3 sprints de Fase 2; ese trabajo terminó cubierto por el resto del equipo (documentación por Sebastián y Juan José, Docker parcial por Hernán) sin que quedara explícito en el reparto original.
