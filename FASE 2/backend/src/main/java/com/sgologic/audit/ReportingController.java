@@ -21,9 +21,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class ReportingController {
 
     private final JdbcTemplate jdbc;
+    private final AuditService audit;
 
-    public ReportingController(JdbcTemplate jdbc) {
+    public ReportingController(JdbcTemplate jdbc, AuditService audit) {
         this.jdbc = jdbc;
+        this.audit = audit;
     }
 
     /**
@@ -71,7 +73,15 @@ public class ReportingController {
         return jdbc.queryForList(sql.toString(), args.toArray());
     }
 
-    /** Resumen de ventas por canal y por estado, para el tablero de gerencia. */
+    /**
+     * Informe de ventas conciliado (Auditar y consolidar): cuánto se vendió, por canal y por
+     * estado, y cuánto de eso ya está respaldado por una factura aceptada y entregado al ERP.
+     * La diferencia entre "facturado" y "entregado al ERP" es exactamente lo que Finanzas tiene
+     * que explicar al cerrar, y aquí sale desglosada en vez de investigarse a mano.
+     *
+     * <p>Cada generación del informe queda en la auditoría, con el periodo y los totales que
+     * mostró, para poder reconstruir después qué cifra se presentó y cuándo.
+     */
     @GetMapping("/sales")
     public SalesReport sales(
             @RequestParam(required = false)
@@ -112,13 +122,42 @@ public class ReportingController {
                 """,
                 since, until);
 
-        return new SalesReport(since, until, totals, byChannel, byStatus);
+        Map<String, Object> reconciliation = jdbc.queryForMap(
+                """
+                select
+                    count(i.order_id) as facturadas,
+                    coalesce(sum(o.total) filter (where i.order_id is not null), 0) as monto_facturado,
+                    count(e.order_id) filter (where b.status_id = 2) as entregadas_al_erp,
+                    coalesce(sum(o.total) filter (where b.status_id = 2), 0) as monto_entregado_al_erp,
+                    count(e.order_id) filter (where b.status_id = 1) as en_lote_pendiente,
+                    count(i.order_id) filter (where e.order_id is null) as facturadas_sin_lote,
+                    coalesce(sum(o.total) filter (where i.order_id is not null and e.order_id is null), 0)
+                        as monto_sin_lote
+                from orders.purchase_order o
+                left join invoicing.invoice i on i.order_id = o.id and i.status_id = 3
+                left join integration.erp_batch_order e on e.order_id = o.id
+                left join integration.erp_batch b on b.id = e.batch_id
+                where o.created_at between ? and ?
+                """,
+                since, until);
+        reconciliation.put("cuadra",
+                ((Number) reconciliation.get("facturadas")).longValue()
+                        == ((Number) reconciliation.get("entregadas_al_erp")).longValue());
+
+        audit.record("api", "REPORTE_VENTAS_GENERADO", "report", "sales", null, null,
+                Map.of("desde", since.toString(), "hasta", until.toString(),
+                       "ordenes", totals.get("ordenes"), "monto", totals.get("monto"),
+                       "facturadas", reconciliation.get("facturadas"),
+                       "entregadasAlErp", reconciliation.get("entregadas_al_erp")));
+
+        return new SalesReport(since, until, totals, reconciliation, byChannel, byStatus);
     }
 
     public record SalesReport(
             OffsetDateTime from,
             OffsetDateTime to,
             Map<String, Object> total,
+            Map<String, Object> reconciliation,
             List<Map<String, Object>> byChannel,
             List<Map<String, Object>> byStatus) {
     }

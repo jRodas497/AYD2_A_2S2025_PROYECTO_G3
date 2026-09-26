@@ -12,7 +12,7 @@ public class SettingsService {
     }
 
     public int reservationTtlMinutes() {
-        return intValue("reservation.ttl_minutes", 15);
+        return intValue("reservation.ttl_minutes", 20);
     }
 
     /** Latencia de PayKlik a partir de la cual el cobro pasa a la cola de contingencia (ADR-0002). */

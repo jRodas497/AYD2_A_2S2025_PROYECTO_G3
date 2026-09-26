@@ -1,6 +1,6 @@
 # API — núcleo comercial (Backend 1)
 
-Para el equipo de frontend. Cubre catálogo, clientes, inventario y carrito/órdenes.
+Para el equipo de frontend. Cubre sesión, catálogo, clientes (con su historial), inventario (con sus movimientos), carrito/órdenes e incidencias.
 
 Pagos, facturación, logística, notificaciones, auditoría e integraciones (PayKlik, SAT, LogiExpress, POS, ERP) están documentados en [`API-Transacciones.md`](API-Transacciones.md).
 
@@ -116,7 +116,7 @@ Crea un cliente. `201` con el cliente creado.
 ```json
 { "fullName": "Cliente de prueba", "email": "correo@example.com", "phone": "50200000000", "address": "Zona 1" }
 ```
-`fullName` es obligatorio; `email`, si se manda, debe tener formato válido. `phone` y `address` son opcionales.
+`fullName` es obligatorio; `email`, si se manda, debe tener formato válido y no estar registrado ya (si lo está, `409`). `phone` y `address` son opcionales.
 
 ### `PUT /api/customers/{id}`
 Modifica los datos de un cliente. Mismo cuerpo que crear, mismas reglas. `200` con el cliente actualizado, `404` si no existe.
@@ -140,6 +140,32 @@ Existencia disponible (`on_hand - reserved`) de un producto, sumada y desglosada
 ```
 
 No es la ubicación de despacho final — esa la decide el otro backend después de facturar. Esto es solo cuánto hay disponible ahora mismo.
+
+### `POST /api/inventory/movements`
+Registra una entrada (reposición, compra, devolución física) o una salida manual (merma, ajuste) en un centro o una tienda. `201` con el movimiento y la existencia resultante.
+
+```json
+{ "locationCode": "T-07", "productId": 3, "type": "IN", "quantity": 12, "reason": "Reposición desde proveedor" }
+```
+`type` es `IN` o `OUT`. Una salida solo puede sacar lo disponible (`on_hand - reserved`): nunca toca unidades ya reservadas para una orden; si no alcanza, `409`. Si la ubicación es una tienda, se le encola el evento a su POS. Queda en la auditoría.
+
+```json
+{ "id": 28605, "locationCode": "T-07", "productId": 3, "type": "IN", "quantity": 12, "reason": "Reposición desde proveedor", "orderId": null, "createdAt": "...", "onHandNow": 20, "reservedNow": 0 }
+```
+
+### `POST /api/inventory/adjustments`
+Ajuste por conteo físico que reporta el POS de una tienda (o un conteo en un centro). El conteo se acepta como la existencia real: la diferencia contra lo registrado queda como movimiento de entrada o salida y en la auditoría (`INVENTARIO_AJUSTE`), y si es una tienda se avisa a su POS. `201`.
+
+```json
+{ "locationCode": "T-03", "productId": 4, "countedQuantity": 9, "source": "POS T-03 conteo semanal" }
+```
+```json
+{ "locationCode": "T-03", "productId": 4, "registered": 7, "counted": 9, "difference": 2, "reserved": 0 }
+```
+`source` es opcional (por defecto, "POS" más el código de la ubicación). Un conteo menor a lo que ya está reservado para órdenes se rechaza con `409` —esas unidades están comprometidas con clientes— y el intento también queda auditado (`INVENTARIO_AJUSTE_RECHAZADO`).
+
+### `GET /api/inventory/products/{id}/movements?limit=50`
+Los últimos movimientos de un producto en todas las ubicaciones, incluidos los que generan el despacho y la reasignación (esos traen `orderId`).
 
 ---
 
@@ -166,6 +192,19 @@ Agrega un producto (o le suma cantidad si ya estaba). Crea el carrito si no exis
 { "cartId": 1, "status": "OPEN", "channel": "WEB", "items": [{ "productId": 1, "quantity": 2 }] }
 ```
 `404` si el cliente o el producto no existen (o el producto está inactivo).
+
+### `PUT /api/customers/{id}/cart/items/{productId}`
+Fija la cantidad exacta de un producto que ya está en el carrito.
+
+```json
+{ "quantity": 1, "channel": "MOBILE" }
+```
+`quantity` debe ser 1 o más (para quitarlo, usar `DELETE`). `channel` es opcional y, si viene, queda como el último canal desde el que se tocó el carrito. Responde el carrito completo. `404` si el cliente no tiene carrito activo o el producto no está en él.
+
+### `DELETE /api/customers/{id}/cart/items/{productId}?channel=WEB`
+Quita un producto del carrito. `channel` es opcional. Responde el carrito completo (que puede quedar vacío). `404` en los mismos casos que el anterior.
+
+El carrito no reserva stock —la reserva ocurre al hacer checkout—, así que cambiar o quitar productos no mueve el inventario.
 
 ---
 
@@ -213,10 +252,17 @@ Registra un cambio o una devolución sobre una orden (Gestión de Incidencias).
 ```json
 { "type": "RETURN", "description": "El cliente reporta que llegó dañado" }
 ```
-`type` es `EXCHANGE` o `RETURN`. `201` con la incidencia, en estado `REGISTERED`. `404` si la orden no existe.
+`type` es `EXCHANGE` o `RETURN`. `201` con la incidencia, en estado `REGISTERED`. `404` si la orden no existe. Si `description` contiene algo que parece un número de tarjeta, `409` y no se guarda.
+
+```json
+{ "id": 811, "orderId": 20007, "type": "RETURN", "status": "REGISTERED", "description": "El cliente reporta que llegó dañado", "createdAt": "2026-09-24T03:59:17Z", "resolvedAt": null }
+```
 
 ### `GET /api/orders/{orderId}/incidents`
 Lista las incidencias de una orden.
+
+### `GET /api/incidents/{id}`
+Una incidencia. `404` si no existe.
 
 ### `PUT /api/incidents/{id}/status` — requiere sesión (cualquier usuario logueado)
 Procesa la incidencia: la mueve a `IN_PROCESS`, `RESOLVED` o `REJECTED`. Al pasarla a `RESOLVED` o `REJECTED` se guarda `resolvedAt`.
@@ -224,4 +270,24 @@ Procesa la incidencia: la mueve a `IN_PROCESS`, `RESOLVED` o `REJECTED`. Al pasa
 ```json
 { "status": "IN_PROCESS" }
 ```
-`404` si la incidencia no existe.
+`404` si la incidencia no existe. Una incidencia `RESOLVED` o `REJECTED` ya no se puede cambiar (`409`), y ninguna vuelve a `REGISTERED` (`400`). Una **devolución resuelta deja la orden en `RETURNED`** si ya estaba cobrada. Al cerrarse, el cliente recibe un aviso.
+
+Cada alta y cada cambio de estado queda en la auditoría (`INCIDENCIA_REGISTRADA`, `INCIDENCIA_IN_PROCESS`, `INCIDENCIA_RESOLVED`, `INCIDENCIA_REJECTED`) con quién lo hizo: el usuario del token, o `atencion-al-cliente` si se registró sin sesión. El reembolso de una devolución no está en el MVP.
+
+---
+
+## Historial del cliente
+
+### `GET /api/customers/{id}/orders?limit=50`
+Las órdenes del cliente, más recientes primero, con el mismo cuerpo que `GET /api/orders/{id}`. `404` si el cliente no existe.
+
+### `GET /api/customers/{id}/history?limit=50`
+La ficha que ve el agente: el cliente, sus órdenes y sus incidencias en una sola respuesta.
+
+```json
+{
+  "customer": { "id": 15, "fullName": "Cliente de prueba 15", "...": "..." },
+  "orders": [ { "orderId": 18782, "status": "PENDING_PAYMENT", "...": "..." } ],
+  "incidents": [ { "id": 636, "orderId": 1402, "type": "RETURN", "status": "RESOLVED", "...": "..." } ]
+}
+```

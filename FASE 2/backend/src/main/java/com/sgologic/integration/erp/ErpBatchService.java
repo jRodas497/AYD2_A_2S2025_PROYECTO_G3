@@ -1,10 +1,10 @@
 package com.sgologic.integration.erp;
 
 import com.sgologic.audit.AuditService;
-import java.io.IOException;
+import com.sgologic.external.ErpDropClient;
+import com.sgologic.external.ProviderUnavailableException;
+import com.sgologic.integration.pos.PosEventService;
 import java.math.BigDecimal;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.ZoneOffset;
@@ -41,17 +41,19 @@ public class ErpBatchService {
     private final JdbcTemplate jdbc;
     private final ErpFileWriter writer;
     private final AuditService audit;
+    private final ErpDropClient drop;
+    private final PosEventService posEvents;
 
     @Value("${sgologic.erp.format:CSV}")
     private ErpFileFormat format;
 
-    @Value("${sgologic.erp.output-dir:/app/erp-out}")
-    private String outputDir;
-
-    public ErpBatchService(JdbcTemplate jdbc, ErpFileWriter writer, AuditService audit) {
+    public ErpBatchService(
+            JdbcTemplate jdbc, ErpFileWriter writer, AuditService audit, ErpDropClient drop, PosEventService posEvents) {
         this.jdbc = jdbc;
         this.writer = writer;
         this.audit = audit;
+        this.drop = drop;
+        this.posEvents = posEvents;
     }
 
     /**
@@ -87,16 +89,15 @@ public class ErpBatchService {
         }
 
         String content = writer.write(format, window, sales);
-        boolean written = writeFile(fileName, content);
-        if (written) {
-            // 2 = DELIVERED: el archivo ya está donde el ERP lo recoge.
-            jdbc.update("update integration.erp_batch set status_id = 2, sent_at = now() where id = ?", batchId);
-        }
+        boolean written = deliver(batchId, fileName, content);
+
+        // Paso 10 del flujo: con la ventana cerrada, las 32 tiendas reciben la existencia actualizada.
+        int stores = posEvents.publishConsolidatedInventory(start, end);
 
         audit.recordSystem("ERP_LOTE_GENERADO", "erp_batch", batchId, null, null,
                 Map.of("archivo", fileName, "ordenes", sales.size(),
                        "monto", sales.stream().map(ErpSale::total).reduce(BigDecimal.ZERO, BigDecimal::add),
-                       "entregado", written));
+                       "entregado", written, "tiendasNotificadas", stores));
         log.info("lote {} del ERP con {} orden(es): {}", batchId, sales.size(), fileName);
         return Optional.of(batchId);
     }
@@ -185,15 +186,56 @@ public class ErpBatchService {
         return lastWindowEnd();
     }
 
-    private boolean writeFile(String fileName, String content) {
-        try {
-            Path dir = Path.of(outputDir);
-            Files.createDirectories(dir);
-            Files.writeString(dir.resolve(fileName), content);
+    /**
+     * Reintenta la entrega de los lotes que quedaron PENDING porque la carpeta de intercambio no
+     * estaba disponible (CDU-07, E1). Sus órdenes ya pertenecen al lote, así que no vuelven a
+     * entrar en otro: se reenvía el mismo archivo, reconstruido a partir de ellas. Por eso
+     * reintentar nunca duplica una venta en el ERP.
+     */
+    @Transactional
+    public int retryPendingDeliveries() {
+        List<Map<String, Object>> pending = jdbc.queryForList(
+                "select id, file_name from integration.erp_batch where status_id = 1 order by id");
+        int delivered = 0;
+        for (Map<String, Object> batch : pending) {
+            Long batchId = ((Number) batch.get("id")).longValue();
+            String fileName = (String) batch.get("file_name");
+            if (deliver(batchId, fileName, content(batchId))) {
+                audit.recordSystem("ERP_LOTE_REENVIADO", "erp_batch", batchId, null, null,
+                        Map.of("archivo", fileName));
+                delivered++;
+            }
+        }
+        return delivered;
+    }
+
+    /** Reintento manual de un lote. Devuelve false si sigue sin poder entregarse. */
+    @Transactional
+    public boolean retry(Long batchId) {
+        Map<String, Object> batch = summary(batchId);
+        if (batch == null) {
+            throw new IllegalArgumentException("lote no encontrado: " + batchId);
+        }
+        if ("DELIVERED".equals(batch.get("status"))) {
             return true;
-        } catch (IOException e) {
-            // El lote queda PENDING: existe, es auditable y se reintenta en la siguiente ventana.
-            log.error("no se pudo escribir el archivo {} para el ERP: {}", fileName, e.getMessage());
+        }
+        boolean delivered = deliver(batchId, (String) batch.get("file_name"), content(batchId));
+        if (delivered) {
+            audit.recordSystem("ERP_LOTE_REENVIADO", "erp_batch", batchId, null, null,
+                    Map.of("archivo", String.valueOf(batch.get("file_name")), "manual", true));
+        }
+        return delivered;
+    }
+
+    /** Deja el archivo para el ERP. Si no se puede, el lote queda PENDING y se reintenta. */
+    private boolean deliver(Long batchId, String fileName, String content) {
+        try {
+            drop.drop(fileName, content);
+            // 2 = DELIVERED: el archivo ya está donde el ERP lo recoge.
+            jdbc.update("update integration.erp_batch set status_id = 2, sent_at = now() where id = ?", batchId);
+            return true;
+        } catch (ProviderUnavailableException e) {
+            log.warn("el lote {} ({}) queda pendiente de entrega: {}", batchId, fileName, e.getMessage());
             return false;
         }
     }

@@ -6,5 +6,7 @@ public enum Provider {
     SAT,
     LOGIEXPRESS,
     MESSAGING,
-    POS
+    POS,
+    /** La carpeta de intercambio de donde el AS/400 recoge los archivos. */
+    ERP
 }

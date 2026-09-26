@@ -65,6 +65,17 @@ public class ErpController {
         return batches.content(id);
     }
 
+    /** Reintenta a mano la entrega de un lote que quedó pendiente (CDU-07, E1). */
+    @PostMapping("/batches/{id}/retry")
+    public Map<String, Object> retry(@PathVariable Long id) {
+        try {
+            batches.retry(id);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "lote no encontrado");
+        }
+        return batches.summary(id);
+    }
+
     public record BatchGeneration(boolean generated, Map<String, Object> batch, String message) {
     }
 

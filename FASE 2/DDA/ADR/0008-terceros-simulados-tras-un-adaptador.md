@@ -6,9 +6,10 @@
 
 ## Contexto
 
-Cinco de los componentes del sistema dependen de un tercero: PayKlik para cobrar, la SAT para
-facturar, LogiExpress para las guías, un proveedor de mensajería para los avisos y el POS local
-de las 32 tiendas. Ninguno de los cinco existe para conectarse de verdad: no hay credenciales de
+Seis integraciones del sistema dependen de un tercero: PayKlik para cobrar, la SAT para
+facturar, LogiExpress para las guías, un proveedor de mensajería para los avisos, el POS local
+de las 32 tiendas y la carpeta de intercambio de la que el AS/400 recoge los archivos. Ninguno
+existe para conectarse de verdad: no hay credenciales de
 PayKlik, ni un ambiente de pruebas de la SAT, ni un contrato con LogiExpress que este equipo
 pueda ejercer.
 
@@ -21,7 +22,7 @@ y sin poder provocarlos no se pueden validar.
 ## Decisión
 
 Cada tercero tiene su propio adaptador en el paquete `external` (`PayKlikClient`, `SatClient`,
-`LogiExpressClient`, `MessagingClient`, `PosClient`) con la firma que tendría la integración
+`LogiExpressClient`, `MessagingClient`, `PosClient`, `ErpDropClient`) con la firma que tendría la integración
 real: recibe los datos del negocio, devuelve la respuesta del proveedor y lanza
 `ProviderUnavailableException` cuando no responde. Los módulos de negocio solo conocen esa
 firma.
@@ -58,7 +59,7 @@ degradación y el registro de auditoría son código de producción real, y lo q
   estilo de adaptadores del ADR-0001.
 
 **Negativas / tradeoffs aceptados:**
-- `/api/simulation` no debe existir en producción. Hoy no hay autenticación, así que queda
+- `/api/simulation` no debe existir en producción. El login con JWT no lo protege (solo cubre catálogo e incidencias), así que queda
   expuesto; la forma correcta de cerrarlo es un perfil de Spring que no registre ese controlador,
   y queda pendiente junto con el login.
 - Las latencias simuladas son más cortas que las reales (80 ms en vez de los ~800 ms de PayKlik)

@@ -34,6 +34,11 @@ public class IncidentController {
         return incidentService.findByOrder(orderId);
     }
 
+    @GetMapping("/api/incidents/{id}")
+    public Incident get(@PathVariable Long id) {
+        return incidentService.findById(id);
+    }
+
     /** Procesar la incidencia: pasarla a en proceso, resuelta o rechazada. */
     @PutMapping("/api/incidents/{id}/status")
     public Incident updateStatus(@PathVariable Long id, @Valid @RequestBody UpdateIncidentStatus body) {

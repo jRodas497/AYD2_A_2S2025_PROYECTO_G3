@@ -35,6 +35,9 @@ public class PosEventService {
 
     public static final String STOCK_ADJUSTED = "StockAdjusted";
 
+    /** Existencia consolidada que se le manda a cada tienda al cerrar la ventana del ERP (paso 10 del flujo). */
+    public static final String INVENTORY_CONSOLIDATED = "InventoryConsolidated";
+
     private final JdbcTemplate jdbc;
     private final PosClient pos;
     private final ObjectMapper json;
@@ -63,6 +66,54 @@ public class PosEventService {
                 returning id
                 """,
                 Long.class, storeId, eventType, toJson(payload));
+    }
+
+    /**
+     * Paso 10 del flujo principal: al cerrar la ventana de conciliación, cada una de las 32 tiendas
+     * recibe la existencia actualizada de los productos que se movieron en esa ventana —lo que le
+     * queda a ella y lo que hay en toda la red—, para que su POS no muestre un inventario viejo
+     * aunque la venta haya salido de un centro de distribución.
+     *
+     * <p>Se encola dentro de la transacción que cierra el lote, igual que cualquier evento del POS,
+     * y se entrega con los mismos reintentos. Si en la ventana no se movió nada, no se manda nada.
+     *
+     * @return cuántas tiendas quedaron con evento encolado
+     */
+    public int publishConsolidatedInventory(OffsetDateTime since, OffsetDateTime until) {
+        List<Long> changed = jdbc.queryForList(
+                "select distinct product_id from inventory.stock_movement where created_at >= ? and created_at <= ?",
+                Long.class, since, until);
+        if (changed.isEmpty()) {
+            return 0;
+        }
+        List<Long> stores = jdbc.queryForList(
+                "select id from inventory.location where type_id = 2 order by id", Long.class);
+        Map<Long, Integer> network = new java.util.HashMap<>();
+        jdbc.query(
+                "select product_id, sum(on_hand - reserved) as available from inventory.stock "
+                        + "where product_id = any (?) group by product_id",
+                rs -> {
+                    network.put(rs.getLong("product_id"), rs.getInt("available"));
+                },
+                (Object) changed.toArray(new Long[0]));
+
+        for (Long storeId : stores) {
+            List<Map<String, Object>> products = new java.util.ArrayList<>();
+            jdbc.query(
+                    "select product_id, on_hand - reserved as available from inventory.stock "
+                            + "where location_id = ? and product_id = any (?) order by product_id",
+                    rs -> {
+                        long productId = rs.getLong("product_id");
+                        products.add(Map.of(
+                                "productId", productId,
+                                "disponibleEnTienda", rs.getInt("available"),
+                                "disponibleEnRed", network.getOrDefault(productId, 0)));
+                    },
+                    storeId, changed.toArray(new Long[0]));
+            publish(storeId, INVENTORY_CONSOLIDATED,
+                    Map.of("desde", since.toString(), "hasta", until.toString(), "productos", products));
+        }
+        return stores.size();
     }
 
     /** Entrega los eventos pendientes cuya próxima cita ya llegó. 1 = PENDING. */

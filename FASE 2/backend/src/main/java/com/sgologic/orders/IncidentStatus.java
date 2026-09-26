@@ -25,6 +25,11 @@ public enum IncidentStatus implements ReferenceValue {
         return name();
     }
 
+    /** Una incidencia resuelta o rechazada ya no cambia de estado. */
+    public boolean isClosed() {
+        return this == RESOLVED || this == REJECTED;
+    }
+
     public static IncidentStatus fromId(short id) {
         for (IncidentStatus s : values()) {
             if (s.id == id) {

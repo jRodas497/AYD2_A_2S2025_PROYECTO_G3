@@ -85,6 +85,7 @@ sgologic:
     logiexpress: NORMAL
     messaging: NORMAL
     pos: NORMAL
+    erp: NORMAL
     normal-latency-ms: 80
     slow-latency-ms: 5500
     # El ~2% de timeouts que LogiExpress tiene documentado (ADR-0004). En 0 la demo es determinista.

@@ -71,6 +71,19 @@ La arquitectura combina tres estilos complementarios — **monolítico** (despli
   - Auditoría y trazabilidad de toda operación (Audit/Traceability Service).
   - Normativa de protección de datos y facturación electrónica SAT (DR-08).
 
+> **Cómo quedó en el MVP de la Fase 2.** Esta estructura es la arquitectura objetivo. Al
+> implementarla se tomaron tres decisiones que la ajustan, cada una con su ADR:
+> - El Message Broker es la tabla `integration.outbox` con su repartidor, no un RabbitMQ aparte
+>   ([ADR-0007](ADR/0007-outbox-en-la-base-como-broker-del-mvp.md)).
+> - Los componentes comparten un contenedor de aplicación, para que el checkout sea atómico; el
+>   API Gateway / BFF y Pricing & Promotions no están en el MVP
+>   ([ADR-0009](ADR/0009-alcance-de-despliegue-del-mvp.md)).
+> - PayKlik, la SAT, LogiExpress, la mensajería, el POS y el AS/400 se simulan detrás de un
+>   adaptador ([ADR-0008](ADR/0008-terceros-simulados-tras-un-adaptador.md)).
+>
+> Las vistas que coinciden con el código están en [diagrama-de-componentes.md](diagrama-de-componentes.md)
+> y en la sección "Despliegue implementado" de [diagrama-de-despliegue.md](diagrama-de-despliegue.md).
+
 ## 3. Funciones Críticas Soportadas
 
 - Gestión de inventario en tiempo real.
