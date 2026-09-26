@@ -9,6 +9,8 @@ import { httpPaymentRepository } from '../api/paymentRepository.http'
 import type { Order } from '../../orden/types'
 import type { MetodoPago } from '../types'
 
+const LONGITUD_TARJETA = 16
+
 const OPCIONES_METODO: { valor: MetodoPago; etiqueta: string }[] = [
   { valor: 'tarjeta', etiqueta: 'Tarjeta de crédito/débito' },
   { valor: 'transferencia', etiqueta: 'Transferencia bancaria' },
@@ -97,13 +99,15 @@ export function PaymentPage() {
     setEnviando(true)
     setRechazoMotivo(null)
 
-    const ultimosDigitos = numeroTarjeta.replace(/\D/g, '').slice(-4)
+    const digitosTarjeta = numeroTarjeta.replace(/\D/g, '')
 
-    if (metodo === 'tarjeta' && ultimosDigitos.length !== 4) {
-      notificar('Ingresa un número de tarjeta válido', 'falla')
+    if (metodo === 'tarjeta' && digitosTarjeta.length !== LONGITUD_TARJETA) {
+      notificar(`Ingresa un número de tarjeta válido de ${LONGITUD_TARJETA} dígitos`, 'falla')
       setEnviando(false)
       return
     }
+
+    const ultimosDigitos = digitosTarjeta.slice(-4)
 
     setNumeroTarjeta('')
     setCvv('')
@@ -191,6 +195,7 @@ export function PaymentPage() {
                 onChange={(e) => setNumeroTarjeta(e.target.value)}
                 inputMode="numeric"
                 placeholder="0000 0000 0000 0000"
+                maxLength={19}
                 required
                 className="w-full border border-linea rounded px-3 py-2 text-sm"
               />
