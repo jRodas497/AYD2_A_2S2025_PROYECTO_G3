@@ -2,7 +2,7 @@
 
 Fecha: 2026-09-22 · Rama: `feature/202200389-frontend-cliente-compra`
 
-Este documento registra las decisiones tomadas para el frontend de cliente de SGO-Logic, mientras el backend (Order/Checkout, Catalog, Pricing, Inventory, Customer, Payment, Notification) se construye en paralelo por otro equipo. El detalle completo de arquitectura vive en `docs/superpowers/specs/2026-09-22-frontend-cliente-compra-design.md`; este archivo es el resumen que queda con el proyecto.
+Este documento registra las decisiones tomadas para el frontend de cliente de SGO-Logic, mientras el backend (Order/Checkout, Catalog, Pricing, Inventory, Customer, Payment, Notification) se construye en paralelo por otro equipo.
 
 ## Stack
 

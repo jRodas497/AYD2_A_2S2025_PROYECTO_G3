@@ -13,9 +13,5 @@ Thumbs.db
 !Docs/Diagramas/*.png
 !Docs/**/diagramas/*.png
 
-# Claude Code — gestionado solo en local, no se versiona
-.claude/
-CLAUDE.md
-
 # Obsidian
 .obsidian/
