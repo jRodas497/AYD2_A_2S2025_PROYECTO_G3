@@ -95,6 +95,7 @@ npm run lint      # lint con oxlint
 
 ## Documentación adicional
 
+- Bitácora de desarrollo del proyecto, con fechas y evidencia de commits: [`BITACORA.md`](BITACORA.md)
 - Guía completa de instalación, despliegue, pruebas y demostración de fallas: [`FASE 2/README.md`](FASE%202/README.md)
 - Arquitectura y decisiones: [`FASE 1/`](FASE%201/) (DDA, ADRs) y [`FASE 2/DDA/`](FASE%202/DDA/) (ADR 0006 a 0009, diagramas implementados, [matriz de trazabilidad](FASE%202/DDA/matriz-trazabilidad-fase2.md))
 - API del backend: [`FASE 2/backend/API.md`](FASE%202/backend/API.md), [`FASE 2/backend/API-Transacciones.md`](FASE%202/backend/API-Transacciones.md)
