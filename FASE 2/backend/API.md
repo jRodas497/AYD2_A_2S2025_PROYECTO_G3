@@ -1,6 +1,6 @@
 # API — núcleo comercial (Backend 1)
 
-Para el equipo de frontend. Cubre catálogo, clientes (con su historial), inventario (con sus movimientos), carrito/órdenes y atenciones.
+Para el equipo de frontend. Cubre sesión, catálogo, clientes (con su historial), inventario (con sus movimientos), carrito/órdenes e incidencias.
 
 Pagos, facturación, logística, notificaciones, auditoría e integraciones (PayKlik, SAT, LogiExpress, POS, ERP) están documentados en [`API-Transacciones.md`](API-Transacciones.md).
 
@@ -33,6 +33,28 @@ Cualquier error (400, 404, 409) responde con la misma forma:
 
 Un error de validación (400) además trae `errors`, un arreglo con un objeto por campo inválido (`field`, `defaultMessage`, etc. — es el formato estándar de Spring).
 
+## Iniciar sesión
+
+Casi toda la API sigue abierta (carrito, checkout, catálogo de solo lectura, consultar cliente). Solo dos acciones, las que las CDU marcan como de Administrador, piden sesión: crear/editar un producto y procesar una incidencia.
+
+### `POST /api/auth/login`
+```json
+{ "username": "admin", "password": "admin123" }
+```
+`200` con el token:
+```json
+{ "token": "eyJhbGciOiJIUzM4NCJ9...", "username": "admin", "roles": ["ADMIN"] }
+```
+Ese es el único usuario que trae la base sembrada (`FASE 2/db/migrations/V7__usuario_de_prueba.sql`). `401` si el usuario o la contraseña no coinciden. Después de 5 intentos fallidos seguidos, la cuenta queda bloqueada 15 minutos (`423`), aunque en el siguiente intento se mande la contraseña correcta.
+
+Para usar el token, mandarlo en cada petición protegida:
+```
+Authorization: Bearer eyJhbGciOiJIUzM4NCJ9...
+```
+Dura 8 horas. No hay endpoint para renovarlo: cuando expira, se vuelve a hacer login.
+
+`401` sin el header (o con un token vencido/inválido): `"hace falta iniciar sesión"`. `403` con un token válido pero sin el rol que pide el endpoint: `"el usuario no tiene permiso para esto"`.
+
 ## Valores fijos (enums)
 
 Estos campos solo aceptan uno de estos textos, en mayúsculas, tal cual:
@@ -61,6 +83,22 @@ Lista los productos activos.
 
 ### `GET /api/products/{id}`
 Un producto. `404` si no existe.
+
+### `POST /api/products` — requiere sesión (rol `ADMIN`)
+Configurar Catálogo de Productos: alta. Deja el producto con existencia en 0 en las 34 ubicaciones (no queda ausente del inventario).
+
+```json
+{ "sku": "EL-010", "name": "Parlante bluetooth", "category": "ELECTRONICA", "price": 350.00 }
+```
+`201` con el producto creado (`active` sale `true`). `409` si el `sku` ya existe. `400` si falta algún campo o `price` es negativo.
+
+### `PUT /api/products/{id}` — requiere sesión (rol `ADMIN`)
+Edita nombre, categoría, precio y si está activo.
+
+```json
+{ "name": "Parlante bluetooth XL", "category": "ELECTRONICA", "price": 420.00, "active": true }
+```
+`active` es opcional (si no se manda, no cambia). `200` con el producto actualizado, `404` si no existe.
 
 ---
 
@@ -208,6 +246,34 @@ Estado completo de la orden en una sola consulta — pensado para responder ráp
 ```
 `404` si la orden no existe.
 
+### `POST /api/orders/{orderId}/incidents`
+Registra un cambio o una devolución sobre una orden (Gestión de Incidencias).
+
+```json
+{ "type": "RETURN", "description": "El cliente reporta que llegó dañado" }
+```
+`type` es `EXCHANGE` o `RETURN`. `201` con la incidencia, en estado `REGISTERED`. `404` si la orden no existe. Si `description` contiene algo que parece un número de tarjeta, `409` y no se guarda.
+
+```json
+{ "id": 811, "orderId": 20007, "type": "RETURN", "status": "REGISTERED", "description": "El cliente reporta que llegó dañado", "createdAt": "2026-09-24T03:59:17Z", "resolvedAt": null }
+```
+
+### `GET /api/orders/{orderId}/incidents`
+Lista las incidencias de una orden.
+
+### `GET /api/incidents/{id}`
+Una incidencia. `404` si no existe.
+
+### `PUT /api/incidents/{id}/status` — requiere sesión (cualquier usuario logueado)
+Procesa la incidencia: la mueve a `IN_PROCESS`, `RESOLVED` o `REJECTED`. Al pasarla a `RESOLVED` o `REJECTED` se guarda `resolvedAt`.
+
+```json
+{ "status": "IN_PROCESS" }
+```
+`404` si la incidencia no existe. Una incidencia `RESOLVED` o `REJECTED` ya no se puede cambiar (`409`), y ninguna vuelve a `REGISTERED` (`400`). Una **devolución resuelta deja la orden en `RETURNED`** si ya estaba cobrada. Al cerrarse, el cliente recibe un aviso.
+
+Cada alta y cada cambio de estado queda en la auditoría (`INCIDENCIA_REGISTRADA`, `INCIDENCIA_IN_PROCESS`, `INCIDENCIA_RESOLVED`, `INCIDENCIA_REJECTED`) con quién lo hizo: el usuario del token, o `atencion-al-cliente` si se registró sin sesión. El reembolso de una devolución no está en el MVP.
+
 ---
 
 ## Historial del cliente
@@ -216,7 +282,7 @@ Estado completo de la orden en una sola consulta — pensado para responder ráp
 Las órdenes del cliente, más recientes primero, con el mismo cuerpo que `GET /api/orders/{id}`. `404` si el cliente no existe.
 
 ### `GET /api/customers/{id}/history?limit=50`
-La ficha que ve el agente: el cliente, sus órdenes y sus atenciones en una sola respuesta.
+La ficha que ve el agente: el cliente, sus órdenes y sus incidencias en una sola respuesta.
 
 ```json
 {
@@ -225,36 +291,3 @@ La ficha que ve el agente: el cliente, sus órdenes y sus atenciones en una sola
   "incidents": [ { "id": 636, "orderId": 1402, "type": "RETURN", "status": "RESOLVED", "...": "..." } ]
 }
 ```
-
----
-
-## Atenciones (cambios y devoluciones)
-
-| Campo | Valores |
-|---|---|
-| `type` | `EXCHANGE` (cambio), `RETURN` (devolución) |
-| `status` | `REGISTERED`, `IN_PROCESS`, `RESOLVED`, `REJECTED` |
-
-### `POST /api/orders/{id}/incidents`
-Registra una atención sobre una orden. `201` con la atención creada.
-
-```json
-{ "type": "RETURN", "description": "Llegó con la caja dañada", "actor": "agente-07" }
-```
-`actor` es opcional (quién atiende; sin login se guarda tal cual llega). Solo se aceptan órdenes ya pagadas (`PAID` en adelante): antes de eso, `409`. Si `description` contiene algo que parece un número de tarjeta, `409` y no se guarda.
-
-```json
-{ "id": 811, "orderId": 20007, "type": "RETURN", "status": "REGISTERED", "description": "Llegó con la caja dañada", "createdAt": "2026-09-24T03:59:17Z", "resolvedAt": null }
-```
-
-### `PATCH /api/incidents/{id}`
-Avanza la atención.
-
-```json
-{ "status": "RESOLVED", "note": "devolución aceptada", "actor": "agente-07" }
-```
-Una **devolución resuelta deja la orden en `RETURNED`**. Una atención `RESOLVED` o `REJECTED` ya no se puede cambiar (`409`). Al cerrarse, el cliente recibe un aviso.
-
-### `GET /api/orders/{id}/incidents` · `GET /api/incidents/{id}`
-
-Cada alta y cada cambio de estado queda en la auditoría (`ATENCION_REGISTRADA`, `ATENCION_IN_PROCESS`, `ATENCION_RESOLVED`, `ATENCION_REJECTED`) con quién lo hizo. El reembolso de una devolución no está en el MVP.

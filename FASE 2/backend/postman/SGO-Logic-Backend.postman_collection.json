@@ -18,6 +18,14 @@
       "value": "1"
     },
     {
+      "key": "incidentId",
+      "value": "1"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
       "key": "shipmentId",
       "value": "1"
     },
@@ -36,13 +44,56 @@
     {
       "key": "posEventId",
       "value": "1"
-    },
-    {
-      "key": "incidentId",
-      "value": "1"
     }
   ],
   "item": [
+    {
+      "name": "Sesión",
+      "description": "Solo dos acciones piden sesión: crear/editar producto (rol ADMIN) y procesar una incidencia (cualquier usuario). El resto de la API sigue abierta.",
+      "item": [
+        {
+          "name": "Iniciar sesión",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.collectionVariables.set('token', pm.response.json().token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            }
+          },
+          "description": "Único usuario sembrado (V7__usuario_de_prueba.sql). Guarda el token en {{token}}; las peticiones de 'Crear producto', 'Editar producto' y 'Procesar incidencia' ya lo usan solas."
+        }
+      ]
+    },
     {
       "name": "Catálogo",
       "item": [
@@ -78,6 +129,82 @@
               ]
             }
           }
+        },
+        {
+          "name": "Crear producto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('productId', pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"EL-010\",\n  \"name\": \"Parlante bluetooth\",\n  \"category\": \"ELECTRONICA\",\n  \"price\": 350.00\n}"
+            }
+          },
+          "description": "Requiere sesión (rol ADMIN, correr antes 'Sesión > Iniciar sesión'). Configurar Catálogo de Productos: alta. Deja el producto con existencia en 0 en las 34 ubicaciones. 401 sin token, 409 si el sku ya existe."
+        },
+        {
+          "name": "Editar producto",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/products/{{productId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{productId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Parlante bluetooth XL\",\n  \"category\": \"ELECTRONICA\",\n  \"price\": 420.00,\n  \"active\": true\n}"
+            }
+          },
+          "description": "Requiere sesión (rol ADMIN). `active` es opcional; si no se manda, no cambia."
         }
       ]
     },
@@ -168,7 +295,7 @@
           }
         },
         {
-          "name": "Historial del cliente (órdenes y atenciones)",
+          "name": "Historial del cliente (órdenes e incidencias)",
           "request": {
             "method": "GET",
             "url": {
@@ -190,7 +317,7 @@
               ]
             }
           },
-          "description": "La ficha que ve el agente: cliente, órdenes más recientes primero y atenciones."
+          "description": "La ficha que ve el agente: cliente, órdenes más recientes primero y incidencias."
         },
         {
           "name": "Órdenes del cliente",
@@ -551,6 +678,122 @@
             }
           },
           "description": "Usa {{lastOrderId}}, la orden que dejó el checkout anterior. Se puede cambiar a mano por cualquier otro id."
+        }
+      ]
+    },
+    {
+      "name": "Incidencias",
+      "description": "Cambios y devoluciones sobre una orden ya creada (Gestión de Incidencias).",
+      "item": [
+        {
+          "name": "Registrar incidencia",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('incidentId', pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{lastOrderId}}/incidents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{lastOrderId}}",
+                "incidents"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"RETURN\",\n  \"description\": \"El cliente reporta que llegó dañado\"\n}"
+            }
+          },
+          "description": "`type`: EXCHANGE o RETURN. Queda en REGISTERED. Guarda el id en {{incidentId}}."
+        },
+        {
+          "name": "Listar incidencias de una orden",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{lastOrderId}}/incidents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{lastOrderId}}",
+                "incidents"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Ver una incidencia",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/incidents/{{incidentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "incidents",
+                "{{incidentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Procesar incidencia",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/incidents/{{incidentId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "incidents",
+                "{{incidentId}}",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_PROCESS\"\n}"
+            }
+          },
+          "description": "Requiere sesión (cualquier usuario logueado). `status`: IN_PROCESS, RESOLVED o REJECTED. Al pasar a RESOLVED o REJECTED se guarda resolvedAt."
         }
       ]
     },
@@ -968,144 +1211,6 @@
             }
           },
           "description": "Lo que manda LogiExpress cuando cambia el estado del envío. Con `status: DELIVERED` la orden pasa a DELIVERED y el cliente recibe el aviso."
-        }
-      ]
-    },
-    {
-      "name": "Atenciones (cambios y devoluciones)",
-      "description": "Registrar atención (CDU-05). Solo sobre órdenes ya pagadas. Cada paso queda en la auditoría. Una devolución resuelta deja la orden en RETURNED. En el recorrido de la colección va después de Logística porque la orden del checkout ya tiene que estar cobrada.",
-      "item": [
-        {
-          "name": "Registrar una devolución",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "if (pm.response.code < 300) {",
-                  "    pm.collectionVariables.set('incidentId', pm.response.json().id);",
-                  "}"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/orders/{{lastOrderId}}/incidents",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "orders",
-                "{{lastOrderId}}",
-                "incidents"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"type\": \"RETURN\",\n  \"description\": \"Llegó con la caja dañada\",\n  \"actor\": \"agente-07\"\n}"
-            }
-          },
-          "description": "409 si la orden todavía no está pagada."
-        },
-        {
-          "name": "Atenciones de una orden",
-          "request": {
-            "method": "GET",
-            "url": {
-              "raw": "{{baseUrl}}/api/orders/{{lastOrderId}}/incidents",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "orders",
-                "{{lastOrderId}}",
-                "incidents"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Ver una atención",
-          "request": {
-            "method": "GET",
-            "url": {
-              "raw": "{{baseUrl}}/api/incidents/{{incidentId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "incidents",
-                "{{incidentId}}"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Pasar la atención a en proceso",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/incidents/{{incidentId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "incidents",
-                "{{incidentId}}"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"IN_PROCESS\",\n  \"note\": \"se pidió foto del daño\",\n  \"actor\": \"agente-07\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Resolver la atención",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/incidents/{{incidentId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "incidents",
-                "{{incidentId}}"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"RESOLVED\",\n  \"note\": \"devolución aceptada\",\n  \"actor\": \"agente-07\"\n}"
-            }
-          },
-          "description": "Si es una devolución, la orden queda RETURNED. Una atención cerrada ya no se puede cambiar (409)."
         }
       ]
     },

@@ -30,6 +30,12 @@ spring:
         format_sql: false
 
 sgologic:
+  auth:
+    # Solo dev: en cualquier despliegue real este secreto va en una variable de entorno propia,
+    # no en el archivo. Firma el JWT que emite POST /api/auth/login.
+    jwt-secret: ${JWT_SECRET:sgologic-dev-secret-cambiar-en-produccion-0123456789}
+    jwt-expiration-minutes: 480
+
   reservation:
     # Cada cuánto corre el job que libera reservas vencidas (ms). El TTL en sí vive en config.setting.
     release-expired-fixed-delay-ms: 30000

@@ -1,5 +1,6 @@
 package com.sgologic.customers;
 
+import com.sgologic.orders.Incident;
 import com.sgologic.orders.IncidentService;
 import com.sgologic.orders.dto.OrderOverview;
 import java.time.OffsetDateTime;
@@ -15,7 +16,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Consultar historial (CDU expandido Atención al Cliente): las órdenes del cliente, más recientes
- * primero, con el mismo detalle que la consulta de una orden, y las atenciones que ha tenido.
+ * primero, con el mismo detalle que la consulta de una orden, y las incidencias que ha tenido.
  *
  * <p>La consulta va por el índice {@code purchase_order (customer_id, created_at desc)} que ya
  * trae la base, y lee de la vista {@code orders.order_overview}: no arma el estado de cada orden
@@ -64,11 +65,11 @@ public class CustomerHistoryController {
                 customerId, limit);
     }
 
-    /** Órdenes y atenciones en una sola respuesta: lo que ve el agente al abrir la ficha del cliente. */
+    /** Órdenes e incidencias en una sola respuesta: lo que ve el agente al abrir la ficha del cliente. */
     @GetMapping("/history")
     public History history(@PathVariable Long customerId, @RequestParam(defaultValue = "50") int limit) {
         Customer customer = requireCustomer(customerId);
-        return new History(customer, orders(customerId, limit), incidents.ofCustomer(customerId, limit));
+        return new History(customer, orders(customerId, limit), incidents.findByCustomer(customerId, limit));
     }
 
     private Customer requireCustomer(Long customerId) {
@@ -76,6 +77,6 @@ public class CustomerHistoryController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "cliente no encontrado"));
     }
 
-    public record History(Customer customer, List<OrderOverview> orders, List<IncidentService.Incident> incidents) {
+    public record History(Customer customer, List<OrderOverview> orders, List<Incident> incidents) {
     }
 }
