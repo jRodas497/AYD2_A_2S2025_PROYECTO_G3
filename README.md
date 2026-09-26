@@ -46,7 +46,7 @@ El resto de la API —catálogo, carrito, checkout, cobro, consultas, auditoría
 - Docker y Docker Compose (para base de datos y backend)
 - Node.js 20+ y npm (para el frontend)
 
-### 1. Base de datos y backend
+### Primero: base de datos y backend
 
 Desde `FASE 2/`:
 
@@ -68,7 +68,7 @@ docker compose down
 
 Los datos de la base persisten en un volumen (`db_data`), así que no se pierden al reiniciar.
 
-### 2. Frontend
+### Luego: frontend
 
 En otra terminal, desde `FASE 2/frontend/`:
 
@@ -80,7 +80,7 @@ npm run dev
 
 El frontend queda en `http://localhost:5173` y su servidor de desarrollo (Vite) hace proxy de `/api` hacia `http://localhost:8080`, así que el backend de Docker debe estar corriendo primero.
 
-### 3. Verificar que todo funciona
+### Por último: verificar que todo funciona
 
 - Abrir `http://localhost:5173` en el navegador y navegar el catálogo.
 - `http://127.0.0.1:8080/api/...` debe responder (ver [`FASE 2/backend/API.md`](FASE%202/backend/API.md) para los endpoints disponibles).

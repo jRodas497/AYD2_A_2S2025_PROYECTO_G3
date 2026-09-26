@@ -25,19 +25,19 @@ title: Scrum - Grupo 3
 
 ## Índice
 
-1. [Product Backlog](#1-product-backlog)
-2. [Sprint Planning](#2-sprint-planning)
-3. [Sprint Backlog](#3-sprint-backlog)
-4. [Daily Scrum](#4-daily-scrum)
-5. [Sprint Retrospective](#5-sprint-retrospective)
+- [Product Backlog](#product-backlog)
+- [Sprint Planning](#sprint-planning)
+- [Sprint Backlog](#sprint-backlog)
+- [Daily Scrum](#daily-scrum)
+- [Sprint Retrospective](#sprint-retrospective)
 
 ---
 
-## 1. Product Backlog
+## Product Backlog
 
 > Historias derivadas de `FASE 2/DDA/driversArquitectonicos.md` (RF/RC/R) y de los CDU expandidos de Fase 1 (`FASE 1/Docs/DDA/casos-de-uso/`), agrupadas por el componente de `FASE 2/DRAWIO/Diagrama-Componentes-SGO-Logic-Fase2.drawio` que las realiza. Cada bloque indica el componente y el backend responsable (Backend 1 = núcleo comercial; Backend 2 = transacciones e integraciones). La pantalla de frontend se marca por historia: **[F1]** = Frontend 1 (Cliente / Compra omnicanal), **[F2]** = Frontend 2 (Operación interna / Backoffice); una historia sin marca no tiene pantalla propia. Integrante 5 = documentación, Docker y E2E.
 >
-> `Sprint sugerido` es una propuesta de secuenciación por dependencia (backbone → integraciones externas → cierre/calidad), **no un compromiso** — el compromiso real de sprint, fechas y story points se define en la sección 2 (Sprint Planning) de cada sprint.
+> `Sprint sugerido` es una propuesta de secuenciación por dependencia (backbone → integraciones externas → cierre/calidad), **no un compromiso** — el compromiso real de sprint, fechas y story points se define en Sprint Planning de cada sprint.
 
 **Bloque: Catálogo, precios y carrito omnicanal** — *Order/Checkout Service, Catalog/Product Service, Pricing & Promotions Service* · Backend 1 · RF01, CDU-01
 
@@ -150,11 +150,11 @@ title: Scrum - Grupo 3
 
 # Sprint Planning y Sprint Backlog
 
-## 2. Sprint Planning
+## Sprint Planning
 
 **Objetivo de Sprint**
 
-> _(pendiente — se define en la reunión de Sprint Planning correspondiente, a partir de las historias priorizadas de la sección 1)_
+> _(pendiente — se define en la reunión de Sprint Planning correspondiente, a partir de las historias priorizadas del Product Backlog)_
 
 #### **Datos de la Reunión:**
 
@@ -194,7 +194,7 @@ _(pendiente)_
 
 ---
 
-## 3. Sprint Backlog
+## Sprint Backlog
 
 **Historias seleccionadas para el Sprint**
 
@@ -204,12 +204,12 @@ _(pendiente)_
 
 ---
 
-## 4. Daily Scrum
+## Daily Scrum
 
 > _(pendiente — una entrada por integrante y por día del sprint, formato: ¿Qué hice ayer? / ¿Qué haré hoy? / ¿Impedimentos?)_
 
 ---
 
-## 5. Sprint Retrospective
+## Sprint Retrospective
 
 > _(pendiente — cada integrante responde: 1) ¿Qué se hizo BIEN? 2) ¿Qué se hizo MAL? 3) ¿Qué MEJORAS se implementarán en el siguiente Sprint?)_

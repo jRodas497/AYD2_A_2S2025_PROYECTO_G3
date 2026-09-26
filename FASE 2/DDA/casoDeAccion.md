@@ -1,19 +1,19 @@
 # DDA
 # Caso de Accion
 
-## 1. Contexto Operativo
+## Contexto Operativo
 
 - MegaStore opera en tres países (Guatemala, El Salvador y Costa Rica).
 - Cuenta con 32 tiendas físicas y un canal de comercio electrónico en crecimiento.
 - Su facturación anual es de $450 millones.
 
-## 2. Gestión de Información Actual
+## Gestión de Información Actual
 
 - Los sistemas de ventas presenciales, inventario, logística y contabilidad funcionan de manera independiente.
 - La integración entre aplicaciones es limitada y ocurre con diferentes ritmos y niveles de automatización.
 - Se utilizan procesos manuales como llamadas telefónicas, hojas de cálculo y conciliaciones posteriores para completar una venta.
 
-## 3. Ineficiencias Detectadas
+## Ineficiencias Detectadas
 
 - Desconexión de canales: la información no fluye de manera uniforme entre sistemas.
 - Procesos manuales: generan retrasos y errores en la operación.
@@ -21,7 +21,7 @@
 - Impacto en ingresos: la falta de continuidad puede frenar ventas y generar pérdidas.
 - Limitaciones en la toma de decisiones: la gerencia no cuenta con datos oportunos ni confiables para reaccionar rápidamente.
 
-## 4. Riesgos Asociados
+## Riesgos Asociados
 
 - Pérdida de competitividad frente a retailers con operaciones omnicanal más maduras.
 - Mayor costo operativo por duplicidad de procesos.
@@ -30,7 +30,7 @@
 
 # Propuesta de Arquitectura de Software
 
-## 1. Principios de Diseño
+## Principios de Diseño
 
 - Omnicanalidad: integración fluida entre tiendas físicas, inventario, logística y contabilidad.
 - Escalabilidad: preparada para crecimiento regional y aumento de transacciones.
@@ -38,7 +38,7 @@
 - Seguridad: protección de datos de clientes y transacciones.
 - Eficiencia: reducción de procesos manuales y optimización de flujos.
 
-## 2. Estructura General del Sistema
+## Estructura General del Sistema
 
 La arquitectura combina tres estilos complementarios — **monolítico** (despliegue), **Event-Driven vía broker de mensajería** (integración asíncrona) y **orientado a datos** (integración síncrona) — según lo decidido y justificado en ADR-0001:
 
@@ -84,7 +84,7 @@ La arquitectura combina tres estilos complementarios — **monolítico** (despli
 > Las vistas que coinciden con el código están en [diagrama-de-componentes.md](diagrama-de-componentes.md)
 > y en la sección "Despliegue implementado" de [diagrama-de-despliegue.md](diagrama-de-despliegue.md).
 
-## 3. Funciones Críticas Soportadas
+## Funciones Críticas Soportadas
 
 - Gestión de inventario en tiempo real.
 - Procesamiento de ventas omnicanal (tienda física + producto (LineaBlanca, Electronica, Ropa,Calzado).
@@ -92,7 +92,7 @@ La arquitectura combina tres estilos complementarios — **monolítico** (despli
 - Contabilidad automatizada (conciliación batch cada 30 min con ERP-Core, sin modificarlo).
 - Auditoría y trazabilidad de negocio (reportes para gerencia y SAT).
 
-## 4. Calidad del Diseño
+## Calidad del Diseño
 
 - Mantenible: componentes desacoplados vía broker de mensajería, dentro del stack conocido del equipo (Java/.NET/Docker), documentado con ADR.
 - Seguro: no persistencia de datos sensibles de pago, auditoría completa, cumplimiento SAT.
@@ -101,13 +101,13 @@ La arquitectura combina tres estilos complementarios — **monolítico** (despli
 
 # Justificación de Decisiones ante la Alta Gerencia
 
-## 1. Perspectiva de Negocio
+## Perspectiva de Negocio
 
 - La arquitectura propuesta responde directamente a la estrategia omnicanal de MegaStore, integrando ventas físicas y digitales en un flujo único.
 - Se busca mejorar la experiencia del cliente, eliminando procesos manuales y garantizando continuidad en las transacciones.
 - La solución permite a la gerencia contar con información confiable y en tiempo real, fortaleciendo la toma de decisiones estratégicas.
 
-## 2. Selección de Tecnologías y Metodologías
+## Selección de Tecnologías y Metodologías
 
 - Monolito modular en contenedores Docker + API Gateway/BFF: balance entre lo que el equipo puede operar hoy (sin Kubernetes) y fronteras de componente claras para evolucionar a servicios independientes (ADR-0001, ADR-0005).
 - Broker de mensajería open-source (ej. RabbitMQ) + Circuit Breaker: habilita desacoplamiento y tolerancia a fallas de PayKlik, LogiExpress y notificaciones sin bloquear la operación principal (ADR-0001, ADR-0002, ADR-0004).
@@ -115,14 +115,14 @@ La arquitectura combina tres estilos complementarios — **monolítico** (despli
 - Adaptadores batch/eventos con ERP-Core y POS: respetan la restricción de no modificar los sistemas legacy (ADR-0003, DR-04, DR-05).
 - Documentación con DDA y ADR: asegura trazabilidad y transparencia en las decisiones técnicas.
 
-## 3. Beneficios Tangibles
+## Beneficios Tangibles
 
 - Reducción de costos operativos: menos duplicidad de procesos y conciliaciones manuales.
 - Incremento en ingresos: mayor fluidez en ventas y satisfacción del cliente.
 - Costo de infraestructura ajustado al presupuesto real ($150K inversión / $1,200 mensual), sin exigir competencias que el equipo no tiene hoy.
 - Resiliencia tecnológica: componentes ya desacoplados vía broker de mensajería, lo que facilita una evolución futura a servicios independientes sin rediseño (ADR-0005).
 
-## 4. Riesgos Mitigados
+## Riesgos Mitigados
 
 - Se disminuye la dependencia de sistemas aislados.
 - Se reduce el riesgo de pérdida de clientes por experiencias fragmentadas.
