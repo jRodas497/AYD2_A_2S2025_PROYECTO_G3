@@ -76,7 +76,7 @@ están documentadas en [`db/README.md`](../db/README.md#vistas-de-lectura).
 **En pausa por decisión del equipo.** Queda registrado lo que había al auditar: el documento Scrum
 del equipo (`Scrum - Grupo 3.md`, con el Product Backlog PB-001 a PB-034) está en la rama
 `feature/202200389-diagrama-componentes` sin fusionar a `develop`; hay un borrador individual de
-Backend 2 en [`Scrum/Backend2-202109114.md`](../Scrum/Backend2-202109114.md); no existen ramas
+Backend 2 que no llegó a incorporarse al documento del equipo; no existen ramas
 `main` ni `release`.
 
 ## III. Documentación técnica (20 pts)
