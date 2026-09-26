@@ -42,7 +42,7 @@ Eso levanta dos contenedores:
 
 | Contenedor | Qué es | Puerto |
 |---|---|---|
-| `sgologic-db` | PostgreSQL 16. La primera vez corre las migraciones `db/migrations/V1` a `V7` y siembra 2 centros de distribución, 32 tiendas, 12 productos con su stock y 100 clientes | `127.0.0.1:5432` |
+| `sgologic-db` | PostgreSQL 16. La primera vez corre las migraciones `db/migrations/V1` a `V8` y siembra 2 centros de distribución, 32 tiendas, 12 productos con su stock, 100 clientes y el usuario de desarrollo `admin` | `127.0.0.1:5432` |
 | `sgologic-backend` | El backend. Espera a que la base esté sana antes de arrancar | `127.0.0.1:8080` |
 
 La primera vez tarda unos minutos por la descarga de dependencias; después, segundos.
@@ -62,7 +62,7 @@ La forma más directa es la colección de Postman:
 1. Importar `backend/postman/SGO-Logic-Backend.postman_collection.json` y el entorno
    `backend/postman/SGO-Logic-Local.postman_environment.json`, y seleccionar el entorno.
 2. Correr la colección completa en orden (Collection Runner). Recorre agregar al carrito, checkout,
-   cobro, factura, despacho, rastreo, atenciones, avisos, lote del ERP, auditoría y la simulación
+   cobro, factura, despacho, rastreo, incidencias, avisos, lote del ERP, auditoría y la simulación
    de fallas; las consultas que dependen de procesos asíncronos esperan unos segundos por sí solas.
 
 O a mano, con `curl`:
@@ -78,6 +78,17 @@ sleep 10
 curl localhost:8080/api/orders/1/trace          # cobro, factura, despacho y guía, en orden
 curl -X POST localhost:8080/api/integration/erp/batches   # cierra la ventana del ERP sin esperar 30 min
 ```
+
+### Iniciar sesión
+
+```
+curl -X POST localhost:8080/api/auth/login -H 'Content-Type: application/json' \
+     -d '{"username":"admin","password":"admin123"}'        # devuelve {"token": "..."}
+```
+
+El token (cabecera `Authorization: Bearer <token>`) se exige para crear o editar productos (rol
+`ADMIN`) y para procesar una incidencia (`PUT /api/incidents/{id}/status`). El resto de la API es
+pública, incluido el simulador de terceros. En Postman, la carpeta "Sesión" guarda el token solo.
 
 ### Demostrar las fallas de terceros
 
@@ -107,6 +118,7 @@ python3 pruebas/prueba_flujo_volumen.py         # 60 compras simultáneas hasta 
 | `DB_APP_PASSWORD` | `sgologic_app_dev` | Clave del rol `sgologic_app`, con el que entra el backend |
 | `DB_PORT` | `5432` | Puerto de la base en el host |
 | `BACKEND_PORT` | `8080` | Puerto del backend en el host |
+| `JWT_SECRET` | una clave de desarrollo | Clave con la que se firman los tokens de sesión |
 
 Por ejemplo, si el 5432 ya está ocupado: `DB_PORT=5433 docker compose up -d`. Las claves por
 defecto son solo para desarrollo local.
@@ -127,11 +139,11 @@ docker compose down                 # detener (los datos se conservan en el volu
 Los archivos que se le dejan al AS/400 quedan en `FASE 2/erp-out/`.
 
 **Las migraciones solo corren cuando el volumen de la base está vacío.** Si ya tenías la base
-creada de antes y se agrega una migración nueva (por ejemplo `V7__reserva_de_20_minutos.sql`), hay
+creada de antes y se agrega una migración nueva (por ejemplo `V8__reserva_de_20_minutos.sql`), hay
 que aplicarla a mano o reiniciar la base:
 
 ```
-docker exec -i sgologic-db psql -U sgologic -d sgologic < db/migrations/V7__reserva_de_20_minutos.sql
+docker exec -i sgologic-db psql -U sgologic -d sgologic < db/migrations/V8__reserva_de_20_minutos.sql
 ```
 
 ## Arquitectura en una línea

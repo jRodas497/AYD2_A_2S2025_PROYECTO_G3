@@ -90,7 +90,7 @@ Cada artefacto de la vista objetivo tiene su lugar concreto en la implementada:
 | Customer Service | `sgologic-backend` · paquete `customers` | `customers` |
 | Inventory Service | `sgologic-backend` · paquete `inventory` (incluye `ReservationExpiryJob`) | `inventory` |
 | Order / Checkout Service | `sgologic-backend` · paquete `orders` | `orders` |
-| Identity / Configuration Service | `sgologic-backend` · paquete `config` (lectura de `config.setting`; el login no se implementó) | `config` |
+| Identity / Configuration Service | `sgologic-backend` · paquetes `auth` (login con JWT) y `config` (lectura de `config.setting`) | `config` |
 | Payment Service | `sgologic-backend` · paquete `payments` | `payments` |
 | Invoicing Service | `sgologic-backend` · paquete `invoicing` | `invoicing` |
 | Logistics Service | `sgologic-backend` · paquete `logistics` | `logistics` |

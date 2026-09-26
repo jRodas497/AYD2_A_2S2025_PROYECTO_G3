@@ -59,7 +59,7 @@ están documentadas en [`db/README.md`](../db/README.md#vistas-de-lectura).
 | Criterio | Pts | CDU expandido | Modelo de datos | Despliegue | Código | Evidencia | Estado |
 |---|---|---|---|---|---|---|---|
 | Consultar estado de la orden | 2 | [Atención al Cliente](../image/CDU-Expandido-Atencion-al-Cliente.png) | vista `order_overview` | Order / Checkout Service | `GET /api/orders/{id}` · `OrderQueryService` | `pruebas/prueba_rendimiento.py`: máx. 51 ms con 20 000 órdenes (meta < 5 s) | **100%** |
-| Registrar atención | 1 | Atención al Cliente · Gestión Logística (*Registrar Devolución*) | `incident`, `incident_type`, `incident_status`, `audit_log` | Order / Checkout Service | `POST /api/orders/{id}/incidents` · `PATCH /api/incidents/{id}` · `IncidentService`; devolución resuelta → orden `RETURNED` | Cada paso en la auditoría (`ATENCION_*`) con quién lo hizo | **100%** |
+| Registrar atención | 1 | Atención al Cliente · Gestión Logística (*Registrar Devolución*) | `incident`, `incident_type`, `incident_status`, `audit_log` | Order / Checkout Service | `POST /api/orders/{id}/incidents` · `PUT /api/incidents/{id}/status` (requiere sesión) · `IncidentService`; devolución resuelta → orden `RETURNED` | Cada paso en la auditoría (`INCIDENCIA_*`) con el usuario del token | **100%** |
 | Consultar historial | 2 | Atención al Cliente | vista `order_overview`, índice `purchase_order (customer_id, created_at)`, `incident` | Customer Service + Order / Checkout Service | `GET /api/customers/{id}/history` (órdenes y atenciones) · `GET /api/customers/{id}/orders` | — | **100%** |
 
 ### Auditar y consolidar (7 pts)
@@ -116,7 +116,7 @@ datos, despliegue y código.
 - **Consulta de orden con cobros.** `GET /api/orders/{id}` respondía 500 en cuanto la orden tenía
   un intento de cobro (corregido antes de esta auditoría, en el commit `29237c5`).
 - **Los cuatro huecos del núcleo comercial**: quitar y cambiar productos del carrito, historial del
-  cliente, registro de atenciones y movimientos de inventario con aviso al POS.
+  cliente, registro de incidencias y movimientos de inventario con aviso al POS.
 - **Colección de Postman corrible en orden**: con el Collection Runner, de punta a punta y varias
   veces seguidas (68 de 69 en 2xx; el que falta es el 400 que prueba la guardia de tarjetas).
 - **Seis CDU expandidos nuevos**, uno por sección de la hoja, con su recuadro de trazabilidad.
@@ -129,7 +129,7 @@ datos, despliegue y código.
 ## Segunda auditoría: incongruencias entre documentos, código y enunciado
 
 Hecha el 2026-09-23 sobre todo lo anterior. Incluye una instalación desde cero en una base nueva
-(`docker compose up` con un volumen vacío): corren las 7 migraciones y la colección de Postman da
+(`docker compose up` con un volumen vacío): corren las 8 migraciones y la colección de Postman da
 69 de 70 en 2xx (el que falta es el 400 esperado de la guardia de tarjetas).
 
 ### Corregidas
@@ -139,7 +139,7 @@ Hecha el 2026-09-23 sobre todo lo anterior. Incluye una instalación desde cero 
 | 1 | **Fidelidad al ADR-0001.** El ADR-0001 y el ADR-0005 piden los componentes en *contenedores Docker independientes*; el código los tiene en un solo contenedor. Además, varios documentos nuevos atribuían al ADR-0001 la decisión de "un solo despliegue", lo cual era falso | Alta | [ADR-0009](ADR/0009-alcance-de-despliegue-del-mvp.md) registra y justifica la desviación (el mismo ADR-0001 pide llamadas *in-process* para lo que exige consistencia, y el checkout necesita atomicidad). Se corrigieron el README del backend, el documento de despliegue y los diagramas implementados |
 | 2 | **Paso 10 del flujo principal.** "Se emiten los eventos de actualización hacia las instancias del POS": en el camino feliz no salía ningún evento, porque el POS solo se avisaba cuando se movía stock de una tienda y el despacho normal sale de un CD | Alta | Al cerrar cada ventana del ERP, las 32 tiendas reciben la existencia consolidada (`InventoryConsolidated`). Verificado en base nueva: 32 de 32 entregados |
 | 3 | **Entregable "README.md detallado con instrucciones de instalación y despliegue"**: no existía para la Fase 2 | Alta | [`FASE 2/README.md`](../README.md), probado paso a paso sobre una base nueva |
-| 4 | **Tiempo de reserva.** CDU-01 y CDU-08 fijan 20 minutos "confirmado por el equipo"; la base tenía 15 | Media | `V7__reserva_de_20_minutos.sql` y valor por defecto en el código; el checkout reserva por 20 minutos |
+| 4 | **Tiempo de reserva.** CDU-01 y CDU-08 fijan 20 minutos "confirmado por el equipo"; la base tenía 15 | Media | `V8__reserva_de_20_minutos.sql` y valor por defecto en el código; el checkout reserva por 20 minutos |
 | 5 | **API Gateway / BFF y Pricing & Promotions** aparecen en el caso de acción y en los diagramas de la Fase 2, sin implementar y sin un ADR que lo decida | Media | Decididos en el ADR-0009; nota en `casoDeAccion.md` que remite a los ADR 0007 a 0009 |
 | 6 | **Momento de la reserva.** El CDU-01 reserva al agregar al carrito; el enunciado y el código, al iniciar el checkout | Media | Registrado en el ADR-0009: prevalece el enunciado |
 | 7 | **ADR-0002** registra el cobro en el outbox "en la misma transacción que crea la orden"; el código lo hace distinto | Media | El ADR-0007 explica cómo se conserva la misma garantía (la orden pasa a `PAYMENT_IN_PROGRESS` antes de llamar a PayKlik) |
@@ -156,5 +156,5 @@ Hecha el 2026-09-23 sobre todo lo anterior. Incluye una instalación desde cero 
 | 13 | **Evidencia del feedback de la Fase 1** (ver sección III) | Media | Un documento con las observaciones del auxiliar y los cambios hechos |
 | 14 | **Devoluciones hacia el ERP.** El ADR-0003 incluía devoluciones en la sincronización; el MVP solo envía ventas. Tampoco hay canal para que el AS/400 rechace un lote (CDU-07, E1) | Media | Una tabla de ajustes contables por lote (la llave `erp_batch_order.order_id` impide mandar la misma orden dos veces) |
 | 15 | **Reglas de los CDU de la Fase 1 sin implementar**: reembolso y aprobación de Finanzas arriba de USD 500 (CDU-05), recogida en tienda (CDU-04), sugerir alternativa sin existencia (CDU-01, 2a), reidentificación al cambiar de canal (CDU-01, E2) | Baja | Quedan documentadas en `backend/README.md` como fuera del MVP |
-| 16 | **Sin autenticación.** Todos los endpoints son públicos, incluido `/api/simulation` | Media | Login con `config.app_user` (la tabla ya existe) y un perfil que no registre la simulación fuera de la demo |
+| 16 | **Autenticación parcial.** Hay login con JWT, pero solo protege crear o editar productos y procesar incidencias; auditoría, reportes, reintentos y `/api/simulation` son públicos, y el frontend no manda el token | Media | Extender las reglas de `SecurityConfig` a los endpoints de operación y un perfil que no registre la simulación fuera de la demo |
 | 17 | `matrizRestricciones.md` conserva un pendiente propio sin cerrar ("confirmar que ninguna celda contradiga una decisión ya tomada") | Baja | Revisarla contra el ADR-0009, que cambia cómo se cumplen R 01 y R 02 |

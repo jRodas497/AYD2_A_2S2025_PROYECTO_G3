@@ -49,7 +49,7 @@ Muestra qué se comunica con qué y cómo:
 | Componente de la vista objetivo | En el MVP |
 |---|---|
 | Order / Checkout, Inventory, Catalog / Product, Customer | Implementados · paquetes `orders`, `inventory`, `catalog`, `customers` |
-| Identity / Configuration | Parcial · paquete `config` lee `config.setting`; el login no está implementado |
+| Identity / Configuration | Implementado · paquete `auth` (login con JWT, que protege catálogo e incidencias) y paquete `config` (`config.setting`) |
 | Payment, Invoicing, Logistics, Notification | Implementados · paquetes `payments`, `invoicing`, `logistics`, `notifications` |
 | Audit / Traceability & Reporting | Implementado · paquete `audit` |
 | ERP Sync Adapter, POS Adapter | Implementados · paquetes `integration.erp`, `integration.pos` |

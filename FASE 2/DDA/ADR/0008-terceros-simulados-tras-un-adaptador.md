@@ -59,7 +59,7 @@ degradación y el registro de auditoría son código de producción real, y lo q
   estilo de adaptadores del ADR-0001.
 
 **Negativas / tradeoffs aceptados:**
-- `/api/simulation` no debe existir en producción. Hoy no hay autenticación, así que queda
+- `/api/simulation` no debe existir en producción. El login con JWT no lo protege (solo cubre catálogo e incidencias), así que queda
   expuesto; la forma correcta de cerrarlo es un perfil de Spring que no registre ese controlador,
   y queda pendiente junto con el login.
 - Las latencias simuladas son más cortas que las reales (80 ms en vez de los ~800 ms de PayKlik)

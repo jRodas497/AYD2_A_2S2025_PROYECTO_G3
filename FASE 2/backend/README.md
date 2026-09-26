@@ -99,10 +99,10 @@ respuesta bajo carga y el flujo completo con volumen— con los resultados medid
 | GET | `/api/customers/{id}/cart` | Ver el carrito activo (sin crear ni tocar el canal) |
 | POST | `/api/customers/{id}/cart/items` | Agregar un ítem (crea el carrito si no existe) |
 | PUT / DELETE | `/api/customers/{id}/cart/items/{productId}` | Cambiar la cantidad o quitar un ítem |
-| GET | `/api/customers/{id}/orders` · `/history` | Historial del cliente: órdenes y atenciones |
+| GET | `/api/customers/{id}/orders` · `/history` | Historial del cliente: órdenes e incidencias |
 | POST | `/api/inventory/movements` | Entrada o salida de mercancía; avisa al POS si es una tienda |
 | POST | `/api/inventory/adjustments` | Ajuste por conteo físico que reporta el POS (CDU-08, E2) |
-| POST · PATCH | `/api/orders/{id}/incidents` · `/api/incidents/{id}` | Registrar y avanzar un cambio o devolución |
+| POST · PUT | `/api/orders/{id}/incidents` · `/api/incidents/{id}/status` | Registrar y procesar un cambio o devolución (procesar requiere sesión) |
 | POST | `/api/orders/checkout` | Convierte el carrito en orden, reserva stock |
 | GET | `/api/orders/{id}` | Estado completo de la orden (RC01, `orders.order_overview`) |
 
@@ -121,10 +121,11 @@ No incluye, de los CDU de la Fase 1: el reembolso de una devolución ni su aprob
 
 Del lado del ERP, el adaptador manda las ventas facturadas pero no las devoluciones (el ADR-0003 las incluía): una orden devuelta después de conciliada no genera un registro de ajuste para el AS/400. Y no hay un canal de respuesta del AS/400, así que un lote que el ERP rechace por formato no se detecta automáticamente (CDU-07, E1). El enunciado prioriza el camino feliz de la demo; con el tiempo que quedó para la Fase 2, esto se dejó fuera a propósito, no por descuido.
 
-Del lado de transacciones, tampoco hay autenticación: `config.app_user` existe en la base con su
-bloqueo por intentos, pero el login no se implementó, así que todo endpoint es público. Eso
-incluye los de operación (auditoría, reportes, reintentos) y el de simulación, que en un
-despliegue real no deberían estarlo. Es la deuda más grande que queda abierta.
+La autenticación es parcial: hay login con JWT (paquete `auth`, usuarios en `config.app_user` con
+bloqueo por intentos fallidos), pero solo se exige para crear o editar productos y para procesar
+incidencias. Los endpoints de operación (auditoría, reportes, reintentos) y el de simulación
+siguen públicos, y en un despliegue real no deberían estarlo. Es la deuda más grande que queda
+abierta.
 
 El envío guarda un solo origen por orden. Si la reserva quedó repartida entre dos ubicaciones,
 el inventario baja en la ubicación real de cada línea y el envío registra la principal — no se

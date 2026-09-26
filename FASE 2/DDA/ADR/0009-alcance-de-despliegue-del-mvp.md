@@ -57,7 +57,7 @@ Para el MVP:
 4. **La reserva se hace al iniciar el checkout**, como pide el enunciado. Reservar al agregar al
    carrito bloquearía existencia de carritos que nunca se compran, justo lo que la reserva
    temporal quiere evitar. El CDU-01 queda desactualizado en su paso 3; el tiempo de liberación sí
-   se respeta (20 minutos, V7).
+   se respeta (20 minutos, V8).
 
 ## Alternativas consideradas
 
@@ -80,8 +80,9 @@ Para el MVP:
 **Negativas / tradeoffs aceptados:**
 - Los componentes no escalan por separado: para absorber el pico se escala el contenedor
   completo. Es la motivación de la evolución del ADR-0005.
-- **Sin gateway no hay autenticación**: todos los endpoints, incluidos los de operación y
-  `/api/simulation`, son públicos. Es la deuda más grande que deja el MVP.
+- **La autenticación es parcial.** Sin gateway, el login con JWT se aplica dentro del backend y hoy
+  solo protege crear o editar productos y procesar incidencias; los endpoints de operación y
+  `/api/simulation` siguen públicos. Es la deuda más grande que deja el MVP.
 - El frontend asume un BFF en `/bff/...`; al integrarse con el backend tiene que usar `/api/...` o
   el equipo tiene que agregar el BFF.
 
@@ -96,4 +97,4 @@ Para el MVP:
 - `FASE 2/DDA/diagrama-de-despliegue.md` — vista implementada
 - `FASE 2/DDA/diagrama-de-componentes.md` — vistas implementadas de bloques y componentes
 - `FASE 1/Docs/DDA/casos-de-uso/CDU-01-realizar-compra-omnicanal.md` — el paso 3 queda reemplazado por la reserva al iniciar el checkout
-- `FASE 2/db/migrations/V7__reserva_de_20_minutos.sql`
+- `FASE 2/db/migrations/V8__reserva_de_20_minutos.sql`
