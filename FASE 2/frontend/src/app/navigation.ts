@@ -61,22 +61,22 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     titulo: 'Operaciones (admin)',
     items: [
-      { label: 'Órdenes', path: '/administracion/ordenes', estado: 'proximamente', icon: ClipboardList },
-      { label: 'Incidencias', path: '/administracion/incidencias', estado: 'proximamente', icon: AlertTriangle },
-      { label: 'Devoluciones', path: '/administracion/devoluciones', estado: 'proximamente', icon: Undo2 },
-      { label: 'Inventario', path: '/administracion/inventario', estado: 'proximamente', icon: Boxes },
-      { label: 'Reservas', path: '/administracion/reservas', estado: 'proximamente', icon: BookmarkCheck },
-      { label: 'Logística', path: '/administracion/logistica', estado: 'proximamente', icon: Truck },
-      { label: 'Seguimiento', path: '/administracion/seguimiento', estado: 'proximamente', icon: MapPin },
+      { label: 'Órdenes', path: '/administracion/ordenes', estado: 'activo', icon: ClipboardList },
+      { label: 'Incidencias', path: '/administracion/incidencias', estado: 'activo', icon: AlertTriangle },
+      { label: 'Devoluciones', path: '/administracion/devoluciones', estado: 'activo', icon: Undo2 },
+      { label: 'Inventario', path: '/administracion/inventario', estado: 'activo', icon: Boxes },
+      { label: 'Reservas', path: '/administracion/reservas', estado: 'activo', icon: BookmarkCheck },
+      { label: 'Logística', path: '/administracion/logistica', estado: 'activo', icon: Truck },
+      { label: 'Seguimiento', path: '/administracion/seguimiento', estado: 'activo', icon: MapPin },
     ],
   },
   {
     titulo: 'Gestión',
     items: [
-      { label: 'Clientes', path: '/administracion/clientes', estado: 'proximamente', icon: Users },
-      { label: 'Auditoría', path: '/administracion/auditoria', estado: 'proximamente', icon: History },
+      { label: 'Clientes', path: '/administracion/clientes', estado: 'activo', icon: Users },
+      { label: 'Auditoría', path: '/administracion/auditoria', estado: 'activo', icon: History },
       { label: 'Reportes', path: '/administracion/reportes', estado: 'activo', icon: BarChart3 },
-      { label: 'Configuración', path: '/administracion/configuracion', estado: 'proximamente', icon: Settings },
+      { label: 'Configuración', path: '/administracion/configuracion', estado: 'activo', icon: Settings },
     ],
   },
 ]

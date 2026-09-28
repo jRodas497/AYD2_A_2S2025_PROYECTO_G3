@@ -9,9 +9,20 @@ import { PaymentPage } from '../features/pago/pages/PaymentPage'
 import { OrdersListPage } from '../features/orden/pages/OrdersListPage'
 import { NotificacionesPlaceholderPage } from '../features/notificaciones/pages/NotificacionesPlaceholderPage'
 import { PerfilPlaceholderPage } from '../features/perfil/pages/PerfilPlaceholderPage'
+import { LoginPage } from '../features/backoffice/auth/pages/LoginPage'
 import { DashboardPage } from '../features/backoffice/dashboard/pages/DashboardPage'
 import { ReportesPage } from '../features/backoffice/reportes/pages/ReportesPage'
-import { BackofficePlaceholderPage } from '../features/backoffice/placeholder/pages/BackofficePlaceholderPage'
+import { OrdenesPage } from '../features/backoffice/ordenes/pages/OrdenesPage'
+import { IncidenciasPage } from '../features/backoffice/incidencias/pages/IncidenciasPage'
+import { DevolucionesPage } from '../features/backoffice/incidencias/pages/DevolucionesPage'
+import { InventarioPage } from '../features/backoffice/inventario/pages/InventarioPage'
+import { ReservasPage } from '../features/backoffice/reservas/pages/ReservasPage'
+import { LogisticaPage } from '../features/backoffice/logistica/pages/LogisticaPage'
+import { SeguimientoPage } from '../features/backoffice/logistica/pages/SeguimientoPage'
+import { ClientesPage } from '../features/backoffice/clientes/pages/ClientesPage'
+import { ClienteDetallePage } from '../features/backoffice/clientes/pages/ClienteDetallePage'
+import { AuditoriaPage } from '../features/backoffice/auditoria/pages/AuditoriaPage'
+import { ConfiguracionPage } from '../features/backoffice/configuracion/pages/ConfiguracionPage'
 
 export function AppRouter() {
   return (
@@ -27,19 +38,21 @@ export function AppRouter() {
       <Route path="/mis-ordenes" element={<OrdersListPage />} />
       <Route path="/notificaciones" element={<NotificacionesPlaceholderPage />} />
       <Route path="/perfil" element={<PerfilPlaceholderPage />} />
+      <Route path="/administracion/login" element={<LoginPage />} />
       <Route path="/administracion" element={<Navigate to="/administracion/dashboard" replace />} />
       <Route path="/administracion/dashboard" element={<DashboardPage />} />
-      <Route path="/administracion/ordenes" element={<BackofficePlaceholderPage titulo="Órdenes" />} />
-      <Route path="/administracion/incidencias" element={<BackofficePlaceholderPage titulo="Incidencias" />} />
-      <Route path="/administracion/devoluciones" element={<BackofficePlaceholderPage titulo="Devoluciones" />} />
-      <Route path="/administracion/inventario" element={<BackofficePlaceholderPage titulo="Inventario" />} />
-      <Route path="/administracion/reservas" element={<BackofficePlaceholderPage titulo="Reservas" />} />
-      <Route path="/administracion/logistica" element={<BackofficePlaceholderPage titulo="Logística" />} />
-      <Route path="/administracion/seguimiento" element={<BackofficePlaceholderPage titulo="Seguimiento" />} />
-      <Route path="/administracion/clientes" element={<BackofficePlaceholderPage titulo="Clientes" />} />
-      <Route path="/administracion/auditoria" element={<BackofficePlaceholderPage titulo="Auditoría" />} />
+      <Route path="/administracion/ordenes" element={<OrdenesPage />} />
+      <Route path="/administracion/incidencias" element={<IncidenciasPage />} />
+      <Route path="/administracion/devoluciones" element={<DevolucionesPage />} />
+      <Route path="/administracion/inventario" element={<InventarioPage />} />
+      <Route path="/administracion/reservas" element={<ReservasPage />} />
+      <Route path="/administracion/logistica" element={<LogisticaPage />} />
+      <Route path="/administracion/seguimiento" element={<SeguimientoPage />} />
+      <Route path="/administracion/clientes" element={<ClientesPage />} />
+      <Route path="/administracion/clientes/:id" element={<ClienteDetallePage />} />
+      <Route path="/administracion/auditoria" element={<AuditoriaPage />} />
       <Route path="/administracion/reportes" element={<ReportesPage />} />
-      <Route path="/administracion/configuracion" element={<BackofficePlaceholderPage titulo="Configuración" />} />
+      <Route path="/administracion/configuracion" element={<ConfiguracionPage />} />
     </Routes>
   )
 }
