@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { httpOrderRepository } from './orderRepository.http'
-import { listarIdsOrdenes } from './orderIndex'
+import { obtenerSnapshot } from './orderItemsSnapshot'
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
@@ -49,10 +49,10 @@ describe('httpOrderRepository', () => {
     })
   })
 
-  it('createOrder() guarda el snapshot y registra la orden en el índice local del cliente', async () => {
+  it('createOrder() guarda el snapshot local de items y dirección para completar la vista de detalle', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse(CHECKOUT_RESPONSE, 201))
     await httpOrderRepository.createOrder({ customerId: '7', items: [ITEM], direccionEntrega: 'Zona 10' })
-    expect(listarIdsOrdenes('7')).toEqual(['12'])
+    expect(obtenerSnapshot('12')).toEqual({ items: [ITEM], direccionEntrega: 'Zona 10' })
   })
 
   it('createOrder() propaga el mensaje real de un 409 (producto inactivo o sin stock)', async () => {
@@ -122,29 +122,35 @@ describe('httpOrderRepository', () => {
     expect(orden?.direccionEntrega).toBe('')
   })
 
-  it('listOrders() usa el índice local del cliente para consultar cada orden', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse(CHECKOUT_RESPONSE, 201))
-    await httpOrderRepository.createOrder({ customerId: '7', items: [ITEM], direccionEntrega: 'Zona 10' })
-
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      jsonResponse({
-        orderId: 12,
-        createdAt: '2026-09-25T04:05:48Z',
-        customerId: 7,
-        customer: 'Cliente 7',
-        channel: 'WEB',
-        status: 'PENDING_PAYMENT',
-        total: 4999,
-        lastPaymentResult: null,
-        paymentAttempts: null,
-        invoiceStatus: null,
-        shipmentStatus: null,
-        trackingNumber: null,
-      }),
+  it('listOrders() consulta el historial real del cliente en el backend, no un índice local', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      jsonResponse([
+        {
+          orderId: 12,
+          createdAt: '2026-09-25T04:05:48Z',
+          customerId: 7,
+          customer: 'Cliente 7',
+          channel: 'WEB',
+          status: 'PENDING_PAYMENT',
+          total: 4999,
+          lastPaymentResult: null,
+          paymentAttempts: null,
+          invoiceStatus: null,
+          shipmentStatus: null,
+          trackingNumber: null,
+        },
+      ]),
     )
     const ordenes = await httpOrderRepository.listOrders('7')
+    expect(fetchMock).toHaveBeenCalledWith('/api/customers/7/orders?limit=50')
     expect(ordenes).toHaveLength(1)
     expect(ordenes[0].id).toBe('12')
+  })
+
+  it('listOrders() devuelve [] si el cliente no existe (404)', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ message: 'cliente no encontrado' }, 404))
+    const ordenes = await httpOrderRepository.listOrders('999')
+    expect(ordenes).toEqual([])
   })
 
   it('updateEstado() lanza — el backend real controla el estado de la orden', async () => {

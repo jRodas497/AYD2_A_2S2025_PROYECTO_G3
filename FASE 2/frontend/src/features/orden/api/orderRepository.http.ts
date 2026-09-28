@@ -1,7 +1,6 @@
 import type { OrderRepository } from './orderRepository'
 import type { EstadoOrden, Order } from '../types'
 import { NotFoundError, manejarRespuesta } from '../../../shared/api/httpErrors'
-import { listarIdsOrdenes, registrarOrden } from './orderIndex'
 import { guardarSnapshot, obtenerSnapshot } from './orderItemsSnapshot'
 
 interface BackendOrder {
@@ -43,7 +42,8 @@ const MAPA_ESTADO: Record<string, EstadoOrden> = {
   RETURNED: 'devuelta',
 }
 
-function mapearEstado(status: string): EstadoOrden {
+/** Compartido con las pantallas de backoffice que también leen el estado crudo del backend. */
+export function mapearEstado(status: string): EstadoOrden {
   return MAPA_ESTADO[status] ?? 'pendiente_pago'
 }
 
@@ -68,7 +68,6 @@ export const httpOrderRepository: OrderRepository = {
       creadaEn: backendOrder.updatedAt,
     }
     guardarSnapshot(orden.id, { items: input.items, direccionEntrega: input.direccionEntrega })
-    registrarOrden(input.customerId, orden.id)
     return orden
   },
 
@@ -97,16 +96,27 @@ export const httpOrderRepository: OrderRepository = {
   },
 
   async listOrders(customerId) {
-    const ids = listarIdsOrdenes(customerId)
-    const ordenes = await Promise.all(
-      ids.map(async (id) => {
-        try {
-          return await httpOrderRepository.getOrder(id)
-        } catch {
-          return null
+    try {
+      const overviews = await manejarRespuesta<BackendOrderDetail[]>(
+        await fetch(`/api/customers/${customerId}/orders?limit=50`),
+      )
+      return overviews.map((detalle) => {
+        const id = String(detalle.orderId)
+        const snapshot = obtenerSnapshot(id)
+        return {
+          id,
+          customerId: String(detalle.customerId),
+          items: snapshot?.items ?? [],
+          total: detalle.total,
+          direccionEntrega: snapshot?.direccionEntrega ?? '',
+          estado: mapearEstado(detalle.status),
+          creadaEn: detalle.createdAt ?? '',
+          trackingNumber: detalle.trackingNumber ?? undefined,
         }
-      }),
-    )
-    return ordenes.filter((o): o is Order => o !== null).sort((a, b) => b.creadaEn.localeCompare(a.creadaEn))
+      })
+    } catch (e) {
+      if (e instanceof NotFoundError) return []
+      throw e
+    }
   },
 }

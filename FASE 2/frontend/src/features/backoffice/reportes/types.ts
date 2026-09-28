@@ -4,7 +4,7 @@ export interface MetricaReporte {
   id: string
   titulo: string
   valor: string
-  variacionPct: number
+  descripcion: string
 }
 
 export interface VentaMensual {
@@ -15,22 +15,27 @@ export interface VentaMensual {
 export interface DistribucionEstadoOrdenes {
   estado: string
   porcentaje: number
+  ordenes: number
 }
 
-export interface OrdenesPorMes {
-  mes: string
-  cantidad: number
+export interface VentasPorCanal {
+  canal: string
+  ordenes: number
+  monto: number
 }
 
-export interface InventarioPorcentaje {
-  categoria: string
-  porcentaje: number
+export interface PagoReciente {
+  orderId: number
+  canal: string
+  resultado: string
+  monto: number
+  fecha: string
 }
 
 export interface ReportesData {
   metricas: MetricaReporte[]
   ventasMensuales: VentaMensual[]
   estadoOrdenes: DistribucionEstadoOrdenes[]
-  ordenesPorMes: OrdenesPorMes[]
-  inventario: InventarioPorcentaje[]
+  porCanal: VentasPorCanal[]
+  pagosRecientes: PagoReciente[]
 }

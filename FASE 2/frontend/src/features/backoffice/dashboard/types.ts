@@ -16,8 +16,8 @@ export interface OrdenReciente {
   estado: EstadoOrden
 }
 
-export interface InventarioResumen {
-  categoria: string
+export interface EstadoOrdenResumen {
+  estado: string
   porcentaje: number
   tono: 'ok' | 'alerta' | 'falla'
 }
@@ -25,5 +25,5 @@ export interface InventarioResumen {
 export interface DashboardData {
   stats: DashboardStat[]
   ordenesRecientes: OrdenReciente[]
-  inventario: InventarioResumen[]
+  estadoOrdenes: EstadoOrdenResumen[]
 }
