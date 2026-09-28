@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -36,6 +37,17 @@ public class OrderController {
     public OrderOverview get(@PathVariable Long id) {
         return orderQueryService.findOverview(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "orden no encontrada"));
+    }
+
+    /** Listado/búsqueda de órdenes para el backoffice (PB-042): todos los filtros son opcionales. */
+    @GetMapping
+    public java.util.List<OrderOverview> search(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) String channel,
+            @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "50") int limit) {
+        return orderQueryService.search(status, customerId, channel, q, limit);
     }
 
     public record CheckoutRequest(@NotNull Long customerId, @NotBlank String deliveryAddress) {

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -18,9 +19,23 @@ import org.springframework.web.bind.annotation.RestController;
 public class IncidentController {
 
     private final IncidentService incidentService;
+    private final IncidentQueryService incidentQueryService;
 
-    public IncidentController(IncidentService incidentService) {
+    public IncidentController(IncidentService incidentService, IncidentQueryService incidentQueryService) {
         this.incidentService = incidentService;
+        this.incidentQueryService = incidentQueryService;
+    }
+
+    /**
+     * Bandeja global de incidencias (RF Gestión de Incidencias): cambios y devoluciones de todas
+     * las órdenes, filtrables por estado y tipo. {@code type=RETURN} es la pantalla de Devoluciones.
+     */
+    @GetMapping("/api/incidents")
+    public List<IncidentQueryService.IncidentOverview> search(
+            @RequestParam(required = false) IncidentStatus status,
+            @RequestParam(required = false) IncidentType type,
+            @RequestParam(defaultValue = "50") int limit) {
+        return incidentQueryService.search(status, type, limit);
     }
 
     @PostMapping("/api/orders/{orderId}/incidents")
