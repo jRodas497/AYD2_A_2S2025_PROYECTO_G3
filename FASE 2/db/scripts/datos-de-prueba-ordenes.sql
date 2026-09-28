@@ -142,7 +142,11 @@ join t_order o on o.id = i.order_id;
 insert into purchase_order
     (id, cart_id, customer_id, channel_id, status_id, total, delivery_address, created_at, updated_at)
 overriding system value
-select o.id, o.cart_id, o.customer_id, ch.id, s.id, o.total, c.address, o.created_at,
+select o.id, o.cart_id, o.customer_id, ch.id, s.id, o.total,
+       -- Un cliente invitado creado desde el frontend (CustomerContext) no tiene dirección
+       -- todavía; sin este respaldo, cualquier corrida posterior al uso real de la app
+       -- revienta el not-null de delivery_address.
+       coalesce(c.address, 'Dirección no registrada'), o.created_at,
        least(now(), o.created_at + case
            when o.status in ('DELIVERED', 'RETURNED') then interval '1 day'
            when o.status = 'IN_DISPATCH' then interval '2 hours'
@@ -291,7 +295,11 @@ with msg as (
 insert into notification
     (order_id, channel_id, status_id, recipient, message, attempts, last_error, created_at, sent_at)
 select m.order_id, nc.id, ds.id,
-       case o.channel when 'WEB' then c.email when 'MOBILE' then 'dispositivo-' || c.id else c.phone end,
+       -- Mismo respaldo que delivery_address: un cliente invitado sin correo ni teléfono
+       -- todavía no rompe la notificación, solo queda con un destinatario genérico.
+       coalesce(
+           case o.channel when 'WEB' then c.email when 'MOBILE' then 'dispositivo-' || c.id else c.phone end,
+           'cliente-' || c.id),
        m.message,
        case when o.n % 20 = 0 then 3 else 1 end,
        case when o.n % 20 = 0 then 'Proveedor de mensajería no disponible' end,
