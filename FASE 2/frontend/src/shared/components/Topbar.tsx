@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom'
 import { useCustomer } from '../context/CustomerContext'
+import { useAuth } from '../context/AuthContext'
 import { useCartContext } from '../../features/carrito/context/CartContext'
 
 export function Topbar() {
   const { customer } = useCustomer()
+  const { session } = useAuth()
   const { cart } = useCartContext()
   const cantidadTotal = cart.items.reduce((total, item) => total + item.cantidad, 0)
 
@@ -16,6 +18,9 @@ export function Topbar() {
             {cantidadTotal}
           </span>
         )}
+      </Link>
+      <Link to="/administracion/login" className="text-gray-500 hover:text-brand hover:underline">
+        {session ? `Personal: ${session.username}` : 'Iniciar sesión de personal'}
       </Link>
       <span className="text-gray-500">{customer.nombre}</span>
     </header>
