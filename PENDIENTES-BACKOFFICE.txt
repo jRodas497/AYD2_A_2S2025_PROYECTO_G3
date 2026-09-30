@@ -1,0 +1,156 @@
+PENDIENTES Y DETALLE DEL TRABAJO DE BACKOFFICE (Frontend 1 + Frontend 2 unificados)
+====================================================================================
+
+Este archivo documenta lo que se hizo para conectar el backoffice a datos reales del
+backend y la base de datos (sin mocks), y lo que queda pendiente. Complementa a
+BITACORA.md, que es el registro cronológico de todo el proyecto; este archivo es el
+detalle técnico de un solo cambio: cerrar el hueco entre lo que el backend ya podía
+hacer y lo que el frontend en realidad mostraba.
+
+Punto de partida
+-----------------
+El backoffice tenía 9 pantallas en placeholder (Órdenes, Incidencias, Devoluciones,
+Inventario, Reservas, Logística, Seguimiento, Clientes, Auditoría, Configuración) y
+2 pantallas (Dashboard, Reportes) que sí tenían código pero corrían sobre datos
+inventados, heredados del proyecto "frontend2" que se portó a mano en Fase 2 y nunca
+se conectó al backend real (porcentajes fijos de inventario, montos de ejemplo, etc.).
+"Mis órdenes" del cliente tampoco era real: usaba un índice en localStorage en vez de
+preguntarle al backend.
+
+Backend: endpoints agregados
+-----------------------------
+Ninguno necesitó una migración nueva de base de datos: el rol sgologic_app ya tenía
+permiso de lectura sobre todas las tablas (V5__rol_de_aplicacion.sql, "grant select on
+all tables"). Las escrituras nuevas usan permisos que ya existían.
+
+1. GET /api/orders
+   Listado/búsqueda de órdenes (status, customerId, channel, q, limit). Antes solo
+   existía GET /api/orders/{id} puntual. Agregado en OrderController + OrderQueryService.
+
+2. GET /api/customers
+   Listado/búsqueda de clientes por nombre, correo o teléfono (q, limit). Antes solo
+   existía GET /api/customers/{id} puntual. Query JPQL agregada en CustomerRepository.
+
+3. GET /api/incidents
+   Bandeja global de incidencias (status, type, limit), con el nombre del cliente y el
+   total de la orden ya resueltos. Antes solo se podía consultar por orden o por
+   cliente. Servicio nuevo: IncidentQueryService (com.sgologic.orders).
+
+4. GET /api/inventory/reservations
+   Reservas de stock (status, productId, limit), con el producto y la ubicación ya
+   resueltos. No existía ningún controlador sobre inventory.reservation. Agregado en
+   InventoryController.
+
+5. GET /api/settings y PUT /api/settings/{key}
+   Parámetros del sistema (reservation.ttl_minutes, payment.timeout_ms,
+   erp.batch_interval_minutes). El PUT requiere rol ADMIN. Controlador nuevo:
+   SettingController (com.sgologic.config).
+
+6. GET /api/users, POST /api/users, PUT /api/users/{id}/roles, PUT /api/users/{id}/active
+   Alta y gestión de personal interno (no clientes) con sus roles. Todas las escrituras
+   requieren rol ADMIN. Un usuario nunca se borra, se desactiva (active=false), igual
+   que ya documentaba el README de la base. Controlador nuevo: UserController
+   (com.sgologic.auth).
+
+SecurityConfig se actualizó para exigir ADMIN en los POST/PUT de /api/users y en el PUT
+de /api/settings, con el mismo patrón que ya se usaba para /api/products.
+
+Frontend: pantallas conectadas
+-------------------------------
+- Dashboard y Reportes: reescritos para leer de /api/reports/sales y
+  /api/reports/payments en vez de sus mocks. Se quitaron dashboardRepository.mock.ts y
+  reportesRepository.mock.ts (y sus tests) porque ya nadie los usa.
+- Mis órdenes (cliente): ahora llama a GET /api/customers/{id}/orders en vez del
+  índice local. Se borró orderIndex.ts y orderIndex.test.ts (quedaron sin uso).
+- Auditoría: nueva, usa /api/audit y /api/orders/{id}/trace.
+- Logística: nueva, alertas de envíos sin guía (GET /api/shipments?status=GUIDE_REQUESTED),
+  con acción para reintentar la guía.
+- Seguimiento: nueva, búsqueda por orden, línea de tiempo del envío y reasignación de
+  punto de despacho (PUT /api/shipments/{id}/origin).
+- Inventario: nueva, búsqueda de producto + disponibilidad por ubicación + historial de
+  movimientos + registrar movimiento (POST /api/inventory/movements).
+- Órdenes (backoffice): nueva, listado/búsqueda sobre el endpoint 1 de arriba.
+- Clientes (backoffice): nueva, listado/búsqueda + ficha de detalle (usa
+  GET /api/customers/{id}/history, que ya existía) con edición de datos.
+- Incidencias y Devoluciones: nuevas, comparten el mismo componente (IncidentInbox)
+  filtrado por tipo; requieren sesión de personal para cambiar el estado.
+- Reservas: nueva, listado filtrable por estado.
+- Configuración: nueva, tabla de parámetros editable y alta/gestión de usuarios y
+  roles, ambas restringidas a sesión ADMIN.
+
+Se agregó un login real de personal (AuthContext + LoginPage, en
+/administracion/login) porque varias de estas pantallas llaman acciones que el
+backend ya protegía con autenticación (procesar incidencias) o que se protegieron
+ahora (settings, usuarios) — sin login esas pantallas solo podían quedar de lectura.
+El token se guarda en localStorage bajo la clave sgo-admin-auth (conveniencia del
+navegador, no se manda a Claude ni a ningún tercero).
+
+Bug real encontrado y corregido
+--------------------------------
+db/scripts/datos-de-prueba-ordenes.sql asumía que todo cliente tiene dirección,
+correo y teléfono. Truena contra un cliente invitado real (los que crea el frontend
+con CustomerContext, que no piden esos datos al crearse). Se corrigió con un
+respaldo (coalesce) en dos lugares: delivery_address de purchase_order y recipient
+de notification.
+
+Verificación hecha
+-------------------
+- Backend: mvn test bajo JDK 21 (portable, solo para esta verificación local; el
+  JDK 25 de este sandbox no compila con la versión de Lombok del proyecto — ver nota
+  en la sesión anterior). 33 tests, todos verdes.
+- Frontend: tsc -b --noEmit limpio, npx vitest run (65 tests, todos verdes),
+  npm run build exitoso, oxlint sin errores nuevos.
+- Extremo a extremo: se levantó el stack real con docker compose (Postgres 16 +
+  backend) y se probó cada endpoint nuevo con curl contra la base real, incluyendo
+  los protegidos por ADMIN (401 sin token, 200 con token). Se corrió la seed
+  (300 órdenes) y se confirmó que cada pantalla nueva devuelve datos reales:
+  órdenes, incidencias (ambos tipos), reservas activas, una alerta de logística real.
+- No se pudo hacer una prueba visual en navegador: este entorno no tiene una
+  herramienta de navegador disponible. Se dejó el frontend (puerto 5173) y el
+  backend (puerto 8080) corriendo para que el equipo lo revise directamente.
+
+Efectos secundarios de la verificación (no son datos de producción, son de la base
+de pruebas local que ya existía en este contenedor):
+- Se creó un usuario de prueba "logistica1" (rol LOGISTICS) al probar POST /api/users.
+- Se corrigió reservation.ttl_minutes de 15 a 20 (el valor correcto según CDU-01/CDU-08,
+  que V8__reserva_de_20_minutos.sql ya fija en las migraciones; esta base local tenía
+  el valor viejo).
+Ninguno de los dos afecta el repositorio ni las migraciones; quedan solo en los
+datos de esa base local.
+
+QUÉ QUEDA PENDIENTE
+====================
+
+1. Promociones y precio con descuento (Pricing & Promotions Service)
+   PromocionesPage sigue usando pricingRepository.mock.ts. No es un endpoint que
+   falte exponer: el backend nunca construyó este servicio (ni tabla, ni entidad,
+   ni lógica). Conectarlo de verdad significa construir un módulo nuevo completo,
+   no cablear uno que ya existe — por eso quedó fuera de este trabajo. Ya estaba
+   documentado como gap en el Product Backlog (PB-001, PB-036).
+
+2. Pruebas unitarias/de integración del frontend para los repositorios nuevos
+   Los 33 tests de backend cubren los servicios críticos, pero los repositorios
+   HTTP nuevos del frontend (auditoriaRepository, shipmentsRepository,
+   inventoryOpsRepository, ordenesRepository, clientesRepository,
+   incidenciasRepository, reservasRepository, configuracionRepository) no tienen
+   tests propios todavía — se verificaron por tipo (tsc) y contra la base real
+   (curl), pero no con Vitest mockeando fetch como sí tienen orderRepository.http.ts
+   o paymentRepository.http.ts.
+
+3. Prueba visual en navegador
+   Ver "Verificación hecha" arriba. Falta que alguien del equipo (o el usuario)
+   confirme visualmente cada pantalla nueva en el navegador; el flujo de datos ya
+   está verificado, pero no la interfaz en sí (layout, responsive, etc.).
+
+4. Docker del frontend
+   Sigue sin dockerizarse (ya documentado en BITACORA.md); no es parte de este
+   cambio.
+
+5. Tablero Kanban
+   Sigue sin poder confirmarse si existe uno activo (ya documentado en
+   BITACORA.md); no es parte de este cambio.
+
+6. Commit y push
+   Todo lo de este archivo está en el árbol de trabajo, sin commitear todavía —
+   42 archivos (18 nuevos, 20 modificados, 7 borrados). Pendiente de confirmación
+   del equipo antes de subirlo.
