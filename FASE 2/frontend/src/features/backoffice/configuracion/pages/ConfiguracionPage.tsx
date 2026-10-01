@@ -26,9 +26,10 @@ export function ConfiguracionPage() {
     setCargando(true)
     setError(null)
     try {
+      // La lista de personal exige sesión ADMIN; sin ella solo se muestran los parámetros.
       const [p, u] = await Promise.all([
         httpConfiguracionRepository.listSettings(),
-        httpConfiguracionRepository.listUsers(),
+        isAdmin ? httpConfiguracionRepository.listUsers() : Promise.resolve([]),
       ])
       setParametros(p)
       setUsuarios(u)
@@ -41,7 +42,7 @@ export function ConfiguracionPage() {
 
   useEffect(() => {
     cargar()
-  }, [])
+  }, [isAdmin])
 
   async function guardarParametro() {
     if (!edicionParametro) return
@@ -89,7 +90,7 @@ export function ConfiguracionPage() {
       <p className="text-sm text-gray-500 mb-6">Parámetros del sistema y personal interno con acceso al backoffice.</p>
       {!isAdmin && (
         <p className="text-xs text-alerta mb-4">
-          Solo se puede consultar sin sesión de ADMIN. Inicia sesión de personal para editar.
+          Sin sesión de ADMIN solo se pueden consultar los parámetros. Inicia sesión de personal para editar.
         </p>
       )}
 
@@ -136,6 +137,7 @@ export function ConfiguracionPage() {
 
       <div className="bg-white border border-linea rounded p-4 mb-6">
         <h2 className="text-sm font-medium text-ink mb-3">Personal con acceso</h2>
+        {!isAdmin && <p className="text-sm text-gray-400">Inicia sesión como ADMIN para ver al personal.</p>}
         <div className="divide-y divide-linea">
           {usuarios.map((u) => (
             <div key={u.id} className="flex items-center justify-between gap-3 py-2 text-sm">

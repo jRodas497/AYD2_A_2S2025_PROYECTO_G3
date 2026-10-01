@@ -1,8 +1,8 @@
 # SGO-Logic — Fase 2 (MVP)
 
 Sistema de Gestión de Órdenes y Logística Omnicanal de MegaStore. Esta carpeta contiene el MVP de
-la Fase 2: el backend, la base de datos, su despliegue con Docker y la documentación de
-arquitectura actualizada.
+la Fase 2: el backend, el frontend, la base de datos, su despliegue con Docker y la documentación
+de arquitectura actualizada.
 
 El sistema cubre el flujo principal del enunciado de punta a punta: carrito unificado entre
 canales, reserva de stock, cobro con PayKlik, factura electrónica para la SAT, despacho con
@@ -16,19 +16,21 @@ propósito para demostrar la resiliencia.
 | Carpeta | Contenido |
 |---|---|
 | [`backend/`](backend/) | Aplicación Java 21 + Spring Boot. [README](backend/README.md) · [API núcleo comercial](backend/API.md) · [API transacciones e integraciones](backend/API-Transacciones.md) · colección de Postman en `backend/postman/` |
+| [`frontend/`](frontend/) | Aplicación React + TypeScript + Vite: tienda del cliente y backoffice del personal. [README](frontend/README.md) |
 | [`db/`](db/) | Migraciones de PostgreSQL, datos de prueba y scripts. [README](db/README.md) con el modelo de datos |
 | [`pruebas/`](pruebas/) | Pruebas ejecutables de concurrencia, rendimiento y volumen, con sus resultados. [README](pruebas/README.md) |
 | [`DDA/`](DDA/) | Documento de arquitectura de la Fase 2: drivers, restricciones, caso de acción, CDU expandidos, diagramas, matriz de trazabilidad y ADR 0006 a 0009 |
 | `DRAWIO/`, `image/` | Diagramas editables y sus imágenes |
-| `docker-compose.yml` | La base y el backend |
+| `docker-compose.yml` | La base, el backend y el frontend |
 
 ## Requisitos
 
 - Docker Engine con el plugin Compose v2 (`docker compose version`).
-- Los puertos `5432` y `8080` libres en `127.0.0.1` (se cambian con variables, ver abajo).
-- Conexión a internet la primera vez, para descargar las imágenes y las dependencias de Maven.
+- Los puertos `5432`, `8080` y `8081` libres en `127.0.0.1` (se cambian con variables, ver abajo).
+- Conexión a internet la primera vez, para descargar las imágenes y las dependencias de Maven y npm.
 
-No hace falta instalar Java, Maven ni PostgreSQL: todo se compila y corre dentro de los contenedores.
+No hace falta instalar Java, Maven, Node ni PostgreSQL: todo se compila y corre dentro de los
+contenedores.
 
 ## Instalación y despliegue
 
@@ -38,19 +40,23 @@ Desde esta carpeta (`FASE 2`):
 docker compose up -d --build
 ```
 
-Eso levanta dos contenedores:
+Eso levanta tres contenedores:
 
 | Contenedor | Qué es | Puerto |
 |---|---|---|
 | `sgologic-db` | PostgreSQL 16. La primera vez corre las migraciones `db/migrations/V1` a `V8` y siembra 2 centros de distribución, 32 tiendas, 12 productos con su stock, 100 clientes y el usuario de desarrollo `admin` | `127.0.0.1:5432` |
 | `sgologic-backend` | El backend. Espera a que la base esté sana antes de arrancar | `127.0.0.1:8080` |
+| `sgologic-frontend` | El frontend compilado, servido con nginx. Reenvía `/api` al backend | `127.0.0.1:8081` |
+
+La aplicación queda en `http://localhost:8081`: la tienda en la raíz y el backoffice en
+`/administracion`.
 
 La primera vez tarda unos minutos por la descarga de dependencias; después, segundos.
 
 ### Verificar que quedó arriba
 
 ```
-docker compose ps                                   # los dos en "Up", la base en "(healthy)"
+docker compose ps                                   # los tres en "Up", la base en "(healthy)"
 curl http://localhost:8080/api/products             # los 12 productos
 curl http://localhost:8080/api/integration/health   # circuitos en CLOSED y colas en cero
 ```
@@ -86,9 +92,17 @@ curl -X POST localhost:8080/api/auth/login -H 'Content-Type: application/json' \
      -d '{"username":"admin","password":"admin123"}'        # devuelve {"token": "..."}
 ```
 
-El token (cabecera `Authorization: Bearer <token>`) se exige para crear o editar productos (rol
-`ADMIN`) y para procesar una incidencia (`PUT /api/incidents/{id}/status`). El resto de la API es
-pública, incluido el simulador de terceros. En Postman, la carpeta "Sesión" guarda el token solo.
+El token (cabecera `Authorization: Bearer <token>`) se exige en:
+
+| Acción | Requiere |
+|---|---|
+| Crear o editar productos (`POST /api/products`, `PUT /api/products/{id}`) | Rol `ADMIN` |
+| Cambiar un parámetro (`PUT /api/settings/{key}`) | Rol `ADMIN` |
+| Listar y gestionar al personal (`/api/users`) | Rol `ADMIN` |
+| Procesar una incidencia (`PUT /api/incidents/{id}/status`) | Cualquier sesión |
+
+El resto de la API es pública, incluido el simulador de terceros. En Postman, la carpeta "Sesión"
+guarda el token solo. En el frontend, el personal inicia sesión en `/administracion/login`.
 
 ### Demostrar las fallas de terceros
 
@@ -100,6 +114,26 @@ Proveedores: `payklik`, `sat`, `logiexpress`, `messaging`, `pos`, `erp`. Modos: 
 `DOWN`, `REJECT`. Qué se ve en cada caso está en
 [API-Transacciones.md](backend/API-Transacciones.md#simulación-de-terceros-solo-para-la-demo).
 La carpeta "Simulación de terceros" de Postman tiene cada escenario con su "vuelve".
+
+### Pruebas unitarias
+
+Backend, 33 pruebas con JUnit y Mockito. Desde `backend/`, sin instalar Maven:
+
+```
+docker run --rm -v "$PWD":/app -v sgologic-m2:/root/.m2 -w /app maven:3.9-eclipse-temurin-21 mvn -B test
+```
+
+Con Maven y JDK 21 instalados basta `mvn test`. El proyecto no compila con JDK 25 por la versión
+de Lombok.
+
+Frontend, con Vitest. Desde `frontend/`, sin instalar Node 22:
+
+```
+docker run --rm -v "$PWD":/app -v /app/node_modules -w /app node:22 sh -c "npm ci && npx vitest run"
+```
+
+Con Node 22 instalado basta `npm test`. Con Node 20 las pruebas no arrancan, porque jsdom exige
+Node 22 o superior.
 
 ### Datos de volumen y pruebas
 
@@ -118,6 +152,7 @@ python3 pruebas/prueba_flujo_volumen.py         # 60 compras simultáneas hasta 
 | `DB_APP_PASSWORD` | `sgologic_app_dev` | Clave del rol `sgologic_app`, con el que entra el backend |
 | `DB_PORT` | `5432` | Puerto de la base en el host |
 | `BACKEND_PORT` | `8080` | Puerto del backend en el host |
+| `FRONTEND_PORT` | `8081` | Puerto del frontend en el host |
 | `JWT_SECRET` | una clave de desarrollo | Clave con la que se firman los tokens de sesión |
 
 Por ejemplo, si el 5432 ya está ocupado: `DB_PORT=5433 docker compose up -d`. Las claves por
@@ -132,6 +167,7 @@ Los intervalos de reintento y el modo inicial de cada tercero están en
 
 ```
 docker compose logs -f backend      # log del backend
+docker compose up -d --build frontend   # reconstruir solo el frontend tras cambiar su código
 docker compose down                 # detener (los datos se conservan en el volumen db_data)
 ./db/scripts/reiniciar-base.sh -y   # borrar la base y crearla de nuevo desde las migraciones
 ```

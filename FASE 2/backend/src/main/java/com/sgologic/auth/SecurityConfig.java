@@ -16,9 +16,10 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
- * Solo se exige sesión en lo que las CDU marcan como acción de Administrador: configurar el
- * catálogo y procesar una incidencia. El resto de la API (carrito, checkout, pagos, facturación,
- * logística) queda exactamente como estaba — ya se verificó de punta a punta y no se toca hoy.
+ * Se exige sesión en lo que las CDU marcan como acción de Administrador: configurar el catálogo,
+ * procesar una incidencia, cambiar parámetros y gestionar al personal. La lista de usuarios también
+ * exige ADMIN porque expone quién tiene acceso y con qué roles. El resto de la API (carrito,
+ * checkout, pagos, facturación, logística) es pública.
  */
 @Configuration
 @EnableWebSecurity
@@ -45,8 +46,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/products").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/incidents/*/status").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/users").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/users/**").hasRole("ADMIN")
+                        .requestMatchers("/api/users", "/api/users/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/settings/**").hasRole("ADMIN")
                         .anyRequest().permitAll())
                 .exceptionHandling(ex -> ex

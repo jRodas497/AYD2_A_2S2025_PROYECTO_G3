@@ -21,44 +21,42 @@ Construcción del sistema definido en la Fase 1:
 - **`backend/`** — Java 21 + Spring Boot. Un contenedor de aplicación con un módulo por componente (núcleo comercial: catálogo, clientes, inventario, órdenes/carrito, incidencias; transacciones e integraciones: pagos, facturación, logística, notificaciones, auditoría, ERP y POS). Por qué es un solo contenedor, en el [ADR-0009](FASE%202/DDA/ADR/0009-alcance-de-despliegue-del-mvp.md). Detalle en [`FASE 2/backend/README.md`](FASE%202/backend/README.md).
 - **`pruebas/`** — Pruebas ejecutables de concurrencia, rendimiento y volumen, con sus resultados. Detalle en [`FASE 2/pruebas/README.md`](FASE%202/pruebas/README.md).
 - **`DDA/`** — Arquitectura de la Fase 2: drivers, CDU expandidos, diagramas de bloques, componentes y despliegue (vista objetivo e implementada), matriz de trazabilidad y ADR 0006 a 0009.
-- **`frontend/`** — React + TypeScript + Vite. Consume la API del backend (catálogo, clientes, carrito, checkout, pago y órdenes ya conectados al backend real).
+- **`frontend/`** — React + TypeScript + Vite. Tienda del cliente (catálogo, carrito, checkout, pago, órdenes) y backoffice del personal (dashboard, órdenes, incidencias, inventario, reservas, logística, clientes, auditoría, reportes, configuración), todo sobre la API real del backend. Detalle en [`FASE 2/frontend/README.md`](FASE%202/frontend/README.md).
 - **`db/`** — PostgreSQL 16, una sola base con un esquema por componente. Detalle en [`FASE 2/db/README.md`](FASE%202/db/README.md).
 
 ### Autenticación
 
-El backend tiene login con JWT (`POST /api/auth/login`). Las migraciones siembran un usuario de desarrollo, `admin` / `admin123`, con rol `ADMIN`. Hoy el token se exige solo en:
+El backend tiene login con JWT (`POST /api/auth/login`). Las migraciones siembran un usuario de desarrollo, `admin` / `admin123`, con rol `ADMIN`. En el frontend, el personal inicia sesión en `/administracion/login`. El token se exige en:
 
 | Acción | Requiere |
 |---|---|
-| Crear o editar productos (`POST /api/products`, `PUT /api/products/{id}`) | Sesión con rol `ADMIN` |
+| Crear o editar productos (`POST /api/products`, `PUT /api/products/{id}`) | Rol `ADMIN` |
+| Cambiar un parámetro (`PUT /api/settings/{key}`) | Rol `ADMIN` |
+| Listar y gestionar al personal (`/api/users`) | Rol `ADMIN` |
 | Procesar una incidencia (`PUT /api/incidents/{id}/status`) | Cualquier sesión |
 
-El resto de la API —catálogo, carrito, checkout, cobro, consultas, auditoría, integraciones y el simulador de terceros `/api/simulation`— es pública. El frontend todavía no manda el token en ninguna llamada: una pantalla que use las acciones de la tabla va a recibir `401` hasta que lo haga. La clave con la que se firman los tokens se cambia con la variable `JWT_SECRET`.
-
-## ¿Está dockerizado?
-
-**Parcialmente.** `FASE 2/docker-compose.yml` levanta la **base de datos** y el **backend** en contenedores (el backend tiene su propio `Dockerfile`, imagen Maven + JRE 21). El **frontend no está dockerizado**: se corre con Node/npm y su servidor de desarrollo (Vite), que hace de proxy hacia el backend.
+El resto de la API —catálogo, carrito, checkout, cobro, consultas, auditoría, reportes, integraciones y el simulador de terceros `/api/simulation`— es pública. La clave con la que se firman los tokens se cambia con la variable `JWT_SECRET`.
 
 ## Cómo levantar el proyecto
 
-### Requisitos
-
-- Docker y Docker Compose (para base de datos y backend)
-- Node.js 20+ y npm (para el frontend)
-
-### Primero: base de datos y backend
-
-Desde `FASE 2/`:
+Solo hace falta Docker con Compose v2. Desde `FASE 2/`:
 
 ```bash
 cd "FASE 2"
-docker compose up -d --build backend
+docker compose up -d --build
 ```
 
-Esto también levanta `db` (Postgres 16) si no estaba corriendo, esperando a que esté saludable antes de arrancar el backend. La primera vez, Postgres ejecuta las migraciones de `db/migrations` (V1 a V8) automáticamente: esquemas, datos de prueba, el usuario `admin` y la configuración. Las migraciones solo corren con el volumen vacío; si la base ya existía, las nuevas se aplican a mano o se reinicia la base con `./db/scripts/reiniciar-base.sh -y` (detalle en [`FASE 2/README.md`](FASE%202/README.md#operación)).
+Levanta tres contenedores:
 
-- Backend disponible en `http://127.0.0.1:8080`
-- Postgres disponible en `127.0.0.1:5432` (usuario de aplicación `sgologic_app`, ver [`FASE 2/db/README.md`](FASE%202/db/README.md) para credenciales de desarrollo)
+| Contenedor | Qué es | Dirección |
+|---|---|---|
+| `sgologic-db` | PostgreSQL 16. La primera vez corre las migraciones V1 a V8: esquemas, datos de prueba, el usuario `admin` y la configuración | `127.0.0.1:5432` |
+| `sgologic-backend` | Java 21 + Spring Boot. Espera a que la base esté sana | `http://127.0.0.1:8080` |
+| `sgologic-frontend` | La aplicación compilada, servida con nginx, que reenvía `/api` al backend | `http://localhost:8081` |
+
+Abrir `http://localhost:8081`: la tienda está en la raíz y el backoffice en `/administracion`. El backend no tiene página en la raíz; su API está documentada en [`FASE 2/backend/API.md`](FASE%202/backend/API.md).
+
+Las migraciones solo corren con el volumen vacío. Si la base ya existía, las nuevas se aplican a mano o se reinicia la base con `./db/scripts/reiniciar-base.sh -y` (detalle en [`FASE 2/README.md`](FASE%202/README.md#operación)).
 
 Para detener todo:
 
@@ -66,31 +64,32 @@ Para detener todo:
 docker compose down
 ```
 
-Los datos de la base persisten en un volumen (`db_data`), así que no se pierden al reiniciar.
+Los datos de la base persisten en el volumen `db_data`.
 
-### Luego: frontend
+### Desarrollo del frontend
 
-En otra terminal, desde `FASE 2/frontend/`:
+Para trabajar en el frontend con recarga en caliente hace falta Node.js 22 o superior. Con la base y el backend del compose corriendo, desde `FASE 2/frontend/`:
 
 ```bash
-cd "FASE 2/frontend"
 npm install
 npm run dev
 ```
 
-El frontend queda en `http://localhost:5173` y su servidor de desarrollo (Vite) hace proxy de `/api` hacia `http://localhost:8080`, así que el backend de Docker debe estar corriendo primero.
+Queda en `http://localhost:5173` y Vite reenvía `/api` a `http://localhost:8080`.
 
-### Por último: verificar que todo funciona
-
-- Abrir `http://localhost:5173` en el navegador y navegar el catálogo.
-- `http://127.0.0.1:8080/api/...` debe responder (ver [`FASE 2/backend/API.md`](FASE%202/backend/API.md) para los endpoints disponibles).
-
-### Comandos útiles del frontend
+### Pruebas
 
 ```bash
-npm run build     # build de producción (tsc + vite build)
-npm run test      # tests con vitest
-npm run lint      # lint con oxlint
+# backend, 33 pruebas unitarias, desde FASE 2/backend (no requiere Maven instalado)
+docker run --rm -v "$PWD":/app -v sgologic-m2:/root/.m2 -w /app maven:3.9-eclipse-temurin-21 mvn -B test
+
+# frontend, desde FASE 2/frontend (no requiere Node 22 instalado)
+docker run --rm -v "$PWD":/app -v /app/node_modules -w /app node:22 sh -c "npm ci && npx vitest run"
+
+# concurrencia, rendimiento y volumen, desde FASE 2 con el sistema levantado
+python3 pruebas/prueba_reserva_concurrente.py
+python3 pruebas/prueba_rendimiento.py
+python3 pruebas/prueba_flujo_volumen.py
 ```
 
 ## Documentación adicional
