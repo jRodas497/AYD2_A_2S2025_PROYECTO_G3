@@ -73,11 +73,14 @@ están documentadas en [`db/README.md`](../db/README.md#vistas-de-lectura).
 
 ## II. Marco de trabajo Scrum (10 pts)
 
-**En pausa por decisión del equipo.** Queda registrado lo que había al auditar: el documento Scrum
-del equipo (`Scrum - Grupo 3.md`, con el Product Backlog PB-001 a PB-034) está en la rama
-`feature/202200389-diagrama-componentes` sin fusionar a `develop`; hay un borrador individual de
-Backend 2 que no llegó a incorporarse al documento del equipo; no existen ramas
-`main` ni `release`.
+El documento Scrum del equipo está en [`FASE 2/Scrum/Scrum - Grupo 3.md`](../Scrum/Scrum%20-%20Grupo%203.md):
+Product Backlog con estado real, y Sprint Planning, Sprint Backlog, Daily Scrum y Sprint
+Retrospective de los 3 sprints, reconstruidos del historial de commits. La bitácora del proyecto
+está en la raíz, en [`BITACORA.md`](../../BITACORA.md), como pide el enunciado.
+
+Falta lo que solo puede aportar el equipo desde su tablero: las capturas del Kanban al inicio y al
+cierre, y el burndown o el resumen de tareas completadas contra pendientes. Tampoco existen las
+ramas `main` ni `release` de git-flow.
 
 ## III. Documentación técnica (20 pts)
 
@@ -97,7 +100,7 @@ Ordenados por puntos en juego:
 
 | # | Riesgo | Pts en juego | Quién lo resuelve |
 |---|---|---|---|
-| 1 | Scrum de Fase 2 (en pausa por decisión del equipo) | hasta 10 | Todo el equipo |
+| 1 | Scrum de Fase 2: faltan las capturas del Kanban y el burndown | parte de 10 | Todo el equipo |
 | 2 | Sin documento que evidencie las correcciones por retroalimentación de la Fase 1 | 6 | Quien tenga las observaciones del auxiliar |
 
 Las 20 funcionalidades de la sección I quedan en **100%**: cada una tiene CDU expandido, modelo de
@@ -152,9 +155,16 @@ Hecha el 2026-09-23 sobre todo lo anterior. Incluye una instalación desde cero 
 
 | # | Incongruencia | Gravedad | Qué haría falta |
 |---|---|---|---|
-| 12 | **El frontend no está integrado.** Está en `feature/202200389-frontend-cliente-compra`, sin fusionar; solo usa implementaciones *mock*; espera un BFF en `/bff/...` que no existe; sus tipos no coinciden con la API (`'tarjeta'`/`'aprobado'` contra `CARD`/`APPROVED`, ids de texto contra numéricos, sin `cardToken`); no tiene Dockerfile ni servicio en el compose, y su README es la plantilla de Vite. La demo "de extremo a extremo" hoy solo se puede hacer con Postman | Alta | Que Frontend conecte los repositorios a `/api/...` (contratos en `backend/API.md` y `backend/API-Transacciones.md`) y se agregue al compose |
 | 13 | **Evidencia del feedback de la Fase 1** (ver sección III) | Media | Un documento con las observaciones del auxiliar y los cambios hechos |
 | 14 | **Devoluciones hacia el ERP.** El ADR-0003 incluía devoluciones en la sincronización; el MVP solo envía ventas. Tampoco hay canal para que el AS/400 rechace un lote (CDU-07, E1) | Media | Una tabla de ajustes contables por lote (la llave `erp_batch_order.order_id` impide mandar la misma orden dos veces) |
 | 15 | **Reglas de los CDU de la Fase 1 sin implementar**: reembolso y aprobación de Finanzas arriba de USD 500 (CDU-05), recogida en tienda (CDU-04), sugerir alternativa sin existencia (CDU-01, 2a), reidentificación al cambiar de canal (CDU-01, E2) | Baja | Quedan documentadas en `backend/README.md` como fuera del MVP |
-| 16 | **Autenticación parcial.** Hay login con JWT, pero solo protege crear o editar productos y procesar incidencias; auditoría, reportes, reintentos y `/api/simulation` son públicos, y el frontend no manda el token | Media | Extender las reglas de `SecurityConfig` a los endpoints de operación y un perfil que no registre la simulación fuera de la demo |
+| 16 | **Autenticación parcial.** Hay login con JWT y el frontend lo usa en el backoffice, pero solo protege crear o editar productos, procesar incidencias, cambiar parámetros y gestionar al personal; auditoría, reportes, reintentos y `/api/simulation` son públicos | Media | Extender las reglas de `SecurityConfig` a los endpoints de operación y un perfil que no registre la simulación fuera de la demo |
 | 17 | `matrizRestricciones.md` conserva un pendiente propio sin cerrar ("confirmar que ninguna celda contradiga una decisión ya tomada") | Baja | Revisarla contra el ADR-0009, que cambia cómo se cumplen R 01 y R 02 |
+
+### Resueltas después de la calificación
+
+| # | Incongruencia | Cómo quedó |
+|---|---|---|
+| 12 | **El frontend no estaba integrado**: usaba mocks, no tenía Dockerfile ni servicio en el compose, y su README era la plantilla de Vite | La tienda y el backoffice completo consumen la API real (`/api/...`), con inicio de sesión del personal. El frontend se compila y se sirve con nginx en el compose, así que `docker compose up -d --build` levanta los tres contenedores. Su README describe la aplicación. Solo Promociones sigue en mock, porque el backend no tiene ese servicio (ADR-0009) |
+| 18 | **La lista de personal (`GET /api/users`) era pública** y exponía quién tiene acceso y con qué roles | Exige rol `ADMIN`, igual que el resto de `/api/users` |
+
