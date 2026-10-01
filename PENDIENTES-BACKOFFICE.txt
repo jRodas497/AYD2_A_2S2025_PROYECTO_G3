@@ -98,7 +98,9 @@ Verificación hecha
   compila por la versión de Lombok; hay que usar JDK 21, que es el que fija el
   proyecto y el que usa el Dockerfile.
 - Frontend: tsc -b --noEmit limpio, npx vitest run (65 tests, todos verdes),
-  npm run build exitoso, oxlint sin errores nuevos.
+  npm run build exitoso, oxlint sin errores nuevos. Después se agregaron 22 pruebas a
+  los repositorios HTTP del backoffice, con Vitest simulando fetch; el frontend queda
+  con 87.
 - Extremo a extremo: se levantó el stack con docker compose (Postgres 16 y backend) y
   se probó cada endpoint nuevo con curl contra la base real, incluyendo los protegidos
   por ADMIN (401 sin token, 200 con token). Se corrió la seed (300 órdenes) y se
@@ -120,15 +122,6 @@ PromocionesPage sigue usando pricingRepository.mock.ts. No es un endpoint que fa
 exponer: el backend nunca construyó este servicio (ni tabla, ni entidad, ni lógica).
 Conectarlo de verdad significa construir un módulo nuevo completo. Ya estaba
 documentado como gap en el Product Backlog (PB-001, PB-036).
-
-Pruebas de los repositorios HTTP nuevos del frontend
------------------------------------------------------
-Los 33 tests de backend cubren los servicios críticos, pero los repositorios HTTP
-nuevos del frontend (auditoriaRepository, shipmentsRepository, inventoryOpsRepository,
-ordenesRepository, clientesRepository, incidenciasRepository, reservasRepository,
-configuracionRepository) no tienen tests propios todavía. Se verificaron por tipo
-(tsc) y contra la base real (curl), pero no con Vitest mockeando fetch como sí
-tienen orderRepository.http.ts o paymentRepository.http.ts.
 
 Revisión visual en navegador
 -----------------------------

@@ -54,9 +54,14 @@ Tercer Sprint Planning (21 de septiembre), y el sprint de implementación real: 
 
 **26 de septiembre.** Se completaron las secciones de Sprint Planning, Sprint Backlog, Daily Scrum y Sprint Retrospective del documento de Scrum (reconstruidas del historial de commits, con la fecha, el autor y el resultado real de cada tarea), se agregaron pruebas unitarias de los servicios críticos del backend (pagos, inventario, facturación, logística y checkout, cada uno con su camino principal y al menos un flujo de excepción del CDU correspondiente), y se escribió esta bitácora.
 
+## Fase 2 — Ajustes posteriores a la calificación (28 – 30 de septiembre de 2026)
+
+**28 y 29 de septiembre.** Se construyeron las 9 pantallas del backoffice que seguían en placeholder (órdenes, incidencias, devoluciones, inventario, reservas, logística, seguimiento, clientes, auditoría y configuración) y se conectaron Dashboard, Reportes y Mis órdenes a datos reales en lugar de mocks. Para eso el backend sumó endpoints de listado y búsqueda de órdenes, clientes, incidencias y reservas, y la administración de parámetros y de personal; el frontend sumó el inicio de sesión del personal. Se corrigió el script de datos de prueba, que fallaba con clientes invitados sin dirección ni contacto. El detalle técnico está en [`PENDIENTES-BACKOFFICE.txt`](PENDIENTES-BACKOFFICE.txt).
+
+**30 de septiembre.** Se dockerizó el frontend (compilado y servido con nginx, que reenvía `/api` al backend), así que `docker compose up -d --build` levanta el sistema completo en tres contenedores. La lista de personal (`GET /api/users`) pasó a exigir rol ADMIN, porque exponía quién tiene acceso y con qué roles. Se agregaron 22 pruebas a los repositorios HTTP del backoffice (el frontend queda con 87). Se actualizaron los README con el frontend en Docker, la versión de Node que exigen las pruebas (22) y cómo correr las pruebas sin instalar Maven ni Node, y se documentaron en `FASE 2/backend/API.md` los endpoints nuevos del backoffice.
+
 ## Lo que queda pendiente
 
 - Pruebas unitarias de Order Query/consulta de estado y de los adaptadores de integración (ERP, POS) más allá de los servicios ya cubiertos.
-- Dockerizar el frontend, para que `docker-compose.yml` levante el sistema completo y no solo base de datos y backend.
 - Confirmar si existe un tablero Kanban activo y mantenido (GitHub Projects, Trello u otro) — no se pudo verificar desde el repositorio.
 - Sin actividad de Carmen María Marroquín Llamas registrada en el historial de commits de Fase 2, pese a tener asignada la documentación, Docker y las pruebas E2E; ver Sprint Retrospective (Sprint 3) en el documento de Scrum para el detalle.
