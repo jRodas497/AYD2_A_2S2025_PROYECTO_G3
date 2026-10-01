@@ -18,7 +18,7 @@ export const httpConfiguracionRepository = {
   },
 
   async listUsers(): Promise<UsuarioSistema[]> {
-    return manejarRespuesta<UsuarioSistema[]>(await fetch('/api/users'))
+    return manejarRespuesta<UsuarioSistema[]>(await fetch('/api/users', { headers: authHeaders() }))
   },
 
   async createUser(input: {
