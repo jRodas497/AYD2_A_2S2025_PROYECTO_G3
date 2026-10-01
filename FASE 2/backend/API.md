@@ -35,7 +35,7 @@ Un error de validación (400) además trae `errors`, un arreglo con un objeto po
 
 ## Iniciar sesión
 
-Casi toda la API sigue abierta (carrito, checkout, catálogo de solo lectura, consultar cliente). Solo dos acciones, las que las CDU marcan como de Administrador, piden sesión: crear/editar un producto y procesar una incidencia.
+Casi toda la API sigue abierta (carrito, checkout, catálogo de solo lectura, consultas). Piden sesión las acciones que las CDU marcan como de Administrador: crear o editar un producto, cambiar un parámetro y gestionar al personal (rol `ADMIN`), y procesar una incidencia (cualquier sesión).
 
 ### `POST /api/auth/login`
 ```json
@@ -291,3 +291,73 @@ La ficha que ve el agente: el cliente, sus órdenes y sus incidencias en una sol
   "incidents": [ { "id": 636, "orderId": 1402, "type": "RETURN", "status": "RESOLVED", "...": "..." } ]
 }
 ```
+
+---
+
+## Backoffice: listados y administración
+
+Consultas que usan las pantallas del personal. Todas aceptan `limit` (por defecto 50) y devuelven los registros más recientes primero. Un filtro con un valor que no existe devuelve una lista vacía.
+
+### `GET /api/orders?status=&customerId=&channel=&q=&limit=50`
+Listado y búsqueda de órdenes. `status` y `channel` usan los códigos de la sección de valores fijos; `q` busca por nombre del cliente o número de orden.
+
+```json
+[{ "orderId": 149, "createdAt": "2026-09-26T17:37:00.931523Z", "customerId": 106, "customer": "Cliente invitado",
+   "channel": "WEB", "status": "PAYMENT_FAILED", "total": 7000.0, "lastPaymentResult": "TIMEOUT", "paymentAttempts": 6,
+   "invoiceStatus": null, "shipmentStatus": null, "trackingNumber": null }]
+```
+
+### `GET /api/customers?q=&limit=50`
+Búsqueda de clientes por nombre, correo o teléfono. Devuelve el mismo cuerpo que `GET /api/customers/{id}`.
+
+### `GET /api/incidents?status=&type=&limit=50`
+Bandeja de incidencias de todas las órdenes, con el cliente y el total de la orden.
+
+```json
+[{ "id": 1, "orderId": 85, "customerId": 47, "customer": "Cliente de prueba 47", "type": "RETURN", "status": "RESOLVED",
+   "description": "producto dañado", "orderTotal": 390.0, "createdAt": "2026-09-26T04:46:29.167752Z", "resolvedAt": "2026-09-26T04:46:29.22079Z" }]
+```
+
+### `GET /api/inventory/reservations?status=&productId=&limit=50`
+Reservas de stock con el producto y la ubicación. `status`: `ACTIVE`, `CONFIRMED`, `RELEASED`, `EXPIRED`.
+
+```json
+[{ "id": 84, "orderId": 149, "productId": 2, "sku": "LB-002", "productName": "Lavadora 18 kg", "locationCode": "CD-01",
+   "quantity": 2, "status": "EXPIRED", "createdAt": "2026-09-26T17:37:00.931523Z", "expiresAt": "2026-09-26T17:57:00.940916Z",
+   "closedAt": "2026-09-26T18:43:20.920534Z" }]
+```
+
+### `GET /api/settings`
+Los parámetros de negocio: `reservation.ttl_minutes`, `payment.timeout_ms` y `erp.batch_interval_minutes`, cada uno con `key`, `value` y `description`.
+
+### `PUT /api/settings/{key}` — requiere sesión (rol `ADMIN`)
+```json
+{ "value": "30" }
+```
+El cambio aplica sin reiniciar el backend.
+
+### `GET /api/users` — requiere sesión (rol `ADMIN`)
+El personal con acceso al sistema. Nunca incluye la contraseña.
+
+```json
+[{ "id": 1, "username": "admin", "fullName": "Administrador de prueba", "email": "admin@example.com", "active": true,
+   "storeId": null, "roles": ["ADMIN"], "lastLoginAt": "2026-10-01T04:42:21.244805Z" }]
+```
+
+### `POST /api/users` — requiere sesión (rol `ADMIN`)
+```json
+{ "username": "logistica1", "fullName": "Encargado de logística", "email": "logistica@example.com",
+  "password": "una-clave", "storeId": null, "roles": ["LOGISTICS"] }
+```
+Roles: `ADMIN`, `STORE_EMPLOYEE`, `STORE_MANAGER`, `CALL_CENTER_AGENT`, `LOGISTICS`, `FINANCE`. `storeId` es opcional y apunta a una tienda.
+
+### `PUT /api/users/{id}/roles` — requiere sesión (rol `ADMIN`)
+```json
+{ "roles": ["LOGISTICS", "STORE_EMPLOYEE"] }
+```
+
+### `PUT /api/users/{id}/active` — requiere sesión (rol `ADMIN`)
+```json
+{ "active": false }
+```
+Un usuario no se borra: se desactiva y deja de poder iniciar sesión.
