@@ -1,4 +1,4 @@
-import type { CustomerRepository } from './customerRepository'
+import type { CustomerRepository, DatosCliente } from './customerRepository'
 import type { Customer } from '../types'
 import { NotFoundError, manejarRespuesta } from '../../../shared/api/httpErrors'
 
@@ -13,11 +13,25 @@ interface BackendCustomer {
 }
 
 function mapearCliente(backendCliente: BackendCustomer): Customer {
-  return { id: String(backendCliente.id), nombre: backendCliente.fullName, telefono: backendCliente.phone ?? '' }
+  return {
+    id: String(backendCliente.id),
+    nombre: backendCliente.fullName,
+    telefono: backendCliente.phone ?? '',
+    email: backendCliente.email ?? '',
+    direccion: backendCliente.address ?? '',
+  }
 }
 
-function cuerpoDatos(datos: { nombre: string; telefono?: string }) {
-  return JSON.stringify({ fullName: datos.nombre, phone: datos.telefono })
+// El backend reemplaza el registro completo en cada PUT/POST (no hace un merge parcial): un campo
+// que no se manda aquí llega como null al otro lado y borra lo que el cliente ya tenía guardado.
+// Por eso quien llama a updateCustomer debe pasar siempre el dato completo (ver CustomerContext).
+function cuerpoDatos(datos: DatosCliente) {
+  return JSON.stringify({
+    fullName: datos.nombre,
+    phone: datos.telefono ?? '',
+    email: datos.email ?? '',
+    address: datos.direccion ?? '',
+  })
 }
 
 export const httpCustomerRepository: CustomerRepository = {

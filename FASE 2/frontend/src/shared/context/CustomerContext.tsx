@@ -23,12 +23,18 @@ async function obtenerOCrearCliente(): Promise<Customer> {
   return creacionEnCurso
 }
 
+export interface ResultadoActualizarPerfil {
+  ok: boolean
+  motivo?: string
+}
+
 interface CustomerContextValue {
   customer: Customer
   needsReidentification: boolean
   identifyError: string | null
   requestReidentification: () => void
   identify: (datos: { nombre: string; telefono: string }) => Promise<void>
+  actualizarPerfil: (datos: { nombre: string; telefono: string; email: string; direccion: string }) => Promise<ResultadoActualizarPerfil>
 }
 
 const CustomerContext = createContext<CustomerContextValue | null>(null)
@@ -72,7 +78,13 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     if (!customer) return
     setIdentifyError(null)
     try {
-      const actualizado = await httpCustomerRepository.updateCustomer(customer.id, datos)
+      // El backend reemplaza el registro completo: se manda también el email y la dirección que
+      // ya tenía, para que reidentificarse no los borre (ver customerRepository.http.ts).
+      const actualizado = await httpCustomerRepository.updateCustomer(customer.id, {
+        ...datos,
+        email: customer.email,
+        direccion: customer.direccion,
+      })
       if (actualizado) {
         setCustomer(actualizado)
         setNeedsReidentification(false)
@@ -81,6 +93,23 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
       }
     } catch (e) {
       setIdentifyError(e instanceof Error ? e.message : 'No se pudo guardar tu información')
+    }
+  }
+
+  async function actualizarPerfil(datos: {
+    nombre: string
+    telefono: string
+    email: string
+    direccion: string
+  }): Promise<ResultadoActualizarPerfil> {
+    if (!customer) return { ok: false, motivo: 'No se pudo identificar tu perfil' }
+    try {
+      const actualizado = await httpCustomerRepository.updateCustomer(customer.id, datos)
+      if (!actualizado) return { ok: false, motivo: 'No encontramos tu perfil de cliente' }
+      setCustomer(actualizado)
+      return { ok: true }
+    } catch (e) {
+      return { ok: false, motivo: e instanceof Error ? e.message : 'No se pudo guardar tu información' }
     }
   }
 
@@ -101,7 +130,9 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <CustomerContext.Provider value={{ customer, needsReidentification, identifyError, requestReidentification, identify }}>
+    <CustomerContext.Provider
+      value={{ customer, needsReidentification, identifyError, requestReidentification, identify, actualizarPerfil }}
+    >
       {children}
     </CustomerContext.Provider>
   )

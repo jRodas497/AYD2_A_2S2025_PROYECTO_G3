@@ -20,10 +20,16 @@ describe('httpCustomerRepository', () => {
     vi.restoreAllMocks()
   })
 
-  it('getCustomer() mapea fullName/phone del backend a nombre/telefono', async () => {
+  it('getCustomer() mapea fullName/phone/email/address del backend', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse(BACKEND_CLIENTE))
     const cliente = await httpCustomerRepository.getCustomer('7')
-    expect(cliente).toEqual({ id: '7', nombre: 'Cliente de prueba 7', telefono: '50200000007' })
+    expect(cliente).toEqual({
+      id: '7',
+      nombre: 'Cliente de prueba 7',
+      telefono: '50200000007',
+      email: 'cliente7@example.com',
+      direccion: 'Zona 7',
+    })
   })
 
   it('getCustomer() devuelve null en 404', async () => {
@@ -32,7 +38,7 @@ describe('httpCustomerRepository', () => {
     expect(cliente).toBeNull()
   })
 
-  it('createCustomer() manda fullName/phone y devuelve el cliente creado', async () => {
+  it('createCustomer() manda fullName/phone/email/address y devuelve el cliente creado', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse(BACKEND_CLIENTE, 201))
     const cliente = await httpCustomerRepository.createCustomer({ nombre: 'Cliente de prueba 7', telefono: '50200000007' })
 
@@ -40,10 +46,33 @@ describe('httpCustomerRepository', () => {
       '/api/customers',
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ fullName: 'Cliente de prueba 7', phone: '50200000007' }),
+        body: JSON.stringify({ fullName: 'Cliente de prueba 7', phone: '50200000007', email: '', address: '' }),
       }),
     )
-    expect(cliente).toEqual({ id: '7', nombre: 'Cliente de prueba 7', telefono: '50200000007' })
+    expect(cliente.nombre).toBe('Cliente de prueba 7')
+  })
+
+  it('updateCustomer() manda el registro completo para no borrar email/direccion que no cambiaron', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse(BACKEND_CLIENTE))
+    await httpCustomerRepository.updateCustomer('7', {
+      nombre: 'Cliente de prueba 7',
+      telefono: '50200000007',
+      email: 'cliente7@example.com',
+      direccion: 'Zona 7',
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/customers/7',
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({
+          fullName: 'Cliente de prueba 7',
+          phone: '50200000007',
+          email: 'cliente7@example.com',
+          address: 'Zona 7',
+        }),
+      }),
+    )
   })
 
   it('updateCustomer() devuelve null en 404 en vez de lanzar', async () => {
