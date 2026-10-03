@@ -5,9 +5,16 @@ import { BackLink } from '../../../shared/components/BackLink'
 import { Button } from '../../../shared/components/Button'
 import { useNotify } from '../../../shared/notifications/NotificationContext'
 import { httpOrderRepository } from '../api/orderRepository.http'
+import { httpInvoiceRepository, type Invoice } from '../api/invoiceRepository.http'
 import { httpPaymentRepository } from '../../pago/api/paymentRepository.http'
 import { ESTADOS_TERMINALES, ETIQUETA_ESTADO } from '../estadoLabels'
 import type { Order } from '../types'
+
+const ESTADOS_CON_FACTURA: Order['estado'][] = ['facturada', 'en_despacho', 'entregada', 'devuelta']
+
+function formatFechaFactura(iso: string): string {
+  return new Date(iso).toLocaleString('es-GT', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
 
 const MENSAJE_TRANSICION: Partial<Record<Order['estado'], { texto: string; tono: 'ok' | 'falla' | 'info' }>> = {
   pagada: { texto: 'Tu pago fue confirmado.', tono: 'ok' },
@@ -31,6 +38,7 @@ export function OrderStatusPage() {
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [intentosFallidos, setIntentosFallidos] = useState(0)
+  const [factura, setFactura] = useState<Invoice | null>(null)
   const { notificar } = useNotify()
   const estadoAnteriorRef = useRef<Order['estado'] | null>(null)
   const tieneOrdenCargadaRef = useRef(false)
@@ -106,6 +114,16 @@ export function OrderStatusPage() {
     }
   }, [id, notificar])
 
+  useEffect(() => {
+    if (!id || !orden || factura || !ESTADOS_CON_FACTURA.includes(orden.estado)) return
+    httpInvoiceRepository
+      .ofOrder(id)
+      .then(setFactura)
+      .catch(() => {
+        // Si la factura todavía no se puede consultar, la pantalla no se cae por eso.
+      })
+  }, [id, orden, factura])
+
   if (cargando) return <p className="text-sm text-gray-400">Cargando orden…</p>
   if (error) return <p className="text-sm text-falla">{error}</p>
   if (!orden) return <p className="text-sm text-falla">No encontramos una orden con ese número.</p>
@@ -143,6 +161,28 @@ export function OrderStatusPage() {
 
       {orden.direccionEntrega && <p className="text-sm text-gray-500 mb-1">Entrega: {orden.direccionEntrega}</p>}
       {orden.trackingNumber && <p className="text-sm text-gray-500 mb-4">Guía de envío: {orden.trackingNumber}</p>}
+
+      {factura && (
+        <div className="bg-white border border-linea rounded p-4 mb-4 text-sm">
+          <h2 className="font-medium text-ink mb-2">Factura electrónica</h2>
+          <dl className="grid grid-cols-2 gap-1 text-xs text-gray-500 mb-2">
+            <dt>Autorización (CUI)</dt>
+            <dd className="text-ink">{factura.cui}</dd>
+            <dt>Serie</dt>
+            <dd className="text-ink">{factura.series}</dd>
+            <dt>Emitida</dt>
+            <dd className="text-ink">{formatFechaFactura(factura.generatedAt)}</dd>
+          </dl>
+          <a
+            href={httpInvoiceRepository.xmlUrl(orden.id)}
+            target="_blank"
+            rel="noreferrer"
+            className="text-brand hover:underline text-xs"
+          >
+            Ver XML enviado a la SAT
+          </a>
+        </div>
+      )}
 
       {orden.estado === 'pago_fallido' && intentosFallidos >= httpPaymentRepository.maxIntentosFallidos && (
         <p className="text-sm text-falla">
