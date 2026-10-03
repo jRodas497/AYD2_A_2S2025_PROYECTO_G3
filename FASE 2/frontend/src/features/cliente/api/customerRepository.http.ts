@@ -29,7 +29,9 @@ function cuerpoDatos(datos: DatosCliente) {
   return JSON.stringify({
     fullName: datos.nombre,
     phone: datos.telefono ?? '',
-    email: datos.email ?? '',
+    // customers.customer.email es unique en la base: un '' colisiona con el siguiente cliente sin
+    // correo (dos clientes invitados, por ejemplo). null sí se puede repetir, '' no.
+    email: datos.email?.trim() ? datos.email.trim() : null,
     address: datos.direccion ?? '',
   })
 }

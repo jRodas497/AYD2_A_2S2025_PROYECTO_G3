@@ -46,10 +46,22 @@ describe('httpCustomerRepository', () => {
       '/api/customers',
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ fullName: 'Cliente de prueba 7', phone: '50200000007', email: '', address: '' }),
+        body: JSON.stringify({ fullName: 'Cliente de prueba 7', phone: '50200000007', email: null, address: '' }),
       }),
     )
     expect(cliente.nombre).toBe('Cliente de prueba 7')
+  })
+
+  it('createCustomer() manda null (no cadena vacía) cuando no hay correo, porque email es unique en la base', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ ...BACKEND_CLIENTE, email: null }, 201))
+    await httpCustomerRepository.createCustomer({ nombre: 'Cliente invitado' })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/customers',
+      expect.objectContaining({
+        body: JSON.stringify({ fullName: 'Cliente invitado', phone: '', email: null, address: '' }),
+      }),
+    )
   })
 
   it('updateCustomer() manda el registro completo para no borrar email/direccion que no cambiaron', async () => {

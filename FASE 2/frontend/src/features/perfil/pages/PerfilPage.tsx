@@ -35,8 +35,9 @@ export function PerfilPage() {
 
       <form onSubmit={handleSubmit} className="bg-white border border-linea rounded p-4 space-y-3">
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Nombre</label>
+          <label htmlFor="perfil-nombre" className="block text-xs text-gray-500 mb-1">Nombre</label>
           <input
+            id="perfil-nombre"
             value={form.nombre}
             onChange={(e) => setForm({ ...form, nombre: e.target.value })}
             required
@@ -44,16 +45,18 @@ export function PerfilPage() {
           />
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Teléfono</label>
+          <label htmlFor="perfil-telefono" className="block text-xs text-gray-500 mb-1">Teléfono</label>
           <input
+            id="perfil-telefono"
             value={form.telefono}
             onChange={(e) => setForm({ ...form, telefono: e.target.value })}
             className="w-full border border-linea rounded px-3 py-2 text-sm"
           />
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Correo</label>
+          <label htmlFor="perfil-email" className="block text-xs text-gray-500 mb-1">Correo</label>
           <input
+            id="perfil-email"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
             type="email"
@@ -61,8 +64,9 @@ export function PerfilPage() {
           />
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Dirección</label>
+          <label htmlFor="perfil-direccion" className="block text-xs text-gray-500 mb-1">Dirección</label>
           <input
+            id="perfil-direccion"
             value={form.direccion}
             onChange={(e) => setForm({ ...form, direccion: e.target.value })}
             className="w-full border border-linea rounded px-3 py-2 text-sm"

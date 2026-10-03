@@ -42,8 +42,9 @@ export function LoginPage() {
       <p className="text-sm text-gray-500 mb-6">Acceso de personal interno (administración, logística, Finanzas).</p>
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Usuario</label>
+          <label htmlFor="login-usuario" className="block text-xs text-gray-500 mb-1">Usuario</label>
           <input
+            id="login-usuario"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
@@ -51,8 +52,9 @@ export function LoginPage() {
           />
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Contraseña</label>
+          <label htmlFor="login-password" className="block text-xs text-gray-500 mb-1">Contraseña</label>
           <input
+            id="login-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             type="password"

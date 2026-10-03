@@ -189,8 +189,9 @@ export function PaymentPage() {
         {metodo === 'tarjeta' && (
           <div className="bg-white border border-linea rounded p-4 mb-4 space-y-3">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Número de tarjeta</label>
+              <label htmlFor="pago-numero-tarjeta" className="block text-xs text-gray-500 mb-1">Número de tarjeta</label>
               <input
+                id="pago-numero-tarjeta"
                 value={numeroTarjeta}
                 onChange={(e) => setNumeroTarjeta(e.target.value)}
                 inputMode="numeric"
@@ -201,8 +202,9 @@ export function PaymentPage() {
               />
             </div>
             <div className="w-24">
-              <label className="block text-xs text-gray-500 mb-1">CVV</label>
+              <label htmlFor="pago-cvv" className="block text-xs text-gray-500 mb-1">CVV</label>
               <input
+                id="pago-cvv"
                 value={cvv}
                 onChange={(e) => setCvv(e.target.value)}
                 inputMode="numeric"
