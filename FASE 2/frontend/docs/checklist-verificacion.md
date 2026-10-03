@@ -24,7 +24,7 @@ Plantilla por pantalla: marcar cada RF de su historia y el RNF aplicable antes d
 - [x] Si la reserva falla, se muestra el motivo y una sugerencia (RF PB-003.1, PB-003.2)
 - [x] El resto del carrito no se ve afectado cuando un producto falla al agregarse (RF PB-003.3)
 - [x] El carrito persiste tras recargar la página — ahora es el carrito real del backend, asociado al cliente (ya no una simulación local)
-- [ ] Permite reducir la cantidad de un producto o eliminarlo del carrito (RF implícito de PB-002/PB-003) — el backend real (`POST /api/customers/{id}/cart/items`) solo soporta agregar o incrementar; no hay endpoint para bajar cantidad ni eliminar un ítem. Es una limitación real del backend, documentada en el contrato del checkout.
+- [x] Permite reducir la cantidad de un producto o eliminarlo del carrito (RF implícito de PB-002/PB-003) — el backend agregó `PUT`/`DELETE /api/customers/{id}/cart/items/{productId}`; el frontend ya los usa (botones +/− y "Quitar" en `/carrito`).
 
 ## Identificación del cliente (transversal) — PB-009
 

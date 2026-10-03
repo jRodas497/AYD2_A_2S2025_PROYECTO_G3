@@ -60,4 +60,22 @@ export const httpCartRepository: CartRepository = {
     }
     return mapearCarrito(backendCart)
   },
+
+  async setQuantity(customerId, productId, cantidad) {
+    const backendCart = await manejarRespuesta<BackendCart>(
+      await fetch(`/api/customers/${customerId}/cart/items/${productId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: cantidad, channel: 'WEB' }),
+      }),
+    )
+    return mapearCarrito(backendCart)
+  },
+
+  async removeItem(customerId, productId) {
+    const backendCart = await manejarRespuesta<BackendCart>(
+      await fetch(`/api/customers/${customerId}/cart/items/${productId}?channel=WEB`, { method: 'DELETE' }),
+    )
+    return mapearCarrito(backendCart)
+  },
 }

@@ -51,4 +51,19 @@ export const mockCartRepository = {
     guardarCarrito(customerId, nuevoCart)
     return esperar(nuevoCart)
   },
+
+  async setQuantity(customerId: string, productId: string, cantidad: number) {
+    const cart = cargarCarrito(customerId)
+    const items = cart.items.map((item) => (item.productId === productId ? { ...item, cantidad } : item))
+    const nuevoCart = { items }
+    guardarCarrito(customerId, nuevoCart)
+    return esperar(nuevoCart)
+  },
+
+  async removeItem(customerId: string, productId: string) {
+    const cart = cargarCarrito(customerId)
+    const nuevoCart = { items: cart.items.filter((item) => item.productId !== productId) }
+    guardarCarrito(customerId, nuevoCart)
+    return esperar(nuevoCart)
+  },
 } satisfies CartRepository

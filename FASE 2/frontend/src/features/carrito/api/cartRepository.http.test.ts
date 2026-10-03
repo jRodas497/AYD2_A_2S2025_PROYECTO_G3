@@ -73,4 +73,31 @@ describe('httpCartRepository', () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ message: 'no existe' }, 404))
     await expect(httpCartRepository.addItem('7', '999', 1)).rejects.toThrow('El producto ya no está disponible o no existe')
   })
+
+  it('setQuantity() manda PUT con la cantidad exacta y el canal', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(jsonResponse({ cartId: 1, status: 'OPEN', channel: 'WEB', items: [{ productId: 1, quantity: 5 }] }))
+      .mockResolvedValueOnce(jsonResponse(PRODUCTO_BACKEND))
+      .mockResolvedValueOnce(jsonResponse(DISPONIBILIDAD))
+
+    const cart = await httpCartRepository.setQuantity('7', '1', 5)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/customers/7/cart/items/1',
+      expect.objectContaining({ method: 'PUT', body: JSON.stringify({ quantity: 5, channel: 'WEB' }) }),
+    )
+    expect(cart.items[0].cantidad).toBe(5)
+  })
+
+  it('removeItem() manda DELETE y devuelve el carrito sin ese item', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(jsonResponse({ cartId: 1, status: 'OPEN', channel: 'WEB', items: [] }))
+
+    const cart = await httpCartRepository.removeItem('7', '1')
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/customers/7/cart/items/1?channel=WEB', { method: 'DELETE' })
+    expect(cart.items).toEqual([])
+  })
 })

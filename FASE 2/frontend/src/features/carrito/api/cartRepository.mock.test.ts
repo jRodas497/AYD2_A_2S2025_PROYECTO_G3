@@ -43,4 +43,17 @@ describe('mockCartRepository', () => {
     const cart = await mockCartRepository.getCart('cliente-x')
     expect(cart).toEqual(EMPTY_CART)
   })
+
+  it('setQuantity fija la cantidad exacta del item', async () => {
+    await mockCartRepository.addItem('cliente-x', '1', 3)
+    const cart = await mockCartRepository.setQuantity('cliente-x', '1', 1)
+    expect(cart.items[0].cantidad).toBe(1)
+  })
+
+  it('removeItem quita el item y deja el resto del carrito intacto', async () => {
+    await mockCartRepository.addItem('cliente-x', '1', 1)
+    await mockCartRepository.addItem('cliente-x', '2', 1)
+    const cart = await mockCartRepository.removeItem('cliente-x', '1')
+    expect(cart.items.map((i) => i.productId)).toEqual(['2'])
+  })
 })

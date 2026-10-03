@@ -9,13 +9,27 @@ function formatQ(valor: number): string {
 }
 
 export function CartPage() {
-  const { cart, cargando, error, total, incrementarItem } = useCarrito()
+  const { cart, cargando, error, total, incrementarItem, decrementarItem, eliminarItem } = useCarrito()
   const { notificar } = useNotify()
 
   async function handleIncrementar(item: CartItem) {
     const resultado = await incrementarItem(item.productId)
     if (resultado.ok) {
       notificar(`Cantidad de ${item.nombre} actualizada a ${item.cantidad + 1}`, 'ok')
+    } else {
+      notificar(resultado.motivo, 'falla')
+    }
+  }
+
+  async function handleDecrementar(item: CartItem) {
+    const resultado = await decrementarItem(item.productId, item.cantidad)
+    if (!resultado.ok) notificar(resultado.motivo, 'falla')
+  }
+
+  async function handleEliminar(item: CartItem) {
+    const resultado = await eliminarItem(item.productId)
+    if (resultado.ok) {
+      notificar(`${item.nombre} se quitó del carrito`, 'ok')
     } else {
       notificar(resultado.motivo, 'falla')
     }
@@ -34,10 +48,6 @@ export function CartPage() {
         </p>
       ) : (
         <>
-          <p className="text-xs text-gray-400 mb-3">
-            Por ahora solo se pueden agregar más unidades desde aquí. Para quitar productos o reducir
-            cantidades, contacta a servicio al cliente.
-          </p>
           <div className="bg-white border border-linea rounded p-4">
             <div className="divide-y divide-linea">
               {cart.items.map((item) => (
@@ -47,16 +57,34 @@ export function CartPage() {
                     <div className="text-sm">{item.nombre}</div>
                     <div className="text-xs text-gray-400">{item.sku}</div>
                   </div>
-                  <div className="text-sm text-gray-500 w-24 text-center">Cantidad: {item.cantidad}</div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleDecrementar(item)}
+                      className="w-8 h-8 flex items-center justify-center border border-linea rounded text-ink hover:bg-crema"
+                      aria-label={`Quitar una unidad de ${item.nombre}`}
+                    >
+                      −
+                    </button>
+                    <span className="w-8 text-center text-sm text-gray-700">{item.cantidad}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleIncrementar(item)}
+                      className="w-8 h-8 flex items-center justify-center border border-linea rounded text-ink hover:bg-crema"
+                      aria-label={`Agregar una unidad más de ${item.nombre}`}
+                    >
+                      +
+                    </button>
+                  </div>
+                  <div className="text-sm w-24 text-right">{formatQ(item.precioUnitario * item.cantidad)}</div>
                   <button
                     type="button"
-                    onClick={() => handleIncrementar(item)}
-                    className="w-8 h-8 flex items-center justify-center border border-linea rounded text-ink hover:bg-crema"
-                    aria-label={`Agregar una unidad más de ${item.nombre}`}
+                    onClick={() => handleEliminar(item)}
+                    className="text-xs text-falla hover:underline"
+                    aria-label={`Quitar ${item.nombre} del carrito`}
                   >
-                    +
+                    Quitar
                   </button>
-                  <div className="text-sm w-24 text-right">{formatQ(item.precioUnitario * item.cantidad)}</div>
                 </div>
               ))}
             </div>
