@@ -6,11 +6,13 @@ import {
   Boxes,
   ClipboardCheck,
   ClipboardList,
+  FileText,
   History,
   LayoutDashboard,
   LayoutGrid,
   MapPin,
   Package,
+  Plug,
   Settings,
   ShoppingCart,
   Tag,
@@ -47,12 +49,12 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { label: 'Checkout', path: '/checkout', estado: 'activo', icon: ClipboardCheck },
       { label: 'Mis órdenes', path: '/mis-ordenes', estado: 'activo', icon: Package },
-      { label: 'Notificaciones', path: '/notificaciones', estado: 'proximamente', icon: Bell },
+      { label: 'Notificaciones', path: '/notificaciones', estado: 'activo', icon: Bell },
     ],
   },
   {
     titulo: 'Cuenta',
-    items: [{ label: 'Perfil', path: '/perfil', estado: 'proximamente', icon: User }],
+    items: [{ label: 'Perfil', path: '/perfil', estado: 'activo', icon: User }],
   },
   {
     titulo: 'Panel administrativo',
@@ -76,7 +78,15 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: 'Clientes', path: '/administracion/clientes', estado: 'activo', icon: Users },
       { label: 'Auditoría', path: '/administracion/auditoria', estado: 'activo', icon: History },
       { label: 'Reportes', path: '/administracion/reportes', estado: 'activo', icon: BarChart3 },
+      { label: 'Facturas', path: '/administracion/facturas', estado: 'activo', icon: FileText },
       { label: 'Configuración', path: '/administracion/configuracion', estado: 'activo', icon: Settings },
+    ],
+  },
+  {
+    titulo: 'Sistema',
+    items: [
+      { label: 'Integraciones', path: '/administracion/integraciones', estado: 'activo', icon: Plug },
+      { label: 'Notificaciones', path: '/administracion/notificaciones', estado: 'activo', icon: Bell },
     ],
   },
 ]

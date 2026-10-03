@@ -7,8 +7,8 @@ import { CheckoutPage } from '../features/checkout/pages/CheckoutPage'
 import { OrderStatusPage } from '../features/orden/pages/OrderStatusPage'
 import { PaymentPage } from '../features/pago/pages/PaymentPage'
 import { OrdersListPage } from '../features/orden/pages/OrdersListPage'
-import { NotificacionesPlaceholderPage } from '../features/notificaciones/pages/NotificacionesPlaceholderPage'
-import { PerfilPlaceholderPage } from '../features/perfil/pages/PerfilPlaceholderPage'
+import { NotificacionesPage } from '../features/notificaciones/pages/NotificacionesPage'
+import { PerfilPage } from '../features/perfil/pages/PerfilPage'
 import { LoginPage } from '../features/backoffice/auth/pages/LoginPage'
 import { DashboardPage } from '../features/backoffice/dashboard/pages/DashboardPage'
 import { ReportesPage } from '../features/backoffice/reportes/pages/ReportesPage'
@@ -23,6 +23,9 @@ import { ClientesPage } from '../features/backoffice/clientes/pages/ClientesPage
 import { ClienteDetallePage } from '../features/backoffice/clientes/pages/ClienteDetallePage'
 import { AuditoriaPage } from '../features/backoffice/auditoria/pages/AuditoriaPage'
 import { ConfiguracionPage } from '../features/backoffice/configuracion/pages/ConfiguracionPage'
+import { IntegracionesPage } from '../features/backoffice/integraciones/pages/IntegracionesPage'
+import { NotificacionesAdminPage } from '../features/backoffice/notificaciones/pages/NotificacionesAdminPage'
+import { FacturasPage } from '../features/backoffice/facturas/pages/FacturasPage'
 
 export function AppRouter() {
   return (
@@ -36,8 +39,8 @@ export function AppRouter() {
       <Route path="/ordenes/:id" element={<OrderStatusPage />} />
       <Route path="/ordenes/:id/pago" element={<PaymentPage />} />
       <Route path="/mis-ordenes" element={<OrdersListPage />} />
-      <Route path="/notificaciones" element={<NotificacionesPlaceholderPage />} />
-      <Route path="/perfil" element={<PerfilPlaceholderPage />} />
+      <Route path="/notificaciones" element={<NotificacionesPage />} />
+      <Route path="/perfil" element={<PerfilPage />} />
       <Route path="/administracion/login" element={<LoginPage />} />
       <Route path="/administracion" element={<Navigate to="/administracion/dashboard" replace />} />
       <Route path="/administracion/dashboard" element={<DashboardPage />} />
@@ -53,6 +56,9 @@ export function AppRouter() {
       <Route path="/administracion/auditoria" element={<AuditoriaPage />} />
       <Route path="/administracion/reportes" element={<ReportesPage />} />
       <Route path="/administracion/configuracion" element={<ConfiguracionPage />} />
+      <Route path="/administracion/integraciones" element={<IntegracionesPage />} />
+      <Route path="/administracion/notificaciones" element={<NotificacionesAdminPage />} />
+      <Route path="/administracion/facturas" element={<FacturasPage />} />
     </Routes>
   )
 }
