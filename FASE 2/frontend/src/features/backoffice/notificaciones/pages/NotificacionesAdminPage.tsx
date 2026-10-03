@@ -12,6 +12,7 @@ export function NotificacionesAdminPage() {
   const [avisos, setAvisos] = useState<NotificacionAdmin[]>([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [pendientes, setPendientes] = useState<Set<number>>(new Set())
   const { notificar } = useNotify()
 
   async function cargar() {
@@ -32,12 +33,20 @@ export function NotificacionesAdminPage() {
   }, [estado])
 
   async function reintentar(id: number) {
+    if (pendientes.has(id)) return
+    setPendientes((actual) => new Set(actual).add(id))
     try {
       await httpNotificacionesAdminRepository.retry(id)
       notificar(`Aviso ${id} vuelto a encolar para reintento.`, 'ok')
       await cargar()
     } catch (e) {
       notificar(e instanceof Error ? e.message : 'No se pudo reintentar el aviso', 'falla')
+    } finally {
+      setPendientes((actual) => {
+        const copia = new Set(actual)
+        copia.delete(id)
+        return copia
+      })
     }
   }
 
@@ -79,7 +88,11 @@ export function NotificacionesAdminPage() {
               <span className="text-xs text-gray-400">{a.attempts} intentos</span>
               <span className="text-xs text-gray-400">{formatFecha(a.createdAt)}</span>
               {a.status === 'FAILED' && (
-                <button onClick={() => reintentar(a.id)} className="text-xs text-brand hover:underline">
+                <button
+                  onClick={() => reintentar(a.id)}
+                  disabled={pendientes.has(a.id)}
+                  className="text-xs text-brand hover:underline disabled:opacity-50"
+                >
                   Reintentar
                 </button>
               )}

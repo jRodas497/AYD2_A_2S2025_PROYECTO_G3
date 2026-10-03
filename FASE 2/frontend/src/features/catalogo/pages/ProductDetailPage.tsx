@@ -17,20 +17,26 @@ export function ProductDetailPage() {
   const { notificar } = useNotify()
   const [cantidad, setCantidad] = useState(1)
   const [error, setError] = useState<string | null>(null)
+  const [agregando, setAgregando] = useState(false)
 
   if (cargando) return <p className="text-sm text-gray-400">Cargando producto…</p>
   if (errorCarga) return <p className="text-sm text-falla">{errorCarga}</p>
   if (!producto) return <p className="text-sm text-falla">Producto no encontrado.</p>
 
   async function handleAgregar() {
-    if (!producto) return
+    if (!producto || agregando) return
     setError(null)
-    const resultado = await agregarProducto(producto, cantidad)
-    if (resultado.ok) {
-      notificar(`${producto.nombre} (${cantidad}) se agregó al carrito`, 'ok')
-      setCantidad(1)
-    } else {
-      setError(resultado.motivo)
+    setAgregando(true)
+    try {
+      const resultado = await agregarProducto(producto, cantidad)
+      if (resultado.ok) {
+        notificar(`${producto.nombre} (${cantidad}) se agregó al carrito`, 'ok')
+        setCantidad(1)
+      } else {
+        setError(resultado.motivo)
+      }
+    } finally {
+      setAgregando(false)
     }
   }
 
@@ -61,7 +67,9 @@ export function ProductDetailPage() {
         />
       </div>
 
-      <Button onClick={handleAgregar}>Agregar al carrito</Button>
+      <Button onClick={handleAgregar} disabled={agregando}>
+        {agregando ? 'Agregando…' : 'Agregar al carrito'}
+      </Button>
 
       {error && (
         <UnavailableNotice motivo={error} sugerencia="Tienda Zona 10 tiene existencia de un producto similar" />

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useCarrito } from '../hooks/useCarrito'
 import { Button } from '../../../shared/components/Button'
@@ -11,6 +12,19 @@ function formatQ(valor: number): string {
 export function CartPage() {
   const { cart, cargando, error, total, incrementarItem, decrementarItem, eliminarItem } = useCarrito()
   const { notificar } = useNotify()
+  // + y − cuentan cada clic: el servidor suma o resta en una sola sentencia, así que no hace falta
+  // bloquear esos botones. Quitar sí se bloquea mientras está en curso, para no disparar un segundo
+  // borrado de un producto que ya no está en el carrito.
+  const [pendientes, setPendientes] = useState<Set<string>>(new Set())
+
+  function marcarPendiente(productId: string, valor: boolean) {
+    setPendientes((actual) => {
+      const copia = new Set(actual)
+      if (valor) copia.add(productId)
+      else copia.delete(productId)
+      return copia
+    })
+  }
 
   async function handleIncrementar(item: CartItem) {
     const resultado = await incrementarItem(item.productId)
@@ -22,16 +36,22 @@ export function CartPage() {
   }
 
   async function handleDecrementar(item: CartItem) {
-    const resultado = await decrementarItem(item.productId, item.cantidad)
+    const resultado = await decrementarItem(item.productId)
     if (!resultado.ok) notificar(resultado.motivo, 'falla')
   }
 
   async function handleEliminar(item: CartItem) {
-    const resultado = await eliminarItem(item.productId)
-    if (resultado.ok) {
-      notificar(`${item.nombre} se quitó del carrito`, 'ok')
-    } else {
-      notificar(resultado.motivo, 'falla')
+    if (pendientes.has(item.productId)) return
+    marcarPendiente(item.productId, true)
+    try {
+      const resultado = await eliminarItem(item.productId)
+      if (resultado.ok) {
+        notificar(`${item.nombre} se quitó del carrito`, 'ok')
+      } else {
+        notificar(resultado.motivo, 'falla')
+      }
+    } finally {
+      marcarPendiente(item.productId, false)
     }
   }
 
@@ -80,7 +100,8 @@ export function CartPage() {
                   <button
                     type="button"
                     onClick={() => handleEliminar(item)}
-                    className="text-xs text-falla hover:underline"
+                    disabled={pendientes.has(item.productId)}
+                    className="text-xs text-falla hover:underline disabled:opacity-50"
                     aria-label={`Quitar ${item.nombre} del carrito`}
                   >
                     Quitar

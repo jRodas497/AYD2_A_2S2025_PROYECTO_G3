@@ -6,6 +6,9 @@ import { defineConfig, devices } from '@playwright/test'
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
+  // El modo de simulación de los proveedores (PayKlik, SAT...) es global en el backend: una prueba que
+  // fuerza rechazos o caídas afectaría a otra corriendo en paralelo, así que los archivos van en serie.
+  workers: 1,
   retries: process.env.CI ? 1 : 0,
   reporter: 'list',
   timeout: 45_000,

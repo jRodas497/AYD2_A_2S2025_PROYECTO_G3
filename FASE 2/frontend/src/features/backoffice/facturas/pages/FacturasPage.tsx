@@ -20,6 +20,7 @@ export function FacturasPage() {
   const [facturas, setFacturas] = useState<FacturaAdmin[]>([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [pendientes, setPendientes] = useState<Set<number>>(new Set())
   const { notificar } = useNotify()
 
   async function cargar() {
@@ -40,12 +41,20 @@ export function FacturasPage() {
   }, [estado])
 
   async function reintentar(orderId: number) {
+    if (pendientes.has(orderId)) return
+    setPendientes((actual) => new Set(actual).add(orderId))
     try {
       await httpFacturasRepository.reintentar(orderId)
       notificar(`Factura de la orden ${orderId} reintentada.`, 'ok')
       await cargar()
     } catch (e) {
       notificar(e instanceof Error ? e.message : 'La SAT volvió a rechazar o no respondió', 'falla')
+    } finally {
+      setPendientes((actual) => {
+        const copia = new Set(actual)
+        copia.delete(orderId)
+        return copia
+      })
     }
   }
 
@@ -88,7 +97,11 @@ export function FacturasPage() {
               <span className="text-xs text-gray-400">{formatFecha(f.generatedAt)}</span>
               <Pill tone={TONO_ESTADO[f.status]}>{f.status}</Pill>
               {f.status !== 'ACCEPTED' && (
-                <button onClick={() => reintentar(f.orderId)} className="text-xs text-brand hover:underline">
+                <button
+                  onClick={() => reintentar(f.orderId)}
+                  disabled={pendientes.has(f.orderId)}
+                  className="text-xs text-brand hover:underline disabled:opacity-50"
+                >
                   Reintentar
                 </button>
               )}

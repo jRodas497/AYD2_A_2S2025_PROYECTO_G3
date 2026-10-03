@@ -61,6 +61,13 @@ export const httpCartRepository: CartRepository = {
     return mapearCarrito(backendCart)
   },
 
+  async decrementItem(customerId, productId) {
+    const backendCart = await manejarRespuesta<BackendCart>(
+      await fetch(`/api/customers/${customerId}/cart/items/${productId}/decrement?channel=WEB`, { method: 'POST' }),
+    )
+    return mapearCarrito(backendCart)
+  },
+
   async setQuantity(customerId, productId, cantidad) {
     const backendCart = await manejarRespuesta<BackendCart>(
       await fetch(`/api/customers/${customerId}/cart/items/${productId}`, {

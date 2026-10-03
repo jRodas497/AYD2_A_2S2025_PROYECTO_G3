@@ -201,6 +201,9 @@ Fija la cantidad exacta de un producto que ya está en el carrito.
 ```
 `quantity` debe ser 1 o más (para quitarlo, usar `DELETE`). `channel` es opcional y, si viene, queda como el último canal desde el que se tocó el carrito. Responde el carrito completo. `404` si el cliente no tiene carrito activo o el producto no está en él.
 
+### `POST /api/customers/{id}/cart/items/{productId}/decrement?channel=WEB`
+Baja una unidad del producto en una sola sentencia en la base, sin enviar la cantidad: dos bajadas concurrentes desde el mismo carrito suman dos. Si solo quedaba una unidad, el producto sale del carrito. Responde el carrito completo. `404` si el producto no está en el carrito.
+
 ### `DELETE /api/customers/{id}/cart/items/{productId}?channel=WEB`
 Quita un producto del carrito. `channel` es opcional. Responde el carrito completo (que puede quedar vacío). `404` en los mismos casos que el anterior.
 

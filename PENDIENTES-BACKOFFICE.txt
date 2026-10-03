@@ -176,6 +176,33 @@ seed, no contra mocks:
 `npm run test:e2e` desde FASE 2/frontend/, con el stack ya levantado. Detalle en el
 README del frontend.
 
+PRUEBAS DE ESTRÉS: envíos repetidos y simultáneos
+==================================================
+
+Se probó la interfaz con envíos repetidos a los mismos endpoints (doble clic, ráfagas, dos
+pestañas del mismo carrito, rechazos hasta agotar intentos, reintentos seguidos). Lo que apareció:
+
+- Carrito, bajar cantidad con dos pestañas: el − mandaba la cantidad absoluta calculada en el
+  cliente (PUT con quantity = actual - 1). Dos bajadas simultáneas desde 3 dejaban 2, no 1: una
+  actualización se perdía. Se corrigió con POST /api/customers/{id}/cart/items/{productId}/decrement,
+  que resta en una sola sentencia en la base (mismo criterio que el alta, que ya era upsert).
+- Carrito, + y −: cada clic cuenta. Antes se bloqueaban mientras había una petición en curso, pero
+  el resultado dependía de si React había repintado entre clics. Quitar sí queda bloqueado mientras
+  está en curso, porque un segundo borrado daría 404.
+- Botones de acción puntual (Agregar al carrito, Reintentar en integraciones, notificaciones y
+  facturas, Generar lote del ERP): se bloquean mientras la petición está en curso.
+- Pago y checkout ya estaban protegidos (botón deshabilitado al enviar, y el backend responde 409
+  si la orden ya tiene un cobro en proceso).
+
+Pruebas: e2e/estres.spec.ts (dos pestañas, doble clic, ráfagas, tarjeta incompleta repetida,
+rechazo hasta "Pago fallido definitivamente", PayKlik caído, orden inexistente, doble confirmación
+del checkout). Playwright corre con workers: 1 porque el modo de simulación de los proveedores es
+global en el backend. Quedan saltadas dos pruebas por falta de datos en la corrida (incidencias
+REGISTERED y avisos FAILED).
+
+Línea de pasos de la orden: la pantalla de orden muestra las etapas (cobro, pagado, factura,
+envío, entrega) con la etapa actual resaltada y la que falló en rojo.
+
 QUÉ QUEDA PENDIENTE
 ====================
 

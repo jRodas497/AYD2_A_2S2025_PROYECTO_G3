@@ -11,6 +11,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -55,6 +56,31 @@ public class CartItemController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "el producto " + productId + " no está en el carrito");
         }
         touch(cart, body.channel());
+        return view(cart);
+    }
+
+    /**
+     * Baja una unidad sin conocer la cantidad actual: la resta vive en la base, así que dos bajadas
+     * concurrentes (dos pestañas) suman dos. Si solo quedaba una unidad, el producto sale del carrito.
+     */
+    @PostMapping("/decrement")
+    @Transactional
+    public CartController.CartView decrement(
+            @PathVariable Long customerId, @PathVariable Long productId,
+            @RequestParam(required = false) Channel channel) {
+        Cart cart = activeCart(customerId);
+        int updated = jdbc.update(
+                "update orders.cart_item set quantity = quantity - 1 where cart_id = ? and product_id = ? and quantity > 1",
+                cart.getId(), productId);
+        if (updated == 0) {
+            int deleted = jdbc.update(
+                    "delete from orders.cart_item where cart_id = ? and product_id = ? and quantity <= 1",
+                    cart.getId(), productId);
+            if (deleted == 0) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "el producto " + productId + " no está en el carrito");
+            }
+        }
+        touch(cart, channel);
         return view(cart);
     }
 

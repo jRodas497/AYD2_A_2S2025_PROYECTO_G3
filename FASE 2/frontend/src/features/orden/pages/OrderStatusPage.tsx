@@ -12,6 +12,59 @@ import type { Order } from '../types'
 
 const ESTADOS_CON_FACTURA: Order['estado'][] = ['facturada', 'en_despacho', 'entregada', 'devuelta']
 
+const PASOS_PROCESO: { clave: Order['estado']; etiqueta: string }[] = [
+  { clave: 'pendiente_pago', etiqueta: 'Cobro' },
+  { clave: 'pagada', etiqueta: 'Pagado' },
+  { clave: 'facturada', etiqueta: 'Factura' },
+  { clave: 'en_despacho', etiqueta: 'Envío' },
+  { clave: 'entregada', etiqueta: 'Entrega' },
+]
+
+/** Línea de pasos del proceso completo de la orden, no solo el estado puntual. Se omite en
+ *  cancelada/devuelta porque esos son caminos de excepción, no una etapa más de la línea feliz. */
+function RastreadorProceso({ estado }: { estado: Order['estado'] }) {
+  if (estado === 'cancelada' || estado === 'devuelta') return null
+
+  const fallo = estado === 'pago_fallido'
+  const idxActual = estado === 'pago_en_proceso' || fallo
+    ? 0
+    : PASOS_PROCESO.findIndex((paso) => paso.clave === estado)
+
+  return (
+    <div className="flex items-center mb-6" aria-label="Proceso de la orden">
+      {PASOS_PROCESO.map((paso, i) => {
+        const completado = i < idxActual
+        const actual = i === idxActual
+        return (
+          <div key={paso.clave} className="flex items-center flex-1 last:flex-none">
+            <div className="flex flex-col items-center">
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-medium ${
+                  actual && fallo
+                    ? 'bg-falla text-white'
+                    : actual
+                      ? 'bg-brand text-white'
+                      : completado
+                        ? 'bg-ok text-white'
+                        : 'bg-gray-200 text-gray-400'
+                }`}
+              >
+                {completado ? '✓' : i + 1}
+              </div>
+              <span className={`text-[10px] mt-1 whitespace-nowrap ${actual ? 'text-ink font-medium' : 'text-gray-400'}`}>
+                {paso.etiqueta}
+              </span>
+            </div>
+            {i < PASOS_PROCESO.length - 1 && (
+              <div className={`flex-1 h-0.5 mx-1 ${i < idxActual ? 'bg-ok' : 'bg-gray-200'}`} />
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function formatFechaFactura(iso: string): string {
   return new Date(iso).toLocaleString('es-GT', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
@@ -136,7 +189,11 @@ export function OrderStatusPage() {
       <h1 className="text-2xl font-semibold text-ink mb-1">Orden {orden.id}</h1>
       <Pill tone={estado.tono}>{estado.texto}</Pill>
 
-      <div className="bg-white border border-linea rounded p-4 mt-4 mb-4">
+      <div className="mt-4">
+        <RastreadorProceso estado={orden.estado} />
+      </div>
+
+      <div className="bg-white border border-linea rounded p-4 mb-4">
         {orden.items.length > 0 ? (
           <div className="divide-y divide-linea">
             {orden.items.map((item) => (

@@ -8,7 +8,7 @@ interface CartContextValue {
   cargando: boolean
   error: string | null
   agregarItem: (productId: string, cantidad: number) => Promise<void>
-  cambiarCantidad: (productId: string, cantidad: number) => Promise<void>
+  bajarUnidad: (productId: string) => Promise<void>
   quitarItem: (productId: string) => Promise<void>
   resetearLocal: () => void
 }
@@ -48,8 +48,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setError(null)
   }
 
-  async function cambiarCantidad(productId: string, cantidad: number) {
-    const nuevoCart = await httpCartRepository.setQuantity(customer.id, productId, cantidad)
+  async function bajarUnidad(productId: string) {
+    const nuevoCart = await httpCartRepository.decrementItem(customer.id, productId)
     setCart(nuevoCart)
     setError(null)
   }
@@ -65,7 +65,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <CartContext.Provider value={{ cart, cargando, error, agregarItem, cambiarCantidad, quitarItem, resetearLocal }}>
+    <CartContext.Provider value={{ cart, cargando, error, agregarItem, bajarUnidad, quitarItem, resetearLocal }}>
       {children}
     </CartContext.Provider>
   )

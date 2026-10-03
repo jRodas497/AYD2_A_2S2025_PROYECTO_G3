@@ -5,6 +5,7 @@ test('el carrito permite subir, bajar y quitar un producto contra el backend rea
   await page.locator('a[href^="/productos/"]').first().click()
   const nombreProducto = await page.locator('h1').innerText()
   await page.getByRole('button', { name: 'Agregar al carrito' }).click()
+  await expect(page.getByText(`${nombreProducto} (1) se agregó al carrito`)).toBeVisible()
 
   await page.goto('/carrito')
   await expect(page.getByText(nombreProducto)).toBeVisible()
