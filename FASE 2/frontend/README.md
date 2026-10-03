@@ -40,13 +40,32 @@ Queda en `http://localhost:5173`, con recarga en caliente. El servidor de Vite r
 npm run build     # verifica tipos y genera dist/
 npm test          # pruebas con Vitest (requiere Node 22)
 npm run lint      # oxlint
+npm run test:e2e  # Playwright, contra el stack real levantado con Docker
 ```
 
-Para correr las pruebas sin instalar Node 22:
+Para correr las pruebas unitarias sin instalar Node 22:
 
 ```
 docker run --rm -v "$PWD":/app -v /app/node_modules -w /app node:22 sh -c "npm ci && npx vitest run"
 ```
+
+### Pruebas end-to-end (Playwright)
+
+Abren un navegador real contra la aplicación completa (frontend + backend + Postgres), nunca
+contra mocks. Primero hay que levantar el stack desde `FASE 2/` (`docker compose up -d --build`) y
+tener algunas órdenes de prueba (`./db/scripts/cargar-datos-de-prueba.sh`, ver
+[`../db/README.md`](../db/README.md)); luego, desde esta carpeta:
+
+```
+npx playwright install chromium   # solo la primera vez
+npm run test:e2e
+```
+
+Por defecto apuntan a `http://localhost:8081` (el puerto del contenedor `sgologic-frontend`); para
+apuntar a otro lado, `E2E_BASE_URL=http://host:puerto npm run test:e2e`. Cubren el flujo principal
+de punta a punta (catálogo, carrito, checkout, cobro y factura), el carrito (subir/bajar/quitar un
+producto), el perfil del cliente, y que cada pantalla del backoffice cargue con datos reales
+(incluida la sesión de personal para las acciones que la requieren).
 
 ## Estructura
 

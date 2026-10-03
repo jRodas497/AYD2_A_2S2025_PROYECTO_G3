@@ -113,6 +113,69 @@ repositorio ni las migraciones):
 - reservation.ttl_minutes quedó en 20, el valor que fija V8__reserva_de_20_minutos.sql;
   esa base local tenía el valor viejo de 15.
 
+SEGUNDA AUDITORÍA: funciones del backend sin reflejo en el frontend
+=====================================================================
+
+Después de la primera entrega del backoffice, una revisión completa (cruzando cada
+endpoint del backend contra cada llamada real del frontend, grep por grep) encontró
+más huecos del mismo tipo: el backend ya soportaba algo y el frontend seguía sin
+usarlo. Se corrigieron todos los que tenían sentido de negocio real:
+
+- Carrito del cliente: la pantalla decía "para quitar productos o reducir
+  cantidades, contacta a servicio al cliente", pero el backend ya tenía
+  PUT/DELETE /api/customers/{id}/cart/items/{productId} desde antes. Ahora el
+  carrito tiene botones +/− y "Quitar" conectados a esos endpoints.
+- Perfil del cliente (PB-039): placeholder reemplazado por una pantalla real sobre
+  GET/PUT /api/customers/{id} (nombre, teléfono, correo, dirección).
+- Factura del cliente: el detalle de la orden no mostraba la factura ni el XML
+  enviado a la SAT, aunque ambos endpoints (GET /api/orders/{id}/invoice y
+  /invoice/xml) ya existían. Se agregó la sección "Factura electrónica" con el CUI,
+  la serie y un enlace al XML.
+- Notificaciones del cliente (PB-040): no existe un endpoint de "mis
+  notificaciones", así que se armó a partir de las órdenes reales del cliente
+  (GET .../orders, luego GET /api/orders/{id}/notifications por cada una) — dato
+  real, sin inventar nada, solo compuesto en el frontend.
+- Integraciones (nueva, admin): circuit breakers y la profundidad de las colas
+  (outbox, POS, ERP, avisos) vía GET /api/integration/health, con reintento de
+  eventos fallidos. El propio backend documenta esto como condición para operar
+  los patrones de resiliencia (ADR-0002/ADR-0004), no como algo opcional.
+- Notificaciones (nueva, admin): bandeja de avisos fallidos con reintento
+  (GET /api/notifications, POST .../retry).
+- Facturas (nueva, admin): bandeja de revisión de Finanzas, por defecto las
+  rechazadas por la SAT, con reintento de emisión (GET /api/invoices,
+  POST /api/orders/{id}/invoice).
+
+Un bug real que apareció al verificar esto en vivo (no en la revisión de código,
+sino corriendo Playwright contra el stack real): mandar email: '' en vez de omitirlo
+o mandar null revienta la restricción unique de customers.customer.email en cuanto
+existe un segundo cliente sin correo (dos clientes invitados, por ejemplo) — un '' sí
+colisiona con otro '', un null no. Se corrigió en customerRepository.http.ts.
+
+Otro hallazgo, este de accesibilidad real (no solo de pruebas): varios formularios
+(login de personal, perfil, pago) tenían <label> sin htmlFor y <input> sin id, así
+que un lector de pantalla no los asocia — y por la misma razón Playwright no podía
+ubicarlos con getByLabel. Se corrigió la asociación en los tres formularios.
+
+Pruebas end-to-end (Playwright)
+---------------------------------
+No existía ninguna prueba que abriera un navegador real contra el stack completo
+(antes: pruebas de backend con JUnit, pruebas de frontend con Vitest simulando
+fetch, pruebas de integración en Python en pruebas/ — ninguna via UI real). Se
+agregó Playwright (FASE 2/frontend/e2e/, nueva dependencia de desarrollo) con 6
+pruebas, todas corridas contra el stack real en Docker con datos reales de la
+seed, no contra mocks:
+
+- compra.spec.ts: catálogo -> carrito -> checkout -> cobro -> factura, de punta a
+  punta, esperando los resultados reales del backend (outbox, SAT simulada).
+- carrito.spec.ts: subir, bajar y quitar un producto.
+- perfil.spec.ts: guardar el perfil y que sobreviva a una recarga de página.
+- backoffice.spec.ts: las 13 pantallas del backoffice cargan sin sesión (lectura),
+  el personal inicia sesión real y procesa una incidencia, y Configuración exige
+  ADMIN para editar un parámetro.
+
+`npm run test:e2e` desde FASE 2/frontend/, con el stack ya levantado. Detalle en el
+README del frontend.
+
 QUÉ QUEDA PENDIENTE
 ====================
 
@@ -125,10 +188,18 @@ documentado como gap en el Product Backlog (PB-001, PB-036).
 
 Revisión visual en navegador
 -----------------------------
-Falta que alguien del equipo confirme visualmente cada pantalla nueva en el
-navegador; el flujo de datos está verificado, pero no la interfaz en sí (layout,
-responsive, etc.).
+Playwright ya confirma que cada pantalla carga y funciona (sin eso no pasarían las
+pruebas), pero no revisa la interfaz en sí — layout, responsive, que se vea bien en
+móvil. Eso sigue pendiente de que alguien del equipo lo revise a ojo.
 
 Tablero Kanban
 ---------------
 Sigue sin poder confirmarse si existe uno activo (ya documentado en BITACORA.md).
+
+Pruebas E2E para los repositorios HTTP nuevos de esta segunda auditoría
+-------------------------------------------------------------------------
+invoiceRepository, notificacionesRepository (cliente), integracionesRepository,
+notificacionesAdminRepository y facturasRepository no tienen pruebas de Vitest
+propias todavía (sí quedaron cubiertos por las pruebas de Playwright, que son más
+lentas y de más alto nivel). Los repositorios de la primera auditoría sí las
+tienen, agregadas por el equipo.
