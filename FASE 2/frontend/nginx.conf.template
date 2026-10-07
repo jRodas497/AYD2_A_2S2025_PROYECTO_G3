@@ -1,0 +1,22 @@
+server {
+    # PORT y BACKEND_HOSTPORT los pone docker-compose en local y Render en el deploy. La imagen
+    # oficial de nginx sustituye este archivo con envsubst antes de arrancar (docker-entrypoint.sh,
+    # /etc/nginx/templates/*.template), y solo reemplaza nombres que existan como variable de
+    # entorno — las propias de nginx como $uri o $host nunca están en el entorno, así que quedan
+    # intactas.
+    listen ${PORT};
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # La API se reenvía al backend (del compose en local, del servicio de Render en el deploy).
+    location /api/ {
+        proxy_pass http://${BACKEND_HOSTPORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    # Rutas del cliente (React Router): cualquier ruta que no sea un archivo cae en index.html.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
