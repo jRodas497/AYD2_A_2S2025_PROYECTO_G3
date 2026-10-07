@@ -3,6 +3,8 @@ import { expect, test } from '@playwright/test'
 test('el carrito permite subir, bajar y quitar un producto contra el backend real', async ({ page }) => {
   await page.goto('/catalogo')
   await page.locator('a[href^="/productos/"]').first().click()
+  await page.waitForURL(/\/productos\/\d+$/)
+  await expect(page.getByRole('button', { name: 'Agregar al carrito' })).toBeVisible()
   const nombreProducto = await page.locator('h1').innerText()
   await page.getByRole('button', { name: 'Agregar al carrito' }).click()
   await expect(page.getByText(`${nombreProducto} (1) se agregó al carrito`)).toBeVisible()
