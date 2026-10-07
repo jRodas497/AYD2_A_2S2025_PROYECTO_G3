@@ -1,0 +1,59 @@
+# Blueprint de Render para SGO-Logic (https://docs.render.com/infrastructure-as-code).
+#
+# Levanta los 3 componentes del docker-compose local como servicios separados: base de datos
+# administrada, backend (Spring Boot, tal cual el Dockerfile de FASE 2/backend) y frontend
+# (React compilado y servido con nginx, tal cual FASE 2/frontend/Dockerfile). No hay nada que
+# construir de más: Render usa los mismos Dockerfile que ya se usan en local.
+#
+# Diferencias con docker-compose, explicadas en DEPLOY-RENDER.md:
+# - Render da un solo usuario de base (no hay separación sgologic / sgologic_app). El backend
+#   recibe DATABASE_URL completo y lo traduce a spring.datasource.* él mismo (ver
+#   DatabaseUrlEnvironmentPostProcessor), porque el driver de PostgreSQL no acepta usuario y
+#   clave dentro de la URL.
+# - El frontend ya no habla con "backend:8080" (ese nombre solo existe en la red de
+#   docker-compose): BACKEND_HOSTPORT llega por variable de entorno desde el propio Render.
+# - Las migraciones de FASE 2/db/migrations no se aplican solas (ese mecanismo es específico de
+#   la imagen oficial de Postgres en un contenedor propio, no de la base administrada de Render):
+#   se corren una sola vez a mano con FASE 2/db/scripts/aplicar-migraciones-render.sh.
+
+databases:
+  - name: sgologic-db
+    databaseName: sgologic
+    user: sgologic
+    plan: free
+    region: oregon
+
+services:
+  - type: web
+    name: sgologic-backend
+    runtime: docker
+    dockerfilePath: FASE 2/backend/Dockerfile
+    dockerContext: FASE 2/backend
+    plan: free
+    region: oregon
+    healthCheckPath: /api/products
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sgologic-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+
+  - type: web
+    name: sgologic-frontend
+    runtime: docker
+    dockerfilePath: FASE 2/frontend/Dockerfile
+    dockerContext: FASE 2/frontend
+    plan: free
+    region: oregon
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: BACKEND_HOSTPORT
+        fromService:
+          name: sgologic-backend
+          type: web
+          property: hostport

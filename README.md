@@ -94,6 +94,7 @@ python3 pruebas/prueba_flujo_volumen.py
 
 ## Documentación adicional
 
+- Despliegue en Render y CI de cada commit en la rama de trabajo: [`DEPLOY-RENDER.md`](DEPLOY-RENDER.md)
 - Bitácora de desarrollo del proyecto, con fechas y evidencia de commits: [`BITACORA.md`](BITACORA.md)
 - Guía completa de instalación, despliegue, pruebas y demostración de fallas: [`FASE 2/README.md`](FASE%202/README.md)
 - Arquitectura y decisiones: [`FASE 1/`](FASE%201/) (DDA, ADRs) y [`FASE 2/DDA/`](FASE%202/DDA/) (ADR 0006 a 0009, diagramas implementados, [matriz de trazabilidad](FASE%202/DDA/matriz-trazabilidad-fase2.md))
