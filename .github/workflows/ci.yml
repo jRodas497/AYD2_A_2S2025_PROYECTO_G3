@@ -113,3 +113,23 @@ jobs:
         if: always()
         working-directory: FASE 2
         run: docker compose down -v
+
+  deploy:
+    name: Deploy a Render
+    # El "no se debe hacer deploy si las pruebas no pasan" lo da needs: si backend, frontend o
+    # e2e fallan, GitHub Actions ni siquiera intenta este job.
+    needs: [e2e]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Disparar deploy del backend en Render
+        # El "deploy hook" de cada servicio se crea en Render (Settings > Deploy Hook) y se
+        # guarda como secreto del repositorio. Mientras no exista, este paso se salta en vez de
+        # fallar el pipeline — así el gate de pruebas funciona aunque el deploy aún no esté
+        # configurado.
+        if: ${{ secrets.RENDER_DEPLOY_HOOK_BACKEND != '' }}
+        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}"
+
+      - name: Disparar deploy del frontend en Render
+        if: ${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND != '' }}
+        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND }}"

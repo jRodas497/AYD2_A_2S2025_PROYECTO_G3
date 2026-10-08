@@ -38,6 +38,19 @@ services:
         sync: false
       - key: JWT_SECRET
         generateValue: true
+      # Cloudflare R2 (API compatible con S3) para el archivo de intercambio con el ERP: el
+      # filesystem de un servicio en Render no persiste entre despliegues, así que el ERP no
+      # puede seguir escribiendo a disco como en local (ver ErpFileStorage). Las cuatro son
+      # opcionales en conjunto: si no se definen, el backend sigue escribiendo a
+      # /app/erp-out dentro del contenedor (se pierde en cada deploy, pero no rompe nada).
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        sync: false
 
   - type: web
     name: sgologic-frontend

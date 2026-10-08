@@ -1,10 +1,11 @@
-# Despliegue en Render + Neon
+# Despliegue en Render + Neon + Cloudflare R2
 
 `render.yaml` (en la raíz) levanta el backend (Spring Boot) y el frontend (React servido con
 nginx) como dos servicios de Render, usando exactamente los `Dockerfile` que ya existen en
 `FASE 2/backend` y `FASE 2/frontend` — Render no construye nada distinto de lo que ya se
 construye en local. La base de datos es **Neon** (<https://neon.com>), no un recurso de Render:
-por eso `render.yaml` no tiene una sección `databases`.
+por eso `render.yaml` no tiene una sección `databases`. El archivo que el backend deja para que
+el ERP lo recoja (ver más abajo) se guarda en **Cloudflare R2**, tampoco un recurso de Render.
 
 ## Local vs. la nube: un solo interruptor
 
@@ -37,6 +38,41 @@ mismo camino en la propia máquina sin tocar nada del compose, basta con:
 DATABASE_URL="postgresql://usuario:clave@host/base?sslmode=require" java -jar app.jar
 ```
 
+## Por qué R2 y no el filesystem del contenedor
+
+`ErpDropClient` deja un archivo (CSV o XML, según `sgologic.erp.format`) para que el ERP-Core
+AS/400 lo recoja (ADR-0003) — hoy, en local, lo escribe dentro del propio contenedor del backend
+(`/app/erp-out`). Eso funciona en docker-compose porque el volumen vive mientras el contenedor
+vive, pero en Render el filesystem de un servicio **no persiste entre despliegues** (ni entre
+reinicios por inactividad): el próximo deploy borra lo que se haya escrito. `ErpFileStorage`
+(`FASE 2/backend/src/main/java/com/sgologic/external/`) es la pieza que resuelve esto — igual
+que con `DATABASE_URL`, es un interruptor por presencia de variable, no una bandera a elegir:
+
+- Si **no** existe `R2_BUCKET`, se usa `LocalErpFileStorage` — el comportamiento de siempre,
+  nada cambia en local ni en CI.
+- Si existe, se usa `R2ErpFileStorage`: sube el archivo a un bucket de Cloudflare R2 con el SDK
+  de S3 (R2 expone una API compatible), usando `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
+  `R2_SECRET_ACCESS_KEY` y `R2_BUCKET`.
+
+### Crear el bucket y el token en Cloudflare
+
+1. **Crear el bucket.** [dash.cloudflare.com](https://dash.cloudflare.com) → R2 Object Storage →
+   Create bucket. Nombre sugerido: `sgologic-erp` (no hay que hacerlo coincidir con nada del
+   código, va en `R2_BUCKET`). No pide tarjeta para el plan gratuito.
+2. **Copiar el Account ID.** Aparece en la misma página de R2 (columna derecha, "Account
+   details") — va en `R2_ACCOUNT_ID`. No es el nombre del bucket ni el de la cuenta, es un id
+   hexadecimal.
+3. **Crear un API token de R2** (no el Global API Key, que es de toda la cuenta). En la misma
+   página de R2 → "Manage API tokens" → Create API token. Permiso "Object Read & Write",
+   restringido al bucket del paso 1 si la UI lo permite. Al crearlo muestra **una sola vez**
+   `Access Key ID` y `Secret Access Key` — van en `R2_ACCESS_KEY_ID` y `R2_SECRET_ACCESS_KEY`.
+4. **Pegar las cuatro variables en Render**, igual que `DATABASE_URL`: al aplicar o actualizar el
+   blueprint, Render las pide porque están con `sync: false`.
+
+Si se prefiere no configurar R2 todavía, no pasa nada: el backend sigue escribiendo a
+`/app/erp-out` dentro del contenedor y todo lo demás funciona igual — simplemente ese archivo en
+particular no sobrevive al siguiente deploy.
+
 ## Por qué Neon y no el Postgres de Render
 
 El plan gratuito de Postgres de Render **expira 30 días después de creado** y no tiene
@@ -59,14 +95,21 @@ tiempo, eso es justamente lo que conviene.
    FASE\ 2/db/scripts/aplicar-migraciones-nube.sh "<cadena-de-conexion-de-neon>"
    ```
    Deja el esquema completo, el catálogo de prueba y el usuario de personal `admin` / `admin123`.
-4. **Conectar el repositorio a Render.** render.com → New → Blueprint. Render detecta
+4. **Crear el bucket y el token en Cloudflare R2** (opcional, pasos detallados arriba) — si se
+   salta este paso, el blueprint igual se aplica, solo que el archivo del ERP no sobrevive a un
+   redeploy.
+5. **Conectar el repositorio a Render.** render.com → New → Blueprint. Render detecta
    `render.yaml` y propone crear `sgologic-backend` y `sgologic-frontend`.
-5. **Pegar `DATABASE_URL`.** Al aplicar el blueprint, Render pide el valor de las variables con
-   `sync: false` — ahí va la misma cadena de conexión de Neon del paso 2. `JWT_SECRET` lo genera
+6. **Pegar los secretos.** Al aplicar el blueprint, Render pide el valor de cada variable con
+   `sync: false`: `DATABASE_URL` (la cadena de Neon del paso 2) y, si se hizo el paso 4,
+   `R2_ACCOUNT_ID`/`R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY`/`R2_BUCKET`. `JWT_SECRET` lo genera
    Render solo (`generateValue: true`); no hay que escribirlo a mano.
-6. **Esperar el deploy** de los dos servicios y abrir la URL del frontend
+7. **Esperar el deploy** de los dos servicios y abrir la URL del frontend
    (`https://sgologic-frontend.onrender.com` o el nombre que Render asigne). El catálogo y el
    login de personal deberían funcionar igual que en `http://localhost:8081` en local.
+8. **Activar el deploy automático por commit** (opcional, pasos detallados abajo en
+   "CI/CD: de cada commit al deploy real") — sin esto, cada deploy a Render se dispara a mano
+   desde su dashboard.
 
 ## Qué cambia frente a docker-compose
 
@@ -93,14 +136,35 @@ tiempo, eso es justamente lo que conviene.
   segundos en volver a responder a la primera visita después de eso. Máximo 750 horas de
   servicio gratis por cuenta al mes, compartidas entre todos los servicios gratuitos de la
   cuenta.
+- **Cloudflare R2:** 10 GB de almacenamiento gratis al mes, 1 millón de operaciones de escritura
+  y 10 millones de lectura gratis al mes. No expira. A diferencia de S3, R2 no cobra por sacar
+  datos (egress), que es justamente lo que hace el backend al subir cada archivo.
 
 Ninguno de estos límites es un defecto de esta configuración: son de los planes gratuitos y
 están pensados para pruebas, no para producción.
 
-## CI antes de llegar aquí
+## CI/CD: de cada commit al deploy real
 
 `.github/workflows/ci.yml` corre en cada commit de `feature/202200389-deploy-render`: pruebas del
 backend (JUnit), del frontend (tsc, Vitest, oxlint, build) y, si esas dos pasan, el stack
 completo en Docker con la suite de Playwright (`FASE 2/frontend/e2e/`) contra contenedores reales
-— el mismo docker-compose que corre en local, no un simulacro. Eso es lo que da confianza de que
-lo que Render va a construir funciona, antes de aplicar el blueprint.
+— el mismo docker-compose que corre en local, no un simulacro.
+
+Si las tres cosas pasan, un cuarto job (`deploy`) dispara el deploy en Render. El gate "no hay
+deploy si las pruebas fallan" lo da `needs: [e2e]` en ese job — directo de GitHub Actions, no
+hay que vigilarlo a mano: si `backend`, `frontend` o `e2e` fallan, `deploy` ni siquiera se
+intenta.
+
+### Activar el deploy automático
+
+El job `deploy` dispara un **Deploy Hook** por servicio — una URL que Render genera por si se
+quiere lanzar un deploy sin pasar por su dashboard ni darle a GitHub Actions acceso a la cuenta
+de Render. Mientras no existan, el job se salta solo (no rompe el pipeline):
+
+1. **Aplicar el blueprint primero** (pasos 4-5 de arriba) — el Deploy Hook de un servicio no
+   existe hasta que el servicio existe.
+2. **Copiar el Deploy Hook de cada servicio.** Dashboard de Render → el servicio
+   (`sgologic-backend` o `sgologic-frontend`) → Settings → Deploy Hook → Create/Copy.
+3. **Guardarlos como secretos del repositorio en GitHub**: `RENDER_DEPLOY_HOOK_BACKEND` y
+   `RENDER_DEPLOY_HOOK_FRONTEND` (Settings del repo → Secrets and variables → Actions). Desde
+   el próximo push a esta rama, el job `deploy` los usa solo.

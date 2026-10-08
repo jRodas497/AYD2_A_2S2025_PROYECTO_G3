@@ -1,9 +1,6 @@
 package com.sgologic.external;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
@@ -11,17 +8,19 @@ import org.springframework.stereotype.Component;
  * API: su único mecanismo de recepción es recoger archivos de una ubicación compartida. Dejar el
  * archivo ahí es "entregarlo", y esa ubicación puede no estar disponible (un recurso de red
  * caído, sin espacio, sin permisos) igual que cualquier otro tercero.
+ *
+ * <p>Dónde queda ese archivo (filesystem local o un bucket de Cloudflare R2) lo decide
+ * {@link ErpFileStorage} — ver LocalErpFileStorage y R2ErpFileStorage.
  */
 @Component
 public class ErpDropClient {
 
     private final ExternalSimulation simulation;
+    private final ErpFileStorage storage;
 
-    @Value("${sgologic.erp.output-dir:/app/erp-out}")
-    private String outputDir;
-
-    public ErpDropClient(ExternalSimulation simulation) {
+    public ErpDropClient(ExternalSimulation simulation, ErpFileStorage storage) {
         this.simulation = simulation;
+        this.storage = storage;
     }
 
     /**
@@ -35,9 +34,7 @@ public class ErpDropClient {
                     "la carpeta de intercambio con el AS/400 no está disponible");
         }
         try {
-            Path dir = Path.of(outputDir);
-            Files.createDirectories(dir);
-            Files.writeString(dir.resolve(fileName), content);
+            storage.write(fileName, content);
         } catch (IOException e) {
             throw new ProviderUnavailableException(Provider.ERP, 0, false,
                     "no se pudo escribir " + fileName + " para el AS/400: " + e.getMessage());
