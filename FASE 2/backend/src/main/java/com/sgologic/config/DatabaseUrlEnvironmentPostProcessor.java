@@ -11,17 +11,20 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
 
 /**
- * Traduce DATABASE_URL (lo que da un Postgres administrado, como el de Render:
- * postgresql://usuario:clave@host:puerto/base) a spring.datasource.*, porque el driver de
- * PostgreSQL JDBC no acepta usuario y clave dentro de la URL (solo host, puerto y base).
+ * Traduce DATABASE_URL (lo que da un Postgres administrado como Neon o el propio de Render:
+ * postgresql://usuario:clave@host:puerto/base?parametros) a spring.datasource.*, porque el
+ * driver de PostgreSQL JDBC no acepta usuario y clave dentro de la URL (solo host, puerto, base
+ * y parámetros de conexión).
  *
  * <p>Solo entra en juego si DATABASE_URL está presente. En local y en docker-compose no se
  * define, así que application.yml sigue resolviendo el datasource con DB_HOST/DB_APP_USER/etc.
- * como siempre.
+ * como siempre. Esa presencia o ausencia es el único interruptor entre "local" y "la base en la
+ * nube" — no hay otra variable que elegir entre las dos.
  */
 public class DatabaseUrlEnvironmentPostProcessor implements EnvironmentPostProcessor {
 
     private static final Logger log = LoggerFactory.getLogger(DatabaseUrlEnvironmentPostProcessor.class);
+    private static final int PUERTO_POSTGRES_POR_DEFECTO = 5432;
 
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
@@ -33,7 +36,13 @@ public class DatabaseUrlEnvironmentPostProcessor implements EnvironmentPostProce
         try {
             URI uri = new URI(databaseUrl);
             String[] credenciales = uri.getUserInfo().split(":", 2);
-            String jdbcUrl = "jdbc:postgresql://" + uri.getHost() + ":" + uri.getPort() + uri.getPath();
+            // Neon no pone el puerto en la URL (siempre es el 5432); Render sí lo pone, pero por
+            // las dudas se cubren los dos. sslmode y channel_binding (Neon los exige) viajan en
+            // la query string, así que se preservan tal cual en vez de reconstruir la URL sin ellos.
+            int puerto = uri.getPort() == -1 ? PUERTO_POSTGRES_POR_DEFECTO : uri.getPort();
+            String query = uri.getRawQuery();
+            String jdbcUrl = "jdbc:postgresql://" + uri.getHost() + ":" + puerto + uri.getPath()
+                    + (query != null && !query.isBlank() ? "?" + query : "");
 
             Map<String, Object> propiedades = new LinkedHashMap<>();
             propiedades.put("spring.datasource.url", jdbcUrl);
