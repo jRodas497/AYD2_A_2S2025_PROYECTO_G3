@@ -1,12 +1,15 @@
 package com.sgologic.customers;
 
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface CustomerRepository extends JpaRepository<Customer, Long> {
+
+    Optional<Customer> findByEmail(String email);
 
     /** Búsqueda del backoffice por nombre, correo o teléfono; {@code q} vacío trae los más recientes. */
     @Query("""

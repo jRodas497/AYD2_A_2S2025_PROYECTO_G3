@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -31,14 +32,20 @@ public class JwtService {
     }
 
     public String issue(String username, List<String> roles) {
+        return issue(username, roles, Map.of());
+    }
+
+    /** Igual que {@link #issue(String, List)} pero con claims propios además de roles — p.ej.
+     * customerId, para no tener que resolver el cliente por correo en cada petición. */
+    public String issue(String username, List<String> roles, Map<String, Object> extraClaims) {
         Instant now = Instant.now();
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(username)
                 .claim("roles", roles)
                 .issuedAt(Date.from(now))
-                .expiration(Date.from(now.plus(expirationMinutes, ChronoUnit.MINUTES)))
-                .signWith(key)
-                .compact();
+                .expiration(Date.from(now.plus(expirationMinutes, ChronoUnit.MINUTES)));
+        extraClaims.forEach(builder::claim);
+        return builder.signWith(key).compact();
     }
 
     /** {@code null} si el token no existe, expiró o su firma no coincide. */

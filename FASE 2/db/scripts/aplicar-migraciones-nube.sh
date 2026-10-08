@@ -25,10 +25,12 @@ for archivo in \
     V3__identidad.sql \
     V4__guardia_de_tarjetas.sql \
     V7__usuario_de_prueba.sql \
-    V8__reserva_de_20_minutos.sql
+    V8__reserva_de_20_minutos.sql \
+    V9__cuentas_de_cliente.sql
 do
     echo "==> $archivo"
     psql "$URL" -v ON_ERROR_STOP=1 -f "$DIR/$archivo"
 done
 
-echo "Listo: esquemas, datos de prueba, identidad y el usuario admin/admin123 quedaron en la base."
+echo "Listo: esquemas, datos de prueba, identidad, el usuario admin/admin123 y 5 cuentas de"
+echo "cliente de demo (maria/carlos/ana/jorge/lucia@example.com, contraseña cliente123) quedaron en la base."
