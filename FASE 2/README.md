@@ -37,19 +37,27 @@ contenedores.
 Desde esta carpeta (`FASE 2`):
 
 ```
-docker compose up -d --build
+./iniciar.sh
 ```
+
+Es un atajo sobre `docker compose up -d --build` que además revisa `RESET_SEED` en `.env`
+(plantilla en `.env.example`, copiarlo a `.env` para personalizar puertos o esto): en `true`
+borra la base y la recrea desde las migraciones antes de levantar todo (útil para empezar una
+ronda de pruebas siempre del mismo punto); en `false`, o sin `.env`, no toca los datos que ya
+haya — igual que correr `docker compose up -d --build` directamente, que sigue funcionando igual
+que siempre si no se quiere pasar por el script.
 
 Eso levanta tres contenedores:
 
 | Contenedor | Qué es | Puerto |
 |---|---|---|
-| `sgologic-db` | PostgreSQL 16. La primera vez corre las migraciones `db/migrations/V1` a `V8` y siembra 2 centros de distribución, 32 tiendas, 12 productos con su stock, 100 clientes y el usuario de desarrollo `admin` | `127.0.0.1:5432` |
+| `sgologic-db` | PostgreSQL 16. La primera vez corre las migraciones `db/migrations/V1` a `V9` y siembra 2 centros de distribución, 32 tiendas, 12 productos con su stock, 100 clientes sin cuenta, 5 clientes de demo con cuenta y login (ver "Iniciar sesión" abajo) y el usuario de desarrollo `admin` | `127.0.0.1:5432` |
 | `sgologic-backend` | El backend. Espera a que la base esté sana antes de arrancar | `127.0.0.1:8080` |
 | `sgologic-frontend` | El frontend compilado, servido con nginx. Reenvía `/api` al backend | `127.0.0.1:8081` |
 
-La aplicación queda en `http://localhost:8081`: la tienda en la raíz y el backoffice en
-`/administracion`.
+La aplicación queda en `http://localhost:8081`: la tienda en la raíz (pide iniciar sesión de
+cliente en `/ingresar` para carrito, checkout, "Mis órdenes", perfil y notificaciones — el
+catálogo es público) y el backoffice en `/administracion`.
 
 La primera vez tarda unos minutos por la descarga de dependencias; después, segundos.
 
@@ -87,6 +95,8 @@ curl -X POST localhost:8080/api/integration/erp/batches   # cierra la ventana de
 
 ### Iniciar sesión
 
+Personal (frontend en `/administracion/login`):
+
 ```
 curl -X POST localhost:8080/api/auth/login -H 'Content-Type: application/json' \
      -d '{"username":"admin","password":"admin123"}'        # devuelve {"token": "..."}
@@ -102,7 +112,28 @@ El token (cabecera `Authorization: Bearer <token>`) se exige en:
 | Procesar una incidencia (`PUT /api/incidents/{id}/status`) | Cualquier sesión |
 
 El resto de la API es pública, incluido el simulador de terceros. En Postman, la carpeta "Sesión"
-guarda el token solo. En el frontend, el personal inicia sesión en `/administracion/login`.
+guarda el token solo.
+
+Cliente de la tienda (frontend en `/ingresar`) — cuenta propia, distinta de la de personal, con
+su propio carrito, compras, facturas e historial:
+
+```
+curl -X POST localhost:8080/api/customers/login -H 'Content-Type: application/json' \
+     -d '{"email":"maria@example.com","password":"cliente123"}'   # devuelve token + customerId
+curl -X POST localhost:8080/api/customers/register -H 'Content-Type: application/json' \
+     -d '{"fullName":"Cliente nuevo","email":"nuevo@example.com","password":"nueva12345"}'
+```
+
+Las migraciones siembran 5 cuentas de demo, contraseña `cliente123` las cinco, cada una con un
+historial de compras distinto para probar con datos variados:
+
+| Correo | Historial |
+|---|---|
+| `maria@example.com` | 3 compras entregadas, Q 10,700 en total |
+| `lucia@example.com` | 4 compras entregadas, Q 6,420 en total |
+| `ana@example.com` | 2 compras entregadas, una con devolución registrada |
+| `carlos@example.com` | 1 compra sin pagar (tarjeta rechazada) |
+| `jorge@example.com` | cuenta nueva, sin compras |
 
 ### Demostrar las fallas de terceros
 

@@ -1,2 +1,6 @@
 # Los archivos que genera el adaptador del ERP son salida, no fuente.
 erp-out/
+
+# Personalización local de iniciar.sh/docker-compose (puertos, RESET_SEED). Plantilla en
+# .env.example, esa sí se versiona.
+.env

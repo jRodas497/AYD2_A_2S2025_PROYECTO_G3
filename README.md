@@ -57,8 +57,12 @@ Solo hace falta Docker con Compose v2. Desde `FASE 2/`:
 
 ```bash
 cd "FASE 2"
-docker compose up -d --build
+./iniciar.sh
 ```
+
+Es un atajo sobre `docker compose up -d --build` (que sigue funcionando igual si se prefiere):
+además revisa `RESET_SEED` en `.env` (plantilla en `FASE 2/.env.example`) para decidir si borra
+la base y la recrea desde las migraciones antes de levantar todo, o deja los datos como están.
 
 Levanta tres contenedores:
 
