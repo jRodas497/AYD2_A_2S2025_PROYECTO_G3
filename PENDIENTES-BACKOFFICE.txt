@@ -223,10 +223,11 @@ Tablero Kanban
 ---------------
 Sigue sin poder confirmarse si existe uno activo (ya documentado en BITACORA.md).
 
-Pruebas E2E para los repositorios HTTP nuevos de esta segunda auditoría
+Pruebas E2E para los repositorios HTTP nuevos de esta segunda auditoría — CERRADO
 -------------------------------------------------------------------------
 invoiceRepository, notificacionesRepository (cliente), integracionesRepository,
-notificacionesAdminRepository y facturasRepository no tienen pruebas de Vitest
-propias todavía (sí quedaron cubiertos por las pruebas de Playwright, que son más
-lentas y de más alto nivel). Los repositorios de la primera auditoría sí las
-tienen, agregadas por el equipo.
+notificacionesAdminRepository y facturasRepository no tenían pruebas de Vitest
+propias (sí quedaban cubiertos por Playwright, más lento y de más alto nivel).
+Se agregaron sus 5 archivos de prueba (20 pruebas en total, con el mismo patrón de
+fetch simulado y de Authorization con/sin sesión de personal que ya usaban los
+repositorios de la primera auditoría). El frontend queda con 116 pruebas de Vitest.
