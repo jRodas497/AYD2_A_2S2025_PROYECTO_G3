@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { BackLink } from '../../../shared/components/BackLink'
 import { Button } from '../../../shared/components/Button'
 import { useCarrito } from '../../carrito/hooks/useCarrito'
@@ -18,6 +18,8 @@ export function CheckoutPage() {
   const [confirmando, setConfirmando] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  if (!customer) return <Navigate to="/ingresar" replace />
+  const customerId = customer.id
   if (cargando) return <p className="text-sm text-gray-400">Cargando…</p>
   if (errorCarrito) return <p className="text-sm text-falla">{errorCarrito}</p>
 
@@ -38,7 +40,7 @@ export function CheckoutPage() {
     setError(null)
     try {
       const orden = await httpOrderRepository.createOrder({
-        customerId: customer.id,
+        customerId,
         items: cart.items,
         direccionEntrega: direccionEntrega.trim(),
       })

@@ -1,26 +1,25 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useState, type ReactNode } from 'react'
 import { httpCustomerRepository } from '../../features/cliente/api/customerRepository.http'
 import type { Customer } from '../../features/cliente/types'
+import type { DatosRegistro } from '../../features/cliente/api/customerRepository'
 
 export type { Customer }
 
-const STORAGE_KEY = 'sgo-customer-id'
+const STORAGE_KEY = 'sgo-customer-session'
 
-let creacionEnCurso: Promise<Customer> | null = null
+interface SesionGuardada extends Customer {
+  token: string
+}
 
-async function obtenerOCrearCliente(): Promise<Customer> {
-  const idGuardado = localStorage.getItem(STORAGE_KEY)
-  if (idGuardado) {
-    const existente = await httpCustomerRepository.getCustomer(idGuardado)
-    if (existente) return existente
+function cargarSesion(): SesionGuardada | null {
+  const crudo = localStorage.getItem(STORAGE_KEY)
+  if (!crudo) return null
+  try {
+    const valor = JSON.parse(crudo)
+    return valor?.token ? (valor as SesionGuardada) : null
+  } catch {
+    return null
   }
-  if (!creacionEnCurso) {
-    creacionEnCurso = httpCustomerRepository.createCustomer({ nombre: 'Cliente invitado' }).then((cliente) => {
-      localStorage.setItem(STORAGE_KEY, cliente.id)
-      return cliente
-    })
-  }
-  return creacionEnCurso
 }
 
 export interface ResultadoActualizarPerfil {
@@ -29,72 +28,65 @@ export interface ResultadoActualizarPerfil {
 }
 
 interface CustomerContextValue {
-  customer: Customer
-  needsReidentification: boolean
-  identifyError: string | null
-  requestReidentification: () => void
-  identify: (datos: { nombre: string; telefono: string }) => Promise<void>
+  /** null mientras no haya iniciado sesión: las páginas que lo necesitan deben revisarlo y
+   * redirigir a /ingresar, igual que el personal con isAdmin. */
+  customer: Customer | null
+  authError: string | null
+  submitting: boolean
+  login: (email: string, password: string) => Promise<boolean>
+  register: (datos: DatosRegistro) => Promise<boolean>
+  logout: () => void
   actualizarPerfil: (datos: { nombre: string; telefono: string; email: string; direccion: string }) => Promise<ResultadoActualizarPerfil>
 }
 
 const CustomerContext = createContext<CustomerContextValue | null>(null)
 
 export function CustomerProvider({ children }: { children: ReactNode }) {
-  const [customer, setCustomer] = useState<Customer | null>(null)
-  const [cargando, setCargando] = useState(true)
-  const [needsReidentification, setNeedsReidentification] = useState(false)
-  const [bootstrapError, setBootstrapError] = useState<string | null>(null)
-  const [identifyError, setIdentifyError] = useState<string | null>(null)
+  const [sesion, setSesion] = useState<SesionGuardada | null>(() => cargarSesion())
+  const [authError, setAuthError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
-  useEffect(() => {
-    let cancelado = false
-
-    async function inicializar() {
-      try {
-        const clienteActual = await obtenerOCrearCliente()
-        if (!cancelado) {
-          setCustomer(clienteActual)
-          setCargando(false)
-        }
-      } catch (e) {
-        if (!cancelado) {
-          setBootstrapError(e instanceof Error ? e.message : 'No se pudo cargar tu información de cliente')
-          setCargando(false)
-        }
-      }
-    }
-
-    inicializar()
-    return () => {
-      cancelado = true
-    }
-  }, [])
-
-  function requestReidentification() {
-    setNeedsReidentification(true)
+  function guardarSesion(nueva: SesionGuardada) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(nueva))
+    setSesion(nueva)
   }
 
-  async function identify(datos: { nombre: string; telefono: string }) {
-    if (!customer) return
-    setIdentifyError(null)
+  async function login(email: string, password: string): Promise<boolean> {
+    setSubmitting(true)
+    setAuthError(null)
     try {
-      // El backend reemplaza el registro completo: se manda también el email y la dirección que
-      // ya tenía, para que reidentificarse no los borre (ver customerRepository.http.ts).
-      const actualizado = await httpCustomerRepository.updateCustomer(customer.id, {
-        ...datos,
-        email: customer.email,
-        direccion: customer.direccion,
-      })
-      if (actualizado) {
-        setCustomer(actualizado)
-        setNeedsReidentification(false)
-      } else {
-        setIdentifyError('No encontramos tu perfil de cliente. Intenta de nuevo más tarde.')
-      }
+      guardarSesion(await httpCustomerRepository.login({ email, password }))
+      return true
     } catch (e) {
-      setIdentifyError(e instanceof Error ? e.message : 'No se pudo guardar tu información')
+      setAuthError(e instanceof Error ? e.message : 'No se pudo iniciar sesión')
+      return false
+    } finally {
+      setSubmitting(false)
     }
   }
+
+  async function register(datos: DatosRegistro): Promise<boolean> {
+    setSubmitting(true)
+    setAuthError(null)
+    try {
+      guardarSesion(await httpCustomerRepository.register(datos))
+      return true
+    } catch (e) {
+      setAuthError(e instanceof Error ? e.message : 'No se pudo crear la cuenta')
+      return false
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem(STORAGE_KEY)
+    setSesion(null)
+  }
+
+  const customer: Customer | null = sesion
+    ? { id: sesion.id, nombre: sesion.nombre, telefono: sesion.telefono, email: sesion.email, direccion: sesion.direccion }
+    : null
 
   async function actualizarPerfil(datos: {
     nombre: string
@@ -102,37 +94,19 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     email: string
     direccion: string
   }): Promise<ResultadoActualizarPerfil> {
-    if (!customer) return { ok: false, motivo: 'No se pudo identificar tu perfil' }
+    if (!customer || !sesion) return { ok: false, motivo: 'No se pudo identificar tu perfil' }
     try {
       const actualizado = await httpCustomerRepository.updateCustomer(customer.id, datos)
       if (!actualizado) return { ok: false, motivo: 'No encontramos tu perfil de cliente' }
-      setCustomer(actualizado)
+      guardarSesion({ ...actualizado, token: sesion.token })
       return { ok: true }
     } catch (e) {
       return { ok: false, motivo: e instanceof Error ? e.message : 'No se pudo guardar tu información' }
     }
   }
 
-  if (bootstrapError) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-crema">
-        <p className="text-sm text-falla">{bootstrapError}</p>
-      </div>
-    )
-  }
-
-  if (cargando || !customer) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-crema">
-        <p className="text-sm text-gray-400">Cargando…</p>
-      </div>
-    )
-  }
-
   return (
-    <CustomerContext.Provider
-      value={{ customer, needsReidentification, identifyError, requestReidentification, identify, actualizarPerfil }}
-    >
+    <CustomerContext.Provider value={{ customer, authError, submitting, login, register, logout, actualizarPerfil }}>
       {children}
     </CustomerContext.Provider>
   )

@@ -22,6 +22,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!customer) {
+      setCart(EMPTY_CART)
+      setCargando(false)
+      setError(null)
+      return
+    }
     let cancelado = false
     setCargando(true)
     setError(null)
@@ -40,21 +46,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelado = true
     }
-  }, [customer.id])
+  }, [customer])
 
   async function agregarItem(productId: string, cantidad: number) {
+    if (!customer) throw new Error('Inicia sesión para agregar productos al carrito')
     const nuevoCart = await httpCartRepository.addItem(customer.id, productId, cantidad)
     setCart(nuevoCart)
     setError(null)
   }
 
   async function bajarUnidad(productId: string) {
+    if (!customer) throw new Error('Inicia sesión para modificar el carrito')
     const nuevoCart = await httpCartRepository.decrementItem(customer.id, productId)
     setCart(nuevoCart)
     setError(null)
   }
 
   async function quitarItem(productId: string) {
+    if (!customer) throw new Error('Inicia sesión para modificar el carrito')
     const nuevoCart = await httpCartRepository.removeItem(customer.id, productId)
     setCart(nuevoCart)
     setError(null)

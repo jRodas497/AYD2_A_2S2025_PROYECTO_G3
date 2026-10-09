@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test'
+import { registrarCliente } from './helpers/cliente.js'
 
 test('el carrito permite subir, bajar y quitar un producto contra el backend real', async ({ page }) => {
+  await registrarCliente(page)
   await page.goto('/catalogo')
   await page.locator('a[href^="/productos/"]').first().click()
   await page.waitForURL(/\/productos\/\d+$/)

@@ -26,16 +26,30 @@ Construcción del sistema definido en la Fase 1:
 
 ### Autenticación
 
-El backend tiene login con JWT (`POST /api/auth/login`). Las migraciones siembran un usuario de desarrollo, `admin` / `admin123`, con rol `ADMIN`. En el frontend, el personal inicia sesión en `/administracion/login`. El token se exige en:
+Hay dos sistemas de login, independientes entre sí, ambos con JWT:
 
-| Acción | Requiere |
-|---|---|
-| Crear o editar productos (`POST /api/products`, `PUT /api/products/{id}`) | Rol `ADMIN` |
-| Cambiar un parámetro (`PUT /api/settings/{key}`) | Rol `ADMIN` |
-| Listar y gestionar al personal (`/api/users`) | Rol `ADMIN` |
-| Procesar una incidencia (`PUT /api/incidents/{id}/status`) | Cualquier sesión |
+- **Personal** (`POST /api/auth/login`, frontend en `/administracion/login`). Las migraciones
+  siembran un usuario de desarrollo, `admin` / `admin123`, con rol `ADMIN`. El token se exige en:
 
-El resto de la API —catálogo, carrito, checkout, cobro, consultas, auditoría, reportes, integraciones y el simulador de terceros `/api/simulation`— es pública. La clave con la que se firman los tokens se cambia con la variable `JWT_SECRET`.
+  | Acción | Requiere |
+  |---|---|
+  | Crear o editar productos (`POST /api/products`, `PUT /api/products/{id}`) | Rol `ADMIN` |
+  | Cambiar un parámetro (`PUT /api/settings/{key}`) | Rol `ADMIN` |
+  | Listar y gestionar al personal (`/api/users`) | Rol `ADMIN` |
+  | Procesar una incidencia (`PUT /api/incidents/{id}/status`) | Cualquier sesión |
+
+- **Cliente de la tienda** (`POST /api/customers/register` y `/login`, frontend en `/ingresar`).
+  Cada cliente tiene su propia cuenta — su propio carrito, sus compras, sus facturas y su
+  historial, en vez de un solo "Cliente invitado" anónimo compartido. Las migraciones siembran 5
+  cuentas de demo con historiales de compra distintos (contraseña `cliente123` para las cinco):
+  `maria@example.com` (compradora frecuente), `lucia@example.com` (la de mayor historial),
+  `ana@example.com` (con una devolución registrada), `carlos@example.com` (una compra sin pagar)
+  y `jorge@example.com` (cuenta nueva, sin compras). Carrito, checkout, "Mis órdenes",
+  notificaciones y perfil exigen esta sesión; el catálogo es público.
+
+El resto de la API —catálogo, cobro, consultas, auditoría, reportes, integraciones y el
+simulador de terceros `/api/simulation`— es pública. La clave con la que se firman los tokens se
+cambia con la variable `JWT_SECRET` (la misma para los dos sistemas de login).
 
 ## Cómo levantar el proyecto
 

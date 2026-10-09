@@ -92,4 +92,78 @@ describe('httpCustomerRepository', () => {
     const resultado = await httpCustomerRepository.updateCustomer('999', { nombre: 'X', telefono: '123' })
     expect(resultado).toBeNull()
   })
+
+  it('login() manda email/password y mapea la sesión con su token', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      jsonResponse({
+        token: 'token-123',
+        customerId: 101,
+        fullName: 'María López',
+        email: 'maria@example.com',
+        phone: '50201110001',
+        address: 'Zona 10',
+      }),
+    )
+    const sesion = await httpCustomerRepository.login({ email: 'maria@example.com', password: 'cliente123' })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/customers/login',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ email: 'maria@example.com', password: 'cliente123' }),
+      }),
+    )
+    expect(sesion).toEqual({
+      id: '101',
+      nombre: 'María López',
+      telefono: '50201110001',
+      email: 'maria@example.com',
+      direccion: 'Zona 10',
+      token: 'token-123',
+    })
+  })
+
+  it('login() propaga el mensaje de error en credenciales incorrectas', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ message: 'correo o contraseña incorrectos' }, 401))
+    await expect(httpCustomerRepository.login({ email: 'maria@example.com', password: 'mala' })).rejects.toThrow(
+      'correo o contraseña incorrectos',
+    )
+  })
+
+  it('register() manda los datos de la cuenta nueva y devuelve la sesión', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      jsonResponse(
+        {
+          token: 'token-nuevo',
+          customerId: 200,
+          fullName: 'Nueva Cliente',
+          email: 'nueva@example.com',
+          phone: '',
+          address: '',
+        },
+        201,
+      ),
+    )
+    const sesion = await httpCustomerRepository.register({
+      nombre: 'Nueva Cliente',
+      email: 'nueva@example.com',
+      password: 'secreta123',
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/customers/register',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          fullName: 'Nueva Cliente',
+          email: 'nueva@example.com',
+          password: 'secreta123',
+          phone: '',
+          address: '',
+        }),
+      }),
+    )
+    expect(sesion.id).toBe('200')
+    expect(sesion.token).toBe('token-nuevo')
+  })
 })

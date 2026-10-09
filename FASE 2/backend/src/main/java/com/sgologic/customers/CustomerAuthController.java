@@ -65,7 +65,7 @@ public class CustomerAuthController {
 
     private Session session(Customer c) {
         String token = jwt.issue(c.getEmail(), List.of("CUSTOMER"), Map.of("customerId", c.getId()));
-        return new Session(token, c.getId(), c.getFullName(), c.getEmail());
+        return new Session(token, c.getId(), c.getFullName(), c.getEmail(), c.getPhone(), c.getAddress());
     }
 
     public record RegisterRequest(
@@ -79,6 +79,7 @@ public class CustomerAuthController {
     public record LoginRequest(@NotBlank @Email String email, @NotBlank String password) {
     }
 
-    public record Session(String token, Long customerId, String fullName, String email) {
+    public record Session(
+            String token, Long customerId, String fullName, String email, String phone, String address) {
     }
 }

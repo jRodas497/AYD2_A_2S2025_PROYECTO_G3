@@ -1,9 +1,17 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { NAV_SECTIONS } from '../../app/navigation'
 import { useCustomer } from '../context/CustomerContext'
 
 export function Sidebar() {
-  const { requestReidentification } = useCustomer()
+  const { customer, logout } = useCustomer()
+  const navigate = useNavigate()
+
+  function handleSesion() {
+    if (customer) {
+      logout()
+    }
+    navigate('/ingresar')
+  }
 
   return (
     <aside className="w-60 shrink-0 bg-brand text-white flex flex-col">
@@ -40,10 +48,10 @@ export function Sidebar() {
         ))}
       </nav>
       <button
-        onClick={requestReidentification}
+        onClick={handleSesion}
         className="text-left px-5 py-3 text-xs text-white/60 hover:text-white border-t border-white/15"
       >
-        ¿No eres tú? Cambiar identidad
+        {customer ? `${customer.nombre} · Cerrar sesión` : 'Iniciar sesión'}
       </button>
     </aside>
   )

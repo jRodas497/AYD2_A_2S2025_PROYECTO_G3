@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { Pill } from '../../../shared/components/Pill'
 import { useCustomer } from '../../../shared/context/CustomerContext'
 import { httpNotificacionesRepository } from '../api/notificacionesRepository.http'
@@ -22,12 +22,15 @@ export function NotificacionesPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!customer) return
     httpNotificacionesRepository
       .misNotificaciones(customer.id)
       .then(setNotificaciones)
       .catch((e) => setError(e instanceof Error ? e.message : 'No se pudieron cargar tus notificaciones'))
       .finally(() => setCargando(false))
-  }, [customer.id])
+  }, [customer])
+
+  if (!customer) return <Navigate to="/ingresar" replace />
 
   return (
     <div>
