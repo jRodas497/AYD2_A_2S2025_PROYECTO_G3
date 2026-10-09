@@ -126,10 +126,15 @@ jobs:
         # El "deploy hook" de cada servicio se crea en Render (Settings > Deploy Hook) y se
         # guarda como secreto del repositorio. Mientras no exista, este paso se salta en vez de
         # fallar el pipeline — así el gate de pruebas funciona aunque el deploy aún no esté
-        # configurado.
-        if: ${{ secrets.RENDER_DEPLOY_HOOK_BACKEND != '' }}
-        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}"
+        # configurado. "secrets" no se puede usar directo en "if" (GitHub Actions lo rechaza, ver
+        # contextos disponibles para "if"), por eso pasa primero por una variable de entorno.
+        env:
+          DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}
+        if: ${{ env.DEPLOY_HOOK != '' }}
+        run: curl -fsS -X POST "$DEPLOY_HOOK"
 
       - name: Disparar deploy del frontend en Render
-        if: ${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND != '' }}
-        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND }}"
+        env:
+          DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND }}
+        if: ${{ env.DEPLOY_HOOK != '' }}
+        run: curl -fsS -X POST "$DEPLOY_HOOK"
