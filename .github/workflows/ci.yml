@@ -1,12 +1,17 @@
 name: CI
 
-# Por ahora solo en esta rama, mientras se prueba el despliegue a Render (ver DEPLOY-RENDER.md).
-# Cuando esto se junte a develop, hay que agregar "develop" aquí (push) y un pull_request contra
-# develop, para que el gate corra en cada PR y no solo en la rama de trabajo.
+# feature/202200389-deploy-render ya se juntó a develop (PR #15): corre en cada push a develop y
+# en cada pull request contra develop, que es el gate real para lo que entra al proyecto. Se deja
+# también el push directo a la rama de trabajo mientras siga abierta, para ver el resultado antes
+# de abrir el PR.
 on:
   push:
     branches:
+      - develop
       - feature/202200389-deploy-render
+  pull_request:
+    branches:
+      - develop
   workflow_dispatch: {}
 
 defaults:
