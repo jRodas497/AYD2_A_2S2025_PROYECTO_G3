@@ -1,0 +1,17 @@
+# En la raíz (no dentro de "FASE 2/backend") porque Render no resuelve bien dockerfilePath ni
+# dockerContext cuando la ruta tiene un espacio ("FASE 2"). El contexto de build es la raíz del
+# repo por eso mismo: ver render.yaml (dockerContext: .) y docker-compose.yml, que usan este
+# mismo Dockerfile tanto en Render como en local — una sola fuente, no dos copias que se puedan
+# desincronizar.
+FROM maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /app
+COPY ["FASE 2/backend/pom.xml", "."]
+RUN mvn -q -B dependency:go-offline
+COPY ["FASE 2/backend/src", "./src"]
+RUN mvn -q -B -DskipTests package
+
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /app
+COPY --from=build /app/target/sgologic-backend.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]

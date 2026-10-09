@@ -1,8 +1,11 @@
 # Blueprint de Render para SGO-Logic (https://docs.render.com/infrastructure-as-code).
 #
-# Levanta el backend (Spring Boot, tal cual el Dockerfile de FASE 2/backend) y el frontend
-# (React compilado y servido con nginx, tal cual FASE 2/frontend/Dockerfile). No hay nada que
-# construir de más: Render usa los mismos Dockerfile que ya se usan en local.
+# Levanta el backend (Spring Boot) y el frontend (React compilado y servido con nginx) con
+# Dockerfile.backend y Dockerfile.frontend, en la raíz del repo — Render no resuelve bien
+# dockerfilePath/dockerContext cuando la ruta tiene un espacio ("FASE 2"), así que no pueden
+# vivir dentro de FASE 2/backend o FASE 2/frontend. Son los mismos Dockerfile que usa
+# docker-compose en local (ver FASE 2/docker-compose.yml): una sola fuente, no una copia para
+# Render y otra para local.
 #
 # La base de datos es Neon (https://neon.com), no un recurso de Render: no expira como el
 # Postgres gratuito de Render (que caduca a los 30 días) y da una cadena de conexión que ya
@@ -26,8 +29,8 @@ services:
   - type: web
     name: sgologic-backend
     runtime: docker
-    dockerfilePath: FASE 2/backend/Dockerfile
-    dockerContext: FASE 2/backend
+    dockerfilePath: Dockerfile.backend
+    dockerContext: .
     plan: free
     region: oregon
     healthCheckPath: /api/products
@@ -55,8 +58,8 @@ services:
   - type: web
     name: sgologic-frontend
     runtime: docker
-    dockerfilePath: FASE 2/frontend/Dockerfile
-    dockerContext: FASE 2/frontend
+    dockerfilePath: Dockerfile.frontend
+    dockerContext: .
     plan: free
     region: oregon
     envVars:

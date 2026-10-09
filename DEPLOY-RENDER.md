@@ -1,9 +1,11 @@
 # Despliegue en Render + Neon + Cloudflare R2
 
 `render.yaml` (en la raíz) levanta el backend (Spring Boot) y el frontend (React servido con
-nginx) como dos servicios de Render, usando exactamente los `Dockerfile` que ya existen en
-`FASE 2/backend` y `FASE 2/frontend` — Render no construye nada distinto de lo que ya se
-construye en local. La base de datos es **Neon** (<https://neon.com>), no un recurso de Render:
+nginx) como dos servicios de Render, usando `Dockerfile.backend` y `Dockerfile.frontend` (en la
+raíz del repo, no dentro de `FASE 2/backend` o `FASE 2/frontend`: Render no resuelve bien una
+ruta con espacio como "FASE 2" en `dockerfilePath`/`dockerContext`) — son los mismos Dockerfile
+que usa `docker-compose` en local (ver `FASE 2/docker-compose.yml`), Render no construye nada
+distinto de lo que ya se construye en local. La base de datos es **Neon** (<https://neon.com>), no un recurso de Render:
 por eso `render.yaml` no tiene una sección `databases`. El archivo que el backend deja para que
 el ERP lo recoja (ver más abajo) se guarda en **Cloudflare R2**, tampoco un recurso de Render.
 
