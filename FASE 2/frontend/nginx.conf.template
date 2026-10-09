@@ -1,17 +1,26 @@
 server {
-    # PORT y BACKEND_HOSTPORT los pone docker-compose en local y Render en el deploy. La imagen
+    # PORT y BACKEND_URL los pone docker-compose en local y Render en el deploy. La imagen
     # oficial de nginx sustituye este archivo con envsubst antes de arrancar (docker-entrypoint.sh,
     # /etc/nginx/templates/*.template), y solo reemplaza nombres que existan como variable de
     # entorno — las propias de nginx como $uri o $host nunca están en el entorno, así que quedan
-    # intactas.
+    # intactas. NGINX_LOCAL_RESOLVERS lo calcula el propio entrypoint (ver Dockerfile.frontend).
     listen ${PORT};
     root /usr/share/nginx/html;
     index index.html;
 
-    # La API se reenvía al backend (del compose en local, del servicio de Render en el deploy).
+    # DNS de nginx para resolver el backend en cada petición y no una sola vez al arrancar: así el
+    # frontend no se cae si el backend (plan gratuito) está dormido o aún no existe.
+    resolver ${NGINX_LOCAL_RESOLVERS} valid=30s;
+
+    # La API se reenvía al backend: http://backend:8080 en el compose local, la URL pública
+    # https://<servicio>.onrender.com en Render (un servicio gratuito no recibe tráfico por la
+    # red privada, así que el nombre interno no resuelve). Con la URL en una variable, nginx pasa
+    # la ruta original tal cual, igual que antes.
     location /api/ {
-        proxy_pass http://${BACKEND_HOSTPORT};
-        proxy_set_header Host $host;
+        set $backend "${BACKEND_URL}";
+        proxy_pass $backend;
+        proxy_ssl_server_name on;
+        proxy_set_header Host $proxy_host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 
