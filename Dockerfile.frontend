@@ -13,4 +13,7 @@ FROM nginx:1.27-alpine
 # como configuración real (ver FASE 2/frontend/nginx.conf.template para el detalle de por qué es seguro).
 COPY ["FASE 2/frontend/nginx.conf.template", "/etc/nginx/templates/default.conf.template"]
 COPY --from=build /app/dist /usr/share/nginx/html
+# Hace que el entrypoint de nginx exporte NGINX_LOCAL_RESOLVERS (DNS del contenedor), que usa la
+# plantilla en la directiva resolver.
+ENV NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1
 EXPOSE 80

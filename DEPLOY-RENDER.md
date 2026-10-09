@@ -103,7 +103,10 @@ tiempo, eso es justamente lo que conviene.
 5. **Conectar el repositorio a Render.** render.com → New → Blueprint. Render detecta
    `render.yaml` y propone crear `sgologic-backend` y `sgologic-frontend`.
 6. **Pegar los secretos.** Al aplicar el blueprint, Render pide el valor de cada variable con
-   `sync: false`: `DATABASE_URL` (la cadena de Neon del paso 2) y, si se hizo el paso 4,
+   `sync: false`: `DATABASE_URL` (la cadena de Neon del paso 2), `BACKEND_URL` (la URL pública del backend,
+   p. ej. `https://sgologic-backend.onrender.com`; si Render le puso otro nombre, se copia de
+   su pantalla; si no se conoce aún, se deja en blanco y se completa después en Environment del
+   frontend) y, si se hizo el paso 4,
    `R2_ACCOUNT_ID`/`R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY`/`R2_BUCKET`. `JWT_SECRET` lo genera
    Render solo (`generateValue: true`); no hay que escribirlo a mano.
 7. **Esperar el deploy** de los dos servicios y abrir la URL del frontend
@@ -121,10 +124,12 @@ tiempo, eso es justamente lo que conviene.
   usuario para todo. Es una reducción real del aislamiento que tiene local — se documenta aquí en
   vez de escondérsela — aceptable para una demo, no para producción.
 - **El frontend ya no apunta a `backend:8080`.** Ese nombre solo resuelve dentro de la red de
-  docker-compose. `FASE 2/frontend/nginx.conf.template` usa `${BACKEND_HOSTPORT}` en su lugar, y
+  docker-compose. `FASE 2/frontend/nginx.conf.template` usa `${BACKEND_URL}` en su lugar, y
   la imagen oficial de nginx lo resuelve con `envsubst` al arrancar el contenedor (mecanismo de
-  `/etc/nginx/templates/`, no un script propio). `render.yaml` llena esa variable con la
-  dirección interna real del servicio del backend en Render.
+  `/etc/nginx/templates/`, no un script propio). En Render esa variable es la URL pública del
+  backend (`https://sgologic-backend.onrender.com` o la que asigne Render), que se pega a mano
+  en el dashboard del frontend; la dirección interna no sirve porque un servicio gratuito no
+  recibe tráfico por la red privada.
 - **Las migraciones no se aplican solas.** El mecanismo que las corre en local
   (`docker-entrypoint-initdb.d`) es específico del contenedor oficial de Postgres que uno mismo
   arranca; ni Neon ni ninguna base administrada lo tiene. Se aplican una sola vez, a mano, con el

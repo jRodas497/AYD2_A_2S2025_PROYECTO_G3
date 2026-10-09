@@ -20,7 +20,8 @@
 #   driver de PostgreSQL JDBC no acepta usuario y clave dentro de la URL. Cuál de las dos formas
 #   se usa depende solo de si DATABASE_URL está definida o no — ningún otro interruptor.
 # - El frontend ya no habla con "backend:8080" (ese nombre solo existe en la red de
-#   docker-compose): BACKEND_HOSTPORT llega por variable de entorno desde el propio Render.
+#   docker-compose): BACKEND_URL es la URL pública del backend, que se pega como secreto en el
+#   dashboard de Render (sync: false).
 # - Las migraciones de FASE 2/db/migrations no se aplican solas (ese mecanismo es específico de
 #   la imagen oficial de Postgres en un contenedor propio, no de una base administrada): se
 #   corren una sola vez a mano con FASE 2/db/scripts/aplicar-migraciones-nube.sh, contra Neon.
@@ -65,8 +66,8 @@ services:
     envVars:
       - key: PORT
         value: "8080"
-      - key: BACKEND_HOSTPORT
-        fromService:
-          name: sgologic-backend
-          type: web
-          property: hostport
+      # URL pública del backend (https://sgologic-backend.onrender.com o la que Render asigne),
+      # pegada a mano en el dashboard. No se usa fromService/hostport porque un servicio gratuito
+      # no recibe tráfico por la red privada y el nombre interno no resuelve.
+      - key: BACKEND_URL
+        sync: false
