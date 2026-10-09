@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { registrarCliente } from './helpers/cliente.js'
 
 /**
  * El flujo principal del enunciado, de punta a punta, contra el backend y la base reales:
@@ -6,6 +7,7 @@ import { expect, test } from '@playwright/test'
  * backend (outbox, SAT simulada) en vez de forzar el estado desde el frontend.
  */
 test('compra completa: catálogo, carrito, checkout, pago y factura', async ({ page }) => {
+  await registrarCliente(page)
   await page.goto('/catalogo')
   await expect(page.getByRole('heading', { name: 'Catálogo' })).toBeVisible()
 

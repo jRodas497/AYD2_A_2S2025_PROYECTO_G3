@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test'
+import { registrarCliente } from './helpers/cliente.js'
 
 test('el perfil se guarda contra el backend real y sobrevive a una recarga', async ({ page }) => {
+  await registrarCliente(page)
   await page.goto('/perfil')
   await expect(page.getByRole('heading', { name: 'Perfil' })).toBeVisible()
 

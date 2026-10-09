@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { Pill } from '../../../shared/components/Pill'
 import { useCustomer } from '../../../shared/context/CustomerContext'
 import { httpOrderRepository } from '../api/orderRepository.http'
@@ -21,6 +21,7 @@ export function OrdersListPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!customer) return
     httpOrderRepository
       .listOrders(customer.id)
       .then((resultado) => {
@@ -31,7 +32,9 @@ export function OrdersListPage() {
         setError(e instanceof Error ? e.message : 'No se pudieron cargar tus órdenes')
         setCargando(false)
       })
-  }, [customer.id])
+  }, [customer])
+
+  if (!customer) return <Navigate to="/ingresar" replace />
 
   return (
     <div>

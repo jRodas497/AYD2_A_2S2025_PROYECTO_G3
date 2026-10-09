@@ -61,6 +61,13 @@
             <scope>runtime</scope>
         </dependency>
         <dependency>
+            <!-- Cloudflare R2 expone una API compatible con S3; este SDK sirve para los dos
+                 (basta con apuntar endpointOverride al host de R2 en vez de AWS). -->
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <version>2.29.29</version>
+        </dependency>
+        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>

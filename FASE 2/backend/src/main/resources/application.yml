@@ -1,5 +1,7 @@
 server:
-  port: 8080
+  # Render asigna el puerto por variable de entorno; en local y en docker-compose no se define,
+  # así que cae en 8080 de siempre.
+  port: ${PORT:8080}
   error:
     # Sin esto, un 404/400 normal no trae "message" y solo el 409 de sin-stock lo tenía
     # (por un manejador propio). Frontend necesita el mismo formato en todos los errores.

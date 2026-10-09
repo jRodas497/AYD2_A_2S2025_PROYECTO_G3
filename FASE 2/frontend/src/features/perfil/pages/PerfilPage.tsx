@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Navigate } from 'react-router-dom'
 import { Button } from '../../../shared/components/Button'
 import { useCustomer } from '../../../shared/context/CustomerContext'
 import { useNotify } from '../../../shared/notifications/NotificationContext'
@@ -7,12 +8,14 @@ export function PerfilPage() {
   const { customer, actualizarPerfil } = useCustomer()
   const { notificar } = useNotify()
   const [form, setForm] = useState({
-    nombre: customer.nombre,
-    telefono: customer.telefono,
-    email: customer.email,
-    direccion: customer.direccion,
+    nombre: customer?.nombre ?? '',
+    telefono: customer?.telefono ?? '',
+    email: customer?.email ?? '',
+    direccion: customer?.direccion ?? '',
   })
   const [guardando, setGuardando] = useState(false)
+
+  if (!customer) return <Navigate to="/ingresar" replace />
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

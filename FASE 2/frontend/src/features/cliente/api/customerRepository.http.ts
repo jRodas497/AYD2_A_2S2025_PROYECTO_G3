@@ -1,4 +1,4 @@
-import type { CustomerRepository, DatosCliente } from './customerRepository'
+import type { CustomerRepository, DatosCliente, DatosLogin, DatosRegistro, SesionCliente } from './customerRepository'
 import type { Customer } from '../types'
 import { NotFoundError, manejarRespuesta } from '../../../shared/api/httpErrors'
 
@@ -12,6 +12,15 @@ interface BackendCustomer {
   createdAt: string
 }
 
+interface BackendSession {
+  token: string
+  customerId: number
+  fullName: string
+  email: string | null
+  phone: string | null
+  address: string | null
+}
+
 function mapearCliente(backendCliente: BackendCustomer): Customer {
   return {
     id: String(backendCliente.id),
@@ -19,6 +28,17 @@ function mapearCliente(backendCliente: BackendCustomer): Customer {
     telefono: backendCliente.phone ?? '',
     email: backendCliente.email ?? '',
     direccion: backendCliente.address ?? '',
+  }
+}
+
+function mapearSesion(sesion: BackendSession): SesionCliente {
+  return {
+    id: String(sesion.customerId),
+    nombre: sesion.fullName,
+    telefono: sesion.phone ?? '',
+    email: sesion.email ?? '',
+    direccion: sesion.address ?? '',
+    token: sesion.token,
   }
 }
 
@@ -72,5 +92,33 @@ export const httpCustomerRepository: CustomerRepository = {
       if (e instanceof NotFoundError) return null
       throw e
     }
+  },
+
+  async register(datos: DatosRegistro) {
+    const sesion = await manejarRespuesta<BackendSession>(
+      await fetch('/api/customers/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: datos.nombre,
+          email: datos.email,
+          password: datos.password,
+          phone: datos.telefono ?? '',
+          address: datos.direccion ?? '',
+        }),
+      }),
+    )
+    return mapearSesion(sesion)
+  },
+
+  async login(datos: DatosLogin) {
+    const sesion = await manejarRespuesta<BackendSession>(
+      await fetch('/api/customers/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: datos.email, password: datos.password }),
+      }),
+    )
+    return mapearSesion(sesion)
   },
 }

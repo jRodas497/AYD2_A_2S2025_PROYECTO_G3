@@ -1,0 +1,69 @@
+# Blueprint de Render para SGO-Logic (https://docs.render.com/infrastructure-as-code).
+#
+# Levanta el backend (Spring Boot, tal cual el Dockerfile de FASE 2/backend) y el frontend
+# (React compilado y servido con nginx, tal cual FASE 2/frontend/Dockerfile). No hay nada que
+# construir de más: Render usa los mismos Dockerfile que ya se usan en local.
+#
+# La base de datos es Neon (https://neon.com), no un recurso de Render: no expira como el
+# Postgres gratuito de Render (que caduca a los 30 días) y da una cadena de conexión que ya
+# trae usuario y clave, igual que la de Render. Por eso no hay sección "databases" aquí: se crea
+# a mano en Neon (pasos en DEPLOY-RENDER.md) y su cadena de conexión se pega como secreto en
+# DATABASE_URL (sync: false) la primera vez que se aplica este blueprint.
+#
+# Diferencias con docker-compose, explicadas en DEPLOY-RENDER.md:
+# - Local y CI usan DB_HOST/DB_APP_USER/etc. (dos usuarios: sgologic dueño, sgologic_app de bajo
+#   privilegio). Con Neon solo hay un usuario, así que el backend recibe DATABASE_URL completo y
+#   lo traduce a spring.datasource.* él mismo (DatabaseUrlEnvironmentPostProcessor), porque el
+#   driver de PostgreSQL JDBC no acepta usuario y clave dentro de la URL. Cuál de las dos formas
+#   se usa depende solo de si DATABASE_URL está definida o no — ningún otro interruptor.
+# - El frontend ya no habla con "backend:8080" (ese nombre solo existe en la red de
+#   docker-compose): BACKEND_HOSTPORT llega por variable de entorno desde el propio Render.
+# - Las migraciones de FASE 2/db/migrations no se aplican solas (ese mecanismo es específico de
+#   la imagen oficial de Postgres en un contenedor propio, no de una base administrada): se
+#   corren una sola vez a mano con FASE 2/db/scripts/aplicar-migraciones-nube.sh, contra Neon.
+
+services:
+  - type: web
+    name: sgologic-backend
+    runtime: docker
+    dockerfilePath: FASE 2/backend/Dockerfile
+    dockerContext: FASE 2/backend
+    plan: free
+    region: oregon
+    healthCheckPath: /api/products
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      # Cloudflare R2 (API compatible con S3) para el archivo de intercambio con el ERP: el
+      # filesystem de un servicio en Render no persiste entre despliegues, así que el ERP no
+      # puede seguir escribiendo a disco como en local (ver ErpFileStorage). Las cuatro son
+      # opcionales en conjunto: si no se definen, el backend sigue escribiendo a
+      # /app/erp-out dentro del contenedor (se pierde en cada deploy, pero no rompe nada).
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        sync: false
+
+  - type: web
+    name: sgologic-frontend
+    runtime: docker
+    dockerfilePath: FASE 2/frontend/Dockerfile
+    dockerContext: FASE 2/frontend
+    plan: free
+    region: oregon
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: BACKEND_HOSTPORT
+        fromService:
+          name: sgologic-backend
+          type: web
+          property: hostport

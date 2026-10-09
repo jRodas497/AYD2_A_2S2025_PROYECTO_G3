@@ -22,7 +22,13 @@ export function Topbar() {
       <Link to="/administracion/login" className="text-gray-500 hover:text-brand hover:underline">
         {session ? `Personal: ${session.username}` : 'Iniciar sesión de personal'}
       </Link>
-      <span className="text-gray-500">{customer.nombre}</span>
+      {customer ? (
+        <span className="text-gray-500">{customer.nombre}</span>
+      ) : (
+        <Link to="/ingresar" className="text-gray-500 hover:text-brand hover:underline">
+          Iniciar sesión
+        </Link>
+      )}
     </header>
   )
 }

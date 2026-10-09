@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { CustomerLoginPage } from '../features/cliente/pages/CustomerLoginPage'
 import { CatalogListPage } from '../features/catalogo/pages/CatalogListPage'
 import { ProductDetailPage } from '../features/catalogo/pages/ProductDetailPage'
 import { PromocionesPage } from '../features/catalogo/pages/PromocionesPage'
@@ -31,6 +32,7 @@ export function AppRouter() {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/catalogo" replace />} />
+      <Route path="/ingresar" element={<CustomerLoginPage />} />
       <Route path="/catalogo" element={<CatalogListPage />} />
       <Route path="/productos/:id" element={<ProductDetailPage />} />
       <Route path="/promociones" element={<PromocionesPage />} />

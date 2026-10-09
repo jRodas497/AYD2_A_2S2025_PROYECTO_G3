@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { registrarCliente } from './helpers/cliente.js'
 
 /**
  * Envíos repetidos y simultáneos a los mismos endpoints, desde la interfaz real: doble clic, ráfagas,
@@ -10,6 +11,7 @@ import { expect, test, type Page } from '@playwright/test'
 const CUADRO_CANTIDAD = 'span.w-8.text-center'
 
 async function nombreYPrecioDelPrimerProducto(page: Page): Promise<string> {
+  await registrarCliente(page)
   await page.goto('/catalogo')
   await page.locator('a[href^="/productos/"]').first().click()
   await page.waitForURL(/\/productos\/\d+$/)
@@ -108,6 +110,7 @@ test.describe('carrito bajo envíos repetidos', () => {
   })
 
   test('agregar al carrito varias veces seguidas: el carrito coincide con el servidor', async ({ page }) => {
+    await registrarCliente(page)
     await page.goto('/catalogo')
     await page.locator('a[href^="/productos/"]').first().click()
     const nombre = await page.locator('h1').innerText()
