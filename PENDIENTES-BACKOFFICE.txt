@@ -203,6 +203,64 @@ REGISTERED y avisos FAILED).
 Línea de pasos de la orden: la pantalla de orden muestra las etapas (cobro, pagado, factura,
 envío, entrega) con la etapa actual resaltada y la que falló en rojo.
 
+TERCERA RONDA: Neon, R2, login real de cliente y arranque con semillas controladas
+=====================================================================================
+
+Contexto: la Fase 3 exige deploy real a la nube con gate de pruebas en el CI/CD. Se dejó
+preparado el código (no aplicado a una cuenta real todavía — falta crear los recursos y pegar
+las credenciales, igual que ya se hizo con Neon):
+
+- Base de datos: Neon Postgres en vez del Postgres propio de Render (ese expira a los 30 días,
+  Neon no). DATABASE_URL es el interruptor: si existe, el backend se conecta ahí; si no, sigue
+  local. Detalle completo en DEPLOY-RENDER.md (raíz del repo).
+- Archivo del ERP (ErpDropClient): puede subir a Cloudflare R2 en vez de escribir al disco del
+  contenedor (que no persiste entre deploys de Render). Interruptor: si existe R2_BUCKET, usa
+  R2ErpFileStorage; si no, sigue escribiendo local con LocalErpFileStorage, sin cambiar nada. Las
+  dos implementan la misma interfaz ErpFileStorage (com.sgologic.external) — agregar un backend
+  de almacenamiento distinto (AWS S3 real, Azure Blob, lo que sea) es implementar esa interfaz
+  nueva, sin tocar ErpDropClient ni las otras dos.
+- CI/CD (.github/workflows/ci.yml): job "deploy" nuevo, dispara un Deploy Hook de Render por
+  servicio, pero solo corre si backend + frontend + e2e pasaron antes (gate real). Se salta solo
+  si los secretos del hook no existen todavía, así que no rompe el pipeline mientras tanto.
+
+IMPORTANTE para quien siga con esto: el compañero de feature/9516085-cierre-pendientes está
+evaluando su propia infraestructura (mencionó S3+EC2 y después Blob Storage+VM, sin decidir
+todavía) — Render y Cloudflare quedan en pausa de este lado hasta que se hable con él. Lo de
+arriba es código ya probado (build, tests, y el camino local-vs-nube verificado con una base y un
+storage simulados), no una cuenta real ya creada en ningún proveedor. El R2ErpFileStorage actual
+está armado específicamente para el endpoint de Cloudflare R2 (requiere R2_ACCOUNT_ID); si al
+final se usa AWS S3 de verdad en vez de R2, es un ajuste chico (mismo SDK de AWS, solo cambia
+cómo se construye el cliente) pero no está hecho todavía.
+
+Login real de cliente (antes: "Cliente invitado" anónimo, sin contraseña, compartido)
+----------------------------------------------------------------------------------------
+- Vista /ingresar (login + registro) y endpoints POST /api/customers/login y /register.
+- Carrito, checkout, "Mis órdenes", perfil y notificaciones ahora exigen esa sesión; el catálogo
+  sigue público. Cerrar sesión (botón en la barra lateral) manda a /ingresar; el link "Iniciar
+  sesión" de la barra superior siempre está visible mientras no haya sesión, y cualquier pantalla
+  que la necesite redirige sola a /ingresar en vez de romperse — las tres cosas con prueba de
+  Playwright (e2e/sesion-cliente.spec.ts).
+- 5 cuentas de demo sembradas por la migración V9, contraseña cliente123 las cinco, con un
+  historial de compras distinto cada una (maria@, lucia@, ana@, carlos@, jorge@example.com), para
+  poder probar con datos variados sin armarlos a mano.
+- Se quitó el flujo de "reidentificación" (el botón "¿No eres tú?" del carrito anónimo): ya no
+  hace falta, el login real lo reemplaza.
+- De paso se corrigió que el hash de la contraseña se filtraba por GET /api/customers/{id}
+  (endpoint público) — el campo quedó marcado @JsonIgnore.
+
+Arranque local con semillas controladas
+------------------------------------------
+FASE 2/iniciar.sh (nuevo) es un atajo sobre "docker compose up -d --build" que lee RESET_SEED de
+.env (plantilla en FASE 2/.env.example): en true, borra la base y la recrea desde las migraciones
+antes de levantar todo (siempre el mismo punto de partida antes de una ronda de pruebas); en
+false, o sin .env, no toca los datos existentes. "docker compose up -d --build" sigue
+funcionando igual si se prefiere no pasar por el script.
+
+Hallazgo sin corregir en el Scrum (no se tocó código): PB-023 (cambiar método de entrega) y
+PB-044 (seguimiento por guía) aparecen ahí como "pendiente, sin pantalla", pero ya están
+implementados (SeguimientoPage.tsx, PUT /api/shipments/{id}/origin). Vale la pena actualizar el
+Scrum para que no se reporten como huecos que ya no existen.
+
 QUÉ QUEDA PENDIENTE
 ====================
 
