@@ -1,0 +1,27 @@
+# El contexto de build de Dockerfile.backend y Dockerfile.frontend es la raíz del repo (ver
+# render.yaml y FASE 2/docker-compose.yml). Sin esto, cada build mandaría al daemon de Docker
+# cosas como FASE 2/frontend/node_modules (250+ MB) o toda la documentación de Fase 1, que
+# ninguno de los dos Dockerfile necesita.
+
+.git
+
+# Frontend: lo mismo que tenía FASE 2/frontend/.dockerignore, con el prefijo de la ruta nueva.
+FASE 2/frontend/node_modules
+FASE 2/frontend/dist
+FASE 2/frontend/docs
+FASE 2/frontend/test-results
+FASE 2/frontend/playwright-report
+FASE 2/frontend/*.log
+
+# Backend: artefactos de un build local, no código fuente.
+FASE 2/backend/target
+
+# Documentación y diagramas: no los usa ningún Dockerfile.
+FASE 1
+FASE 2/DDA
+FASE 2/DRAWIO
+FASE 2/image
+FASE 2/Scrum
+FASE 2/pruebas
+FASE 2/erp-out
+FASE 2/db

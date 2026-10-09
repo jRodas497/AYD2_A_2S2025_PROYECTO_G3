@@ -19,7 +19,9 @@ services:
       retries: 10
 
   backend:
-    build: ./backend
+    build:
+      context: ..
+      dockerfile: Dockerfile.backend
     container_name: sgologic-backend
     environment:
       DB_HOST: db
@@ -38,7 +40,9 @@ services:
         condition: service_healthy
 
   frontend:
-    build: ./frontend
+    build:
+      context: ..
+      dockerfile: Dockerfile.frontend
     container_name: sgologic-frontend
     environment:
       # Mismos nombres que usa el despliegue en Render, para que la plantilla de nginx (ver
