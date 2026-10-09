@@ -170,3 +170,28 @@ de Render. Mientras no existan, el job se salta solo (no rompe el pipeline):
 3. **Guardarlos como secretos del repositorio en GitHub**: `RENDER_DEPLOY_HOOK_BACKEND` y
    `RENDER_DEPLOY_HOOK_FRONTEND` (Settings del repo → Secrets and variables → Actions). Desde
    el próximo push a esta rama, el job `deploy` los usa solo.
+
+### Reiniciar la base de Neon en cada deploy (opcional, mismo interruptor que en local)
+
+`iniciar.sh` tiene `RESET_SEED` para borrar y recrear la base local antes de levantar el stack
+(ver más arriba). El job `deploy` tiene el mismo interruptor para la base real de Neon:
+`RESET_SEED_CLOUD`, una **variable** (no secreto) del repositorio en `true` o `false`.
+
+**Importante, antes de activarlo**: en local, `RESET_SEED=true` borra un contenedor propio — acá
+borra **la base de Neon de verdad**. Si se deja en `true`, **cada push** a la rama que dispara el
+deploy vuelve a borrar lo que se haya probado desde el push anterior. Sirve para dejar siempre un
+punto de partida limpio antes de una demo o una ronda de pruebas, pero hay que volver a ponerlo
+en `false` después — no es para dejarlo prendido.
+
+1. **Guardar `DATABASE_URL` como secreto del repositorio en GitHub** (Settings → Secrets and
+   variables → Actions → *Secrets*) — la misma cadena de conexión de Neon que ya está pegada en
+   el dashboard de Render, pero copiada aparte: GitHub Actions no puede leer los secretos de
+   Render, y viceversa.
+2. **Crear `RESET_SEED_CLOUD`** como *Variable* del repositorio (misma pantalla, pestaña
+   *Variables*, no *Secrets* — no es información sensible), valor `true` o `false`.
+3. Mientras no exista el secreto `DATABASE_URL`, este paso se salta solo, igual que los Deploy
+   Hooks.
+
+Corre `FASE 2/db/scripts/reiniciar-base-nube.sh` (borra los 11 esquemas con `drop schema ...
+cascade` y vuelve a aplicar todas las migraciones) antes de disparar los Deploy Hooks, para que
+el backend nuevo ya encuentre la base en el estado correcto al arrancar.

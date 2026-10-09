@@ -127,6 +127,23 @@ jobs:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Reiniciar la base en la nube (si RESET_SEED_CLOUD = true)
+        # Mismo interruptor que RESET_SEED en iniciar.sh, pero sobre Neon de verdad en vez de un
+        # contenedor local: en true, BORRA todos los esquemas de la base y los recrea desde las
+        # migraciones antes de que el nuevo backend arranque. "vars" (no "secrets") porque
+        # true/false no es sensible y sí se puede leer directo en "if". Requiere el secreto
+        # DATABASE_URL del repositorio (Settings > Secrets and variables > Actions) — es una
+        # copia aparte de la que ya está pegada en el dashboard de Render, GitHub Actions no
+        # puede leer esa. Se salta solo si no existe.
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        if: ${{ vars.RESET_SEED_CLOUD == 'true' && env.DATABASE_URL != '' }}
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+          "FASE 2/db/scripts/reiniciar-base-nube.sh" "$DATABASE_URL"
+
       - name: Disparar deploy del backend en Render
         # El "deploy hook" de cada servicio se crea en Render (Settings > Deploy Hook) y se
         # guarda como secreto del repositorio. Mientras no exista, este paso se salta en vez de
