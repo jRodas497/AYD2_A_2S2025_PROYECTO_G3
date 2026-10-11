@@ -8,7 +8,7 @@ on:
   push:
     branches:
       - develop
-      - feature/202200389-deploy-render
+      - 'feature/**'
   pull_request:
     branches:
       - develop
@@ -102,6 +102,7 @@ jobs:
           python3 "FASE 2/pruebas/prueba_fase2.py"
           python3 "FASE 2/pruebas/prueba_operaciones.py"
           python3 "FASE 2/pruebas/prueba_seguridad.py"
+          python3 "FASE 2/pruebas/prueba_pendientes.py"
 
       - name: Playwright
         working-directory: FASE 2/frontend
@@ -130,7 +131,7 @@ jobs:
     # El "no se debe hacer deploy si las pruebas no pasan" lo da needs: si backend, frontend o
     # e2e fallan, GitHub Actions ni siquiera intenta este job.
     needs: [e2e]
-    if: github.event_name == 'push' && vars.DEPLOY_RENDER_FULL_STACK == 'true'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop' && vars.DEPLOY_RENDER_FULL_STACK == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

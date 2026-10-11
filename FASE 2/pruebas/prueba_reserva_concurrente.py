@@ -79,7 +79,7 @@ def main():
 
     # Clientes sin carrito activo, para que el checkout solo lleve el producto de la prueba.
     libres = [int(x) for x in sql(
-        "select c.id from customers.customer c where not exists (select 1 from orders.cart k "
+        "select c.id from customers.customer c where c.active and not exists (select 1 from orders.cart k "
         "where k.customer_id = c.id and k.status_id in (1,2)) order by c.id desc limit %d" % a.clientes).split()]
 
     disponible_antes = http("GET", f"{B}/api/inventory/products/{a.producto}/availability")[1]["totalAvailable"]

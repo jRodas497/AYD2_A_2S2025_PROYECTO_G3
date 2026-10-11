@@ -61,7 +61,7 @@ def main():
         % (a.producto, a.clientes))
 
     clientes = [int(x) for x in sql(
-        "select c.id from customers.customer c where not exists (select 1 from orders.cart k "
+        "select c.id from customers.customer c where c.active and not exists (select 1 from orders.cart k "
         "where k.customer_id = c.id and k.status_id in (1,2)) order by c.id limit %d" % a.clientes).split()]
 
     def comprar(i_cliente):

@@ -22,6 +22,7 @@ docker compose up -d --build --wait --wait-timeout 180
 python3 pruebas/prueba_fase2.py
 python3 pruebas/prueba_operaciones.py
 python3 pruebas/prueba_seguridad.py
+python3 pruebas/prueba_pendientes.py
 python3 pruebas/prueba_reserva_concurrente.py --base "$SGO_URL" --clientes 80
 python3 pruebas/prueba_flujo_volumen.py --base "$SGO_URL" --clientes 60
 python3 pruebas/prueba_rendimiento.py --base "$SGO_URL" --peticiones 1000 --concurrencia 32 --salida pruebas/resultados-rendimiento-kafka.json
