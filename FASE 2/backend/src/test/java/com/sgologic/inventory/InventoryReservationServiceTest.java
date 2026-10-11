@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -37,8 +38,8 @@ class InventoryReservationServiceTest {
 
     @Test
     void reserva_en_la_primera_ubicacion_con_existencia_suficiente() {
-        when(jdbc.queryForList(anyString(), eq(Long.class), any(), any(), any()))
-                .thenReturn(List.of(7L, 8L));
+        when(jdbc.queryForList(anyString(), eq(55L)))
+                .thenReturn(List.of(Map.of("location_id",7L,"available",5),Map.of("location_id",8L,"available",5)));
         when(jdbc.update(anyString(), any(), eq(7L), any(), any())).thenReturn(1);
         when(reservations.save(any(Reservation.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -56,22 +57,26 @@ class InventoryReservationServiceTest {
     }
 
     @Test
-    void prueba_la_siguiente_ubicacion_si_otra_transaccion_se_adelanto() {
-        when(jdbc.queryForList(anyString(), eq(Long.class), any(), any(), any()))
-                .thenReturn(List.of(7L, 8L));
-        // La ubicación 7 pierde la carrera (0 filas actualizadas); la 8 sí tiene existencia.
-        when(jdbc.update(anyString(), any(), eq(7L), any(), any())).thenReturn(0);
+    void reserva_la_cantidad_entre_ubicaciones_con_stock_dividido() {
+        when(jdbc.queryForList(anyString(), eq(55L)))
+                .thenReturn(List.of(Map.of("location_id",7L,"available",2),Map.of("location_id",8L,"available",1)));
+        when(jdbc.update(anyString(), any(), eq(7L), any(), any())).thenReturn(1);
         when(jdbc.update(anyString(), any(), eq(8L), any(), any())).thenReturn(1);
         when(reservations.save(any(Reservation.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Reservation reservation = service.reserve(900L, 55L, 3, 20);
 
-        assertThat(reservation.getLocationId()).isEqualTo(8L);
+        assertThat(reservation.getLocationId()).isEqualTo(7L);
+        assertThat(reservation.getQuantity()).isEqualTo(2);
+        ArgumentCaptor<Reservation> saved=ArgumentCaptor.forClass(Reservation.class);
+        verify(reservations,times(2)).save(saved.capture());
+        assertThat(saved.getAllValues()).extracting(Reservation::getLocationId).containsExactly(7L,8L);
+        assertThat(saved.getAllValues()).extracting(Reservation::getQuantity).containsExactly(2,1);
     }
 
     @Test
     void lanza_excepcion_si_ninguna_ubicacion_tiene_existencia_suficiente() {
-        when(jdbc.queryForList(anyString(), eq(Long.class), any(), any(), any()))
+        when(jdbc.queryForList(anyString(), eq(55L)))
                 .thenReturn(List.of());
 
         assertThatThrownBy(() -> service.reserve(900L, 55L, 3, 20))

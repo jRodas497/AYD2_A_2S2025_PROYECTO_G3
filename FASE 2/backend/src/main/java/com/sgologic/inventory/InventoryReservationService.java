@@ -15,8 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class InventoryReservationService {
 
-    private static final int MAX_LOCATION_CANDIDATES = 5;
-
     private final JdbcTemplate jdbc;
     private final ReservationRepository reservations;
 
@@ -32,34 +30,44 @@ public class InventoryReservationService {
      */
     @Transactional
     public Reservation reserve(Long orderId, Long productId, int quantity, int ttlMinutes) {
-        List<Long> candidates = jdbc.queryForList(
+        List<java.util.Map<String,Object>> candidates = jdbc.queryForList(
                 """
-                select s.location_id
+                select s.location_id,s.on_hand-s.reserved as available
                 from inventory.stock s
                 join inventory.location l on l.id = s.location_id
-                where s.product_id = ? and s.on_hand - s.reserved >= ?
+                where s.product_id = ? and s.on_hand - s.reserved > 0
                 order by l.type_id asc, s.location_id asc
-                limit ?
+                for update of s
                 """,
-                Long.class, productId, quantity, MAX_LOCATION_CANDIDATES);
+                productId);
 
-        for (Long locationId : candidates) {
+        if(candidates.stream().mapToLong(c->((Number)c.get("available")).longValue()).sum()<quantity)
+            throw new InsufficientStockException(productId,quantity);
+        int remaining=quantity;
+        Reservation first=null;
+        for (var candidate : candidates) {
+            Long locationId=((Number)candidate.get("location_id")).longValue();
+            int taken=Math.min(remaining,((Number)candidate.get("available")).intValue());
+            if(taken==0)continue;
             int updated = jdbc.update(
                     """
                     update inventory.stock
                     set reserved = reserved + ?, updated_at = now()
                     where location_id = ? and product_id = ? and on_hand - reserved >= ?
                     """,
-                    quantity, locationId, productId, quantity);
+                    taken, locationId, productId, taken);
             if (updated == 1) {
                 Reservation r = new Reservation();
                 r.setOrderId(orderId);
                 r.setLocationId(locationId);
                 r.setProductId(productId);
-                r.setQuantity(quantity);
+                r.setQuantity(taken);
                 r.setStatus(ReservationStatus.ACTIVE);
                 r.setExpiresAt(OffsetDateTime.now().plusMinutes(ttlMinutes));
-                return reservations.save(r);
+                Reservation saved=reservations.save(r);
+                if(first==null)first=saved;
+                remaining-=taken;
+                if(remaining==0)return first;
             }
             // otra transacción se adelantó entre el select y el update: probar el siguiente candidato.
         }

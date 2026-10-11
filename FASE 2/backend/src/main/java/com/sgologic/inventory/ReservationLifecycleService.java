@@ -89,7 +89,7 @@ public class ReservationLifecycleService {
                 rs -> { reservedByProduct.merge(rs.getLong("product_id"), rs.getInt("quantity"), Integer::sum); }, orderId);
 
         List<long[]> ordered = jdbc.query(
-                "select product_id, quantity from orders.order_item where order_id = ?",
+                "select product_id, quantity from orders.order_item where order_id = ? order by product_id",
                 (rs, rowNum) -> new long[] {rs.getLong("product_id"), rs.getInt("quantity")},
                 orderId);
 
