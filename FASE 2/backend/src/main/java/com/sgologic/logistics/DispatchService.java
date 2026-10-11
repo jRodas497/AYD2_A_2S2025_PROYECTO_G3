@@ -55,6 +55,7 @@ public class DispatchService {
     private final SettingsService settings;
     private final JdbcTemplate jdbc;
     private final TransactionTemplate tx;
+    private final com.sgologic.integration.OutboxService outbox;
 
     public DispatchService(
             ShipmentRepository shipments,
@@ -68,7 +69,7 @@ public class DispatchService {
             AuditService audit,
             SettingsService settings,
             JdbcTemplate jdbc,
-            TransactionTemplate tx) {
+            TransactionTemplate tx, com.sgologic.integration.OutboxService outbox) {
         this.shipments = shipments;
         this.trackingEvents = trackingEvents;
         this.orders = orders;
@@ -81,6 +82,7 @@ public class DispatchService {
         this.settings = settings;
         this.jdbc = jdbc;
         this.tx = tx;
+        this.outbox = outbox;
     }
 
     /**
@@ -121,6 +123,11 @@ public class DispatchService {
         }
 
         ReservedLine origin = chooseOrigin(lines);
+        if(lines.stream().anyMatch(line -> !line.locationId().equals(origin.locationId()))) {
+            notifyStores(orderId,lines,"traslado para consolidación del despacho");
+            lines=reservations.consolidate(orderId,origin.locationId(),lines);
+            audit.recordSystem("DESPACHO_CONSOLIDADO","order",orderId,orderId,order.getChannel(),Map.of("origen",origin.locationCode()));
+        }
         reservations.consume(orderId, lines);
 
         Shipment shipment = new Shipment();
@@ -129,6 +136,7 @@ public class DispatchService {
         shipment.setCarrier(order.getPickupLocationId()==null ? Carrier.LOGIEXPRESS : Carrier.PICKUP);
         shipment.setStatus(ShipmentStatus.ASSIGNED);
         shipment = shipments.save(shipment);
+        queueGuide(shipment.getId(),orderId);
 
         trackingEvents.save(new TrackingEvent(shipment.getId(), ShipmentStatus.ASSIGNED,
                 "Despacho asignado desde " + origin.locationCode()));
@@ -214,7 +222,8 @@ public class DispatchService {
     public Shipment reassign(Long shipmentId, String locationCode) {
         boolean guideWasIssued = Boolean.TRUE.equals(tx.execute(status -> {
             Shipment shipment = loadShipmentForUpdate(shipmentId);
-            orders.findByIdForUpdate(shipment.getOrderId()).orElseThrow();
+            PurchaseOrder order=orders.findByIdForUpdate(shipment.getOrderId()).orElseThrow();
+            requireOpen(order);
             if (shipment.getStatus() != ShipmentStatus.ASSIGNED
                     && shipment.getStatus() != ShipmentStatus.GUIDE_REQUESTED
                     && shipment.getStatus() != ShipmentStatus.GUIDE_ISSUED) {
@@ -225,6 +234,8 @@ public class DispatchService {
             }
 
             Long newLocationId = locationIdOf(locationCode);
+            if(order.getPickupLocationId()!=null && !order.getPickupLocationId().equals(newLocationId))
+                throw new ResponseStatusException(HttpStatus.CONFLICT,"la tienda de retiro elegida por el cliente no puede cambiarse");
             List<ReservedLine> before = reservations.confirmedLines(shipment.getOrderId());
             List<ReservedLine> after = reservations.moveOrigin(shipment.getOrderId(), newLocationId, before);
 
@@ -245,6 +256,7 @@ public class DispatchService {
             notifyStores(shipment.getOrderId(), after, "reasignación: salida del nuevo origen");
             audit.recordSystem("DESPACHO_REASIGNADO", "shipment", shipmentId, shipment.getOrderId(), null,
                     Map.of("nuevoOrigen", locationCode, "guiaAnulada", hadGuide));
+            if(hadGuide) queueGuide(shipmentId,shipment.getOrderId());
             return hadGuide;
         }));
 
@@ -362,6 +374,7 @@ public class DispatchService {
 
     private Shipment applyGuide(Long shipmentId, String trackingNumber) {
         Shipment shipment = loadShipmentForUpdate(shipmentId);
+        requireOpen(orders.findByIdForUpdate(shipment.getOrderId()).orElseThrow());
         if(shipment.getTrackingNumber()!=null) return shipment;
         shipment.setTrackingNumber(trackingNumber);
         shipment.setStatus(ShipmentStatus.GUIDE_ISSUED);
@@ -383,6 +396,14 @@ public class DispatchService {
                 "LogiExpress no emitió la guía: " + error));
         audit.recordSystem("GUIA_FALLIDA", "shipment", shipmentId, shipment.getOrderId(), null,
                 Map.of("motivo", String.valueOf(error)));
+    }
+
+    private void queueGuide(Long shipmentId,Long orderId) {
+        outbox.publishForOrder(orderId,"ShipmentGuideRequested",Map.of("orderId",orderId,"shipmentId",shipmentId));
+    }
+    private void requireOpen(PurchaseOrder order) {
+        if(order.getStatus()==OrderStatus.RETURNED || order.getStatus()==OrderStatus.CANCELLED)
+            throw new ResponseStatusException(HttpStatus.CONFLICT,"la orden ya está cerrada");
     }
 
     private Long locationIdOf(String code) {

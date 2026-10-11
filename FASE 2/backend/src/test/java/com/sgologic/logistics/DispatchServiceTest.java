@@ -105,7 +105,7 @@ class DispatchServiceTest {
         when(shipments.findByIdForUpdate(900L)).thenAnswer(inv -> Optional.ofNullable(savedShipment));
 
         service = new DispatchService(shipments, trackingEvents, orders, reservations, posEvents, notifications,
-                logiexpress, breakers, audit, settings, jdbc, tx);
+                logiexpress, breakers, audit, settings, jdbc, tx, mock(com.sgologic.integration.OutboxService.class));
     }
 
     private PurchaseOrder invoicedOrder(Long id) {

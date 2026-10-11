@@ -25,7 +25,7 @@ public class IncidentQueryService {
         StringBuilder sql = new StringBuilder(
                 """
                 select i.id, i.order_id, o.customer_id, c.full_name as customer, i.type_id, i.status_id,
-                       i.description, o.total, i.created_at, i.resolved_at
+                       i.description, o.total, i.created_at, i.resolved_at, i.replacement_order_id
                 from orders.incident i
                 join orders.purchase_order o on o.id = i.order_id
                 join customers.customer c on c.id = o.customer_id
@@ -54,7 +54,7 @@ public class IncidentQueryService {
                         rs.getString("description"),
                         rs.getBigDecimal("total"),
                         rs.getObject("created_at", OffsetDateTime.class),
-                        rs.getObject("resolved_at", OffsetDateTime.class)),
+                        rs.getObject("resolved_at", OffsetDateTime.class),rs.getObject("replacement_order_id",Long.class)),
                 args.toArray());
     }
 
@@ -69,6 +69,6 @@ public class IncidentQueryService {
             String description,
             BigDecimal orderTotal,
             OffsetDateTime createdAt,
-            OffsetDateTime resolvedAt) {
+            OffsetDateTime resolvedAt, Long replacementOrderId) {
     }
 }

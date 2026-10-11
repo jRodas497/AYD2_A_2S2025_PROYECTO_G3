@@ -57,4 +57,9 @@ public class AuditService {
             throw new IllegalArgumentException("no se pudo serializar el detalle de auditoría", e);
         }
     }
+
+    public static String currentActor() {
+        var auth=org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        return auth==null || !auth.isAuthenticated() || auth instanceof org.springframework.security.authentication.AnonymousAuthenticationToken ? "system" : auth.getName();
+    }
 }

@@ -22,6 +22,8 @@ import org.springframework.web.server.ResponseStatusException;
 public class ShipmentController {
 
     private final DispatchService dispatch;
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.sgologic.auth.StoreAccess storeAccess;
 
     public ShipmentController(DispatchService dispatch) {
         this.dispatch = dispatch;
@@ -39,6 +41,7 @@ public class ShipmentController {
      */
     @PostMapping("/orders/{orderId}/dispatch")
     public ShipmentView dispatchOrder(@PathVariable Long orderId) {
+        storeAccess.requireOrder(orderId);
         try {
             return view(dispatch.dispatch(orderId));
         } catch (ProviderUnavailableException e) {
@@ -66,6 +69,7 @@ public class ShipmentController {
     /** Vuelve a pedirle la guía a LogiExpress, para resolver una alerta a mano. */
     @PostMapping("/shipments/{id}/guide")
     public ShipmentView requestGuide(@PathVariable Long id) {
+        storeAccess.requireShipment(id);
         try {
             return view(dispatch.requestGuide(id));
         } catch (ProviderUnavailableException e) {
@@ -76,12 +80,15 @@ public class ShipmentController {
     /** Actualización de estado que manda LogiExpress (o Logística, si va a mano). */
     @PostMapping("/shipments/{id}/tracking")
     public ShipmentView track(@PathVariable Long id, @Valid @RequestBody TrackingUpdate body) {
+        storeAccess.requireShipment(id);
         return view(dispatch.applyTrackingUpdate(id, parse(body.status()), body.detail()));
     }
 
     /** Cambia el punto de despacho después de confirmada la compra (CDU-04, flujo 1a). */
     @PutMapping("/shipments/{id}/origin")
     public ShipmentView reassign(@PathVariable Long id, @Valid @RequestBody OriginUpdate body) {
+        storeAccess.requireShipment(id);
+        storeAccess.requireLocation(body.locationCode());
         return view(dispatch.reassign(id, body.locationCode()));
     }
 

@@ -33,6 +33,16 @@ public class IncidentService {
     @org.springframework.beans.factory.annotation.Autowired
     private com.sgologic.payments.RefundService refunds;
     @org.springframework.beans.factory.annotation.Autowired
+    private com.sgologic.catalog.ProductRepository products;
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.sgologic.catalog.PricingService pricing;
+    @org.springframework.beans.factory.annotation.Autowired
+    private OrderItemRepository orderItems;
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.sgologic.inventory.InventoryReservationService reservations;
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.sgologic.config.SettingsService settings;
+    @org.springframework.beans.factory.annotation.Autowired
     private org.springframework.jdbc.core.JdbcTemplate jdbc;
     private final IncidentRepository incidents;
     private final PurchaseOrderRepository orders;
@@ -100,7 +110,9 @@ public class IncidentService {
         }
 
         PurchaseOrder lockedOrder=orders.findByIdForUpdate(incident.getOrderId()).orElseThrow();
-        if(status==IncidentStatus.RESOLVED && incident.getType()==IncidentType.RETURN) {
+        if(status==IncidentStatus.RESOLVED && incident.getType()==IncidentType.EXCHANGE && incident.getReplacementOrderId()==null)
+            throw new ResponseStatusException(HttpStatus.CONFLICT,"selecciona el producto de reemplazo para resolver el cambio");
+        if(status==IncidentStatus.RESOLVED) {
             var authentication=SecurityContextHolder.getContext().getAuthentication();
             BigDecimal threshold=new BigDecimal(jdbc.queryForObject("select value from config.setting where key='refund.finance_threshold_q'",String.class));
             boolean finance=authentication!=null && authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_FINANCE"));
@@ -113,7 +125,7 @@ public class IncidentService {
         incident = incidents.save(incident);
 
         PurchaseOrder order = orders.findById(incident.getOrderId()).orElseThrow();
-        if (status == IncidentStatus.RESOLVED && incident.getType() == IncidentType.RETURN
+        if (status == IncidentStatus.RESOLVED
                 && RETURNABLE.contains(order.getStatus())) {
             refunds.queue(order);
             order.setStatus(OrderStatus.RETURNED);
@@ -128,6 +140,29 @@ public class IncidentService {
                             + (status == IncidentStatus.RESOLVED ? "resuelta" : "rechazada") + ".");
         }
         return incident;
+    }
+
+    @Transactional
+    public PurchaseOrder exchange(Long id,Long productId,int quantity) {
+        Incident incident=incidents.findByIdForUpdate(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"incidencia no encontrada"));
+        if(incident.getType()!=IncidentType.EXCHANGE) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"la solicitud no es un cambio");
+        if(incident.getReplacementOrderId()!=null) return orders.findById(incident.getReplacementOrderId()).orElseThrow();
+        if(incident.getStatus().isClosed()) throw new ResponseStatusException(HttpStatus.CONFLICT,"solicitud cerrada");
+        PurchaseOrder original=orders.findByIdForUpdate(incident.getOrderId()).orElseThrow();
+        if(!RETURNABLE.contains(original.getStatus())) throw new ResponseStatusException(HttpStatus.CONFLICT,"orden original cerrada");
+        var product=products.findById(productId).filter(com.sgologic.catalog.Product::isActive).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"producto no disponible"));
+        PurchaseOrder replacement=new PurchaseOrder();
+        replacement.setCustomerId(original.getCustomerId());replacement.setChannel(original.getChannel());
+        replacement.setDeliveryAddress(original.getDeliveryAddress());replacement.setPickupLocationId(original.getPickupLocationId());
+        BigDecimal price=pricing.unitPrice(product);replacement.setTotal(price.multiply(BigDecimal.valueOf(quantity)));
+        replacement=orders.saveAndFlush(replacement);
+        orderItems.save(new OrderItem(replacement.getId(),productId,quantity,price));
+        incident.setReplacementOrderId(replacement.getId());
+        updateStatus(id,IncidentStatus.RESOLVED);
+        if(replacement.getPickupLocationId()==null) reservations.reserve(replacement.getId(),productId,quantity,settings.reservationTtlMinutes());
+        else reservations.reserveAtLocation(replacement.getId(),productId,quantity,settings.reservationTtlMinutes(),replacement.getPickupLocationId());
+        audit.record(AuditService.currentActor(),"CAMBIO_REEMPLAZO_CREADO","incident",id,original.getId(),original.getChannel(),Map.of("replacementOrderId",replacement.getId(),"productId",productId,"quantity",quantity));
+        return replacement;
     }
 
     /** Quién hizo la operación: el usuario del token si inició sesión; si no, atención al cliente. */

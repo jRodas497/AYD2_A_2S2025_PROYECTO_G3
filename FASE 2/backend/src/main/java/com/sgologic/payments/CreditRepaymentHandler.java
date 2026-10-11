@@ -9,6 +9,7 @@ public class CreditRepaymentHandler implements OutboxHandler {
     @Override public String eventType() { return "CreditRepaymentRequested"; }
     @Override public void handle(OutboxEvent event) { credit.collectRepayment(event.longValue("customerId"),event.longValue("chargeId")); }
     @Override public void onRetriesExhausted(OutboxEvent event,String error) {
-        jdbc.update("update payments.credit_charge set repayment_reference=null where id=? and paid_at is null",event.longValue("chargeId"));
+        // Preserve the durable intent: replay must query the same idempotent payment after an ambiguous failure.
+        jdbc.update("update payments.credit_charge set repayment_error=? where id=? and paid_at is null",error,event.longValue("chargeId"));
     }
 }

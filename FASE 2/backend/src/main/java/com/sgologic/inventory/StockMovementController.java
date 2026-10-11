@@ -39,6 +39,8 @@ public class StockMovementController {
     private final JdbcTemplate jdbc;
     private final PosEventService posEvents;
     private final AuditService audit;
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.sgologic.auth.StoreAccess storeAccess;
 
     public StockMovementController(JdbcTemplate jdbc, PosEventService posEvents, AuditService audit) {
         this.jdbc = jdbc;
@@ -50,6 +52,7 @@ public class StockMovementController {
     @ResponseStatus(HttpStatus.CREATED)
     @Transactional
     public Movement register(@Valid @RequestBody NewMovement body) {
+        storeAccess.requireLocation(body.locationCode());
         List<Map<String, Object>> location = jdbc.queryForList(
                 "select id, type_id from inventory.location where code = ?", body.locationCode());
         if (location.isEmpty()) {
@@ -100,7 +103,7 @@ public class StockMovementController {
                     Map.of("productId", body.productId(), "movimiento", body.type().code(),
                            "quantity", body.quantity(), "motivo", body.reason()));
         }
-        audit.record("inventario", "INVENTARIO_" + (body.type() == MovementType.IN ? "ENTRADA" : "SALIDA"),
+        audit.record(AuditService.currentActor(), "INVENTARIO_" + (body.type() == MovementType.IN ? "ENTRADA" : "SALIDA"),
                 "stock_movement", movementId, null, null,
                 Map.of("ubicacion", body.locationCode(), "productId", body.productId(),
                        "cantidad", body.quantity(), "motivo", body.reason()));
@@ -122,6 +125,7 @@ public class StockMovementController {
     @ResponseStatus(HttpStatus.CREATED)
     @Transactional(noRollbackFor = ResponseStatusException.class)
     public Adjustment adjust(@Valid @RequestBody NewAdjustment body) {
+        storeAccess.requireLocation(body.locationCode());
         List<Map<String, Object>> location = jdbc.queryForList(
                 "select id, type_id from inventory.location where code = ?", body.locationCode());
         if (location.isEmpty()) {
@@ -139,8 +143,8 @@ public class StockMovementController {
         String source = body.source() == null || body.source().isBlank() ? "POS " + body.locationCode() : body.source();
 
         if (body.countedQuantity() < reserved) {
-            audit.record(source, "INVENTARIO_AJUSTE_RECHAZADO", "stock", body.locationCode() + ":" + body.productId(),
-                    null, null, Map.of("registrado", before, "contado", body.countedQuantity(), "reservado", reserved));
+            audit.record(AuditService.currentActor(), "INVENTARIO_AJUSTE_RECHAZADO", "stock", body.locationCode() + ":" + body.productId(),
+                    null, null, Map.of("registrado", before, "contado", body.countedQuantity(), "reservado", reserved,"fuente",source));
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "el conteo (" + body.countedQuantity() + ") es menor a lo reservado para órdenes (" + reserved
                             + "); revisar antes de ajustar");
@@ -168,8 +172,8 @@ public class StockMovementController {
                                "quantity", body.countedQuantity(), "motivo", "conteo físico aceptado"));
             }
         }
-        audit.record(source, "INVENTARIO_AJUSTE", "stock", body.locationCode() + ":" + body.productId(), null, null,
-                Map.of("registrado", before, "contado", body.countedQuantity(), "diferencia", difference));
+        audit.record(AuditService.currentActor(), "INVENTARIO_AJUSTE", "stock", body.locationCode() + ":" + body.productId(), null, null,
+                Map.of("registrado", before, "contado", body.countedQuantity(), "diferencia", difference,"fuente",source));
         return new Adjustment(body.locationCode(), body.productId(), before, body.countedQuantity(), difference, reserved);
     }
 

@@ -54,7 +54,17 @@ public class CreditService {
         return "CREDIT-"+id;
     }
     public List<Map<String,Object>> charges(Long customerId) {
-        return jdbc.queryForList("select id,order_id,amount,due_at,paid_at,voided_at,repayment_reference,created_at, (paid_at is null and voided_at is null and due_at<now()) as overdue from payments.credit_charge where customer_id=? order by id desc",customerId);
+        return jdbc.queryForList("select id,order_id,amount,due_at,paid_at,voided_at,repayment_reference,repayment_error,created_at, (paid_at is null and voided_at is null and due_at<now()) as overdue from payments.credit_charge where customer_id=? order by id desc",customerId);
+    }
+    @org.springframework.transaction.annotation.Transactional
+    public Map<String,Object> retryRepayment(Long customerId,Long id) {
+        lockCustomer(customerId);var charge=loadCharge(customerId,id);
+        if(charge.get("paid_at")!=null) return Map.of("paid",true);
+        if(charge.get("voided_at")!=null) throw new ResponseStatusException(HttpStatus.CONFLICT,"saldo anulado");
+        int changed=jdbc.update("update integration.outbox set status_id=1,kafka_published_at=null,relay_lease_until=null,attempts=0,last_error=null where event_type='CreditRepaymentRequested' and aggregate_id=? and status_id=3",id);
+        if(changed==0) throw new ResponseStatusException(HttpStatus.CONFLICT,"no hay un abono fallido para reintentar");
+        jdbc.update("update payments.credit_charge set repayment_reference='PENDING',repayment_error=null where id=?",id);
+        return Map.of("paid",false,"queued",true);
     }
     public Map<String,Object> repay(Long customerId, Long id, String token) {
         tx.executeWithoutResult(status -> {
@@ -63,7 +73,7 @@ public class CreditService {
             if(charge.get("voided_at")!=null) throw new ResponseStatusException(HttpStatus.CONFLICT,"compra devuelta; saldo anulado");
             if(charge.get("paid_at")!=null) return;
             if(!"PENDING".equals(charge.get("repayment_reference"))) {
-                jdbc.update("update payments.credit_charge set repayment_reference='PENDING',repayment_token=? where id=?",token,id);
+                jdbc.update("update payments.credit_charge set repayment_reference='PENDING',repayment_token=?,repayment_error=null where id=?",token,id);
                 outbox.publish("credit_charge",id,"CreditRepaymentRequested",Map.of("customerId",customerId,"chargeId",id));
             }
         });
@@ -75,7 +85,10 @@ public class CreditService {
     public Map<String,Object> collectRepayment(Long customerId, Long id) {
         var charge=loadCharge(customerId,id);
         if(charge.get("paid_at")!=null) return Map.of("paid",true,"message","pago ya registrado");
-        if(!"PENDING".equals(charge.get("repayment_reference"))) return Map.of("paid",false);
+        if(!"PENDING".equals(charge.get("repayment_reference"))) {
+            if(charge.get("voided_at")!=null) return Map.of("paid",false,"voided",true);
+            throw new IllegalStateException("el abono no tiene una intención activa; se requiere un nuevo intento");
+        }
         var response=payklik.charge(-id,(BigDecimal)charge.get("amount"),String.valueOf(charge.get("repayment_token")),5000);
         if(!response.approved()) {
             jdbc.update("update payments.credit_charge set repayment_reference=null where id=? and paid_at is null",id);
@@ -83,7 +96,7 @@ public class CreditService {
         }
         tx.executeWithoutResult(status -> {
             lockCustomer(customerId);
-            int changed=jdbc.update("update payments.credit_charge set paid_at=now(),repayment_reference=? where id=? and customer_id=? and paid_at is null and voided_at is null",response.providerReference(),id,customerId);
+            int changed=jdbc.update("update payments.credit_charge set paid_at=now(),repayment_reference=?,repayment_error=null where id=? and customer_id=? and paid_at is null and voided_at is null",response.providerReference(),id,customerId);
             if(changed==1) audit.recordSystem("CREDITO_ABONO","credit_charge",id,null,null,Map.of("referencia",response.providerReference(),"monto",charge.get("amount")));
         });
         return Map.of("paid",true,"reference",response.providerReference());

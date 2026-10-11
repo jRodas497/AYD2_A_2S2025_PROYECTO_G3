@@ -59,6 +59,11 @@ public class IncidentController {
     public Incident updateStatus(@PathVariable Long id, @Valid @RequestBody UpdateIncidentStatus body) {
         return incidentService.updateStatus(id, body.status());
     }
+    @PostMapping("/api/incidents/{id}/exchange")
+    public PurchaseOrder exchange(@PathVariable Long id,@Valid @RequestBody Exchange body) {
+        return incidentService.exchange(id,body.productId(),body.quantity());
+    }
+    public record Exchange(@NotNull Long productId,@NotNull @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(100000) Integer quantity) {}
 
     public record NewIncident(@NotNull IncidentType type, @NotBlank String description) {
     }

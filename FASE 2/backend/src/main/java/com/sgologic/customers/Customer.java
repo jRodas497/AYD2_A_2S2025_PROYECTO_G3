@@ -41,6 +41,10 @@ public class Customer {
     @JsonIgnore
     @Column(name = "password_hash")
     private String passwordHash;
+    private boolean active = true;
+    @JsonIgnore
+    @Column(name="auth_version",nullable=false)
+    private int authVersion;
 
     @Column(name = "created_at", insertable = false, updatable = false)
     private OffsetDateTime createdAt;

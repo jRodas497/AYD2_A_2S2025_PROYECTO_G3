@@ -73,17 +73,26 @@ public class ReservationLifecycleService {
      */
     @Transactional
     public List<ReservedLine> ensureReservedForDispatch(Long orderId, int ttlMinutes) {
+        ensureReservedForPayment(orderId, ttlMinutes);
         confirmForOrder(orderId);
+        return confirmedLines(orderId);
+    }
+
+    /** Keep unpaid reservations temporary, including while a provider or Kafka is unavailable. */
+    @Transactional
+    public void ensureReservedForPayment(Long orderId, int ttlMinutes) {
+        jdbc.update("update inventory.reservation set expires_at=greatest(expires_at,now()+make_interval(mins=>?)) where order_id=? and status_id=1",ttlMinutes,orderId);
         Map<Long, Integer> reservedByProduct = confirmedLines(orderId).stream()
                 .collect(java.util.stream.Collectors.toMap(
                         ReservedLine::productId, ReservedLine::quantity, Integer::sum));
+        jdbc.query("select product_id, quantity from inventory.reservation where order_id=? and status_id=1",
+                rs -> { reservedByProduct.merge(rs.getLong("product_id"), rs.getInt("quantity"), Integer::sum); }, orderId);
 
         List<long[]> ordered = jdbc.query(
                 "select product_id, quantity from orders.order_item where order_id = ?",
                 (rs, rowNum) -> new long[] {rs.getLong("product_id"), rs.getInt("quantity")},
                 orderId);
 
-        boolean reservedSomething = false;
         for (long[] item : ordered) {
             long productId = item[0];
             int missing = (int) item[1] - reservedByProduct.getOrDefault(productId, 0);
@@ -91,11 +100,23 @@ public class ReservationLifecycleService {
                 Long pickup=jdbc.queryForObject("select pickup_location_id from orders.purchase_order where id=?",Long.class,orderId);
                 if(pickup==null) reservations.reserve(orderId, productId, missing, ttlMinutes);
                 else reservations.reserveAtLocation(orderId,productId,missing,ttlMinutes,pickup);
-                reservedSomething = true;
             }
         }
-        if (reservedSomething) {
-            confirmForOrder(orderId);
+    }
+
+    /** Transfer the reserved merchandise to the selected origin before a single shipment leaves. */
+    @Transactional
+    public List<ReservedLine> consolidate(Long orderId, Long originId, List<ReservedLine> lines) {
+        for (ReservedLine line : lines) {
+            if (line.locationId().equals(originId)) continue;
+            int moved = jdbc.update("update inventory.stock set on_hand=on_hand-?,reserved=reserved-?,updated_at=now() where location_id=? and product_id=? and reserved>=? and on_hand>=?",
+                    line.quantity(),line.quantity(),line.locationId(),line.productId(),line.quantity(),line.quantity());
+            if(moved!=1) throw new IllegalStateException("no se pudo consolidar la reserva " + line.reservationId());
+            jdbc.update("insert into inventory.stock(location_id,product_id,on_hand,reserved) values(?,?,?,?) on conflict(location_id,product_id) do update set on_hand=stock.on_hand+excluded.on_hand,reserved=stock.reserved+excluded.reserved,updated_at=now()",
+                    originId,line.productId(),line.quantity(),line.quantity());
+            recordMovement(line.locationId(),line.productId(),MovementType.OUT,line.quantity(),"Traslado al origen de despacho " + originId,orderId);
+            recordMovement(originId,line.productId(),MovementType.IN,line.quantity(),"Recepción de traslado desde " + line.locationCode(),orderId);
+            jdbc.update("update inventory.reservation set location_id=? where id=?",originId,line.reservationId());
         }
         return confirmedLines(orderId);
     }

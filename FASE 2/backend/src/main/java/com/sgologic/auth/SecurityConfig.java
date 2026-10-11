@@ -45,6 +45,8 @@ public class SecurityConfig {
                         .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.POST,"/api/providers/logiexpress/tracking").permitAll()
                         .requestMatchers("/api/auth/login", "/api/customers/login", "/api/customers/register").permitAll()
+                        .requestMatchers(HttpMethod.POST,"/api/customers/password/forgot","/api/customers/password/reset").permitAll()
+                        .requestMatchers("/api/customers/*/active").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET,"/api/products/**","/api/products","/api/promotions","/api/inventory/products/*/availability","/api/inventory/locations").permitAll()
                         .requestMatchers("/api/auth/me").hasAnyRole(STAFF)
                         .requestMatchers("/api/simulation/**", "/api/users/**", "/api/users", "/api/settings/**", "/api/settings").hasRole("ADMIN")

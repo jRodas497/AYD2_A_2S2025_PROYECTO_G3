@@ -186,7 +186,7 @@ public class PaymentService {
         if(!isRetry && attempts.findByOrder(orderId).stream().filter(a -> a.result()==PaymentResult.DECLINED).count()>=3)
             throw new ResponseStatusException(HttpStatus.CONFLICT,"se agotaron los tres intentos rechazados; cancela la orden y crea una nueva compra");
         // Reserve missing/expired items BEFORE charging; never approve a sale with no stock.
-        reservations.ensureReservedForDispatch(orderId, settings.reservationTtlMinutes());
+        reservations.ensureReservedForPayment(orderId, settings.reservationTtlMinutes());
         order.setStatus(OrderStatus.PAYMENT_IN_PROGRESS);
         order.setUpdatedAt(OffsetDateTime.now());
         audit.recordSystem(isRetry ? "COBRO_REINTENTADO" : "COBRO_INICIADO", "order", orderId, orderId,
@@ -250,6 +250,7 @@ public class PaymentService {
         String message;
         switch (charge.result()) {
             case APPROVED -> {
+                reservations.ensureReservedForPayment(snapshot.id(), settings.reservationTtlMinutes());
                 reservations.confirmForOrder(snapshot.id());
                 order.setStatus(OrderStatus.PAID);
                 outbox.publishForOrder(snapshot.id(), EventTypes.ORDER_PAID, Map.of("orderId", snapshot.id()));

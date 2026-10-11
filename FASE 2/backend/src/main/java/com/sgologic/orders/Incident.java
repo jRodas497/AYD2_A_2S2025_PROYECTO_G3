@@ -43,4 +43,6 @@ public class Incident {
 
     @Column(name = "resolved_at")
     private OffsetDateTime resolvedAt;
+    @Column(name="replacement_order_id")
+    private Long replacementOrderId;
 }

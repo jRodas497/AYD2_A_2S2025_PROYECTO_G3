@@ -33,7 +33,7 @@ public class KafkaConsumers {
         Long id=Long.valueOf(value);
         if (!pending("integration.outbox", id)) return;
         OutboxEvent e=outbox.findById(id);
-        if ((e.eventType().equals("OrderPaid") || e.eventType().equals("OrderInvoiced"))
+        if ((e.eventType().equals("OrderPaid") || e.eventType().equals("OrderInvoiced") || e.eventType().equals("ShipmentGuideRequested"))
                 && Boolean.TRUE.equals(jdbc.queryForObject("select status_id in (8,9) from orders.purchase_order where id=?",Boolean.class,e.longValue("orderId")))) {
             outbox.markDelivered(id,e.attempts()); return;
         }

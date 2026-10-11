@@ -41,6 +41,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (claims != null) {
                 @SuppressWarnings("unchecked")
                 List<String> roles = claims.get("roles", List.class);
+                if(claims.get("customerId")!=null && jdbc!=null) {
+                    var versions=jdbc.queryForList("select auth_version from customers.customer where id=? and active",Integer.class,claims.get("customerId",Long.class));
+                    Number version=claims.get("authVersion",Number.class);
+                    if(versions.isEmpty() || versions.get(0)!=(version==null?0:version.intValue())) { chain.doFilter(request,response);return; }
+                    roles=List.of("CUSTOMER");
+                }
                 if (claims.get("customerId") == null && jdbc != null) {
                     var versions = jdbc.queryForList("select auth_version from config.app_user where username=? and active", Integer.class, claims.getSubject());
                     Number claimedVersion = claims.get("authVersion", Number.class);

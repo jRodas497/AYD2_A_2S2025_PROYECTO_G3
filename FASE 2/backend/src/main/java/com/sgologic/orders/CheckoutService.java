@@ -74,7 +74,10 @@ public class CheckoutService {
             deliveryAddress="Retiro en tienda " + locations.get(0).get("code") + ": " + locations.get(0).get("name");
         }
         // Serializes simultaneous checkout requests for the same customer's cart.
-        if (jdbc != null) jdbc.queryForObject("select id from customers.customer where id=? for update",Long.class,customerId);
+        if (jdbc != null) {
+            var owners=jdbc.queryForList("select id from customers.customer where id=? and active for update",Long.class,customerId);
+            if(owners.isEmpty()) throw new ResponseStatusException(HttpStatus.CONFLICT,"cliente inactivo o inexistente");
+        }
         Cart cart = carts.findByCustomerIdAndStatusIn(customerId, List.of(CartStatus.OPEN, CartStatus.IN_CHECKOUT))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "el cliente no tiene un carrito activo"));
         if(channel!=null) cart.setLastChannel(channel);

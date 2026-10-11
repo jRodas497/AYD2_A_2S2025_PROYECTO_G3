@@ -57,14 +57,14 @@ public class CustomerAuthController {
     public Session login(@Valid @RequestBody LoginRequest body) {
         Customer c = customers.findByEmail(body.email())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "correo o contraseña incorrectos"));
-        if (c.getPasswordHash() == null || !encoder.matches(body.password(), c.getPasswordHash())) {
+        if (!c.isActive() || c.getPasswordHash() == null || !encoder.matches(body.password(), c.getPasswordHash())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "correo o contraseña incorrectos");
         }
         return session(c);
     }
 
     private Session session(Customer c) {
-        String token = jwt.issue(c.getEmail(), List.of("CUSTOMER"), Map.of("customerId", c.getId()));
+        String token = jwt.issue(c.getEmail(), List.of("CUSTOMER"), Map.of("customerId", c.getId(),"authVersion",c.getAuthVersion()));
         return new Session(token, c.getId(), c.getFullName(), c.getEmail(), c.getPhone(), c.getAddress());
     }
 
