@@ -48,7 +48,7 @@ public class CreditService {
         int problems=jdbc.queryForObject("select count(*) from orders.incident i join orders.purchase_order o on o.id=i.order_id where o.customer_id=? and i.status_id=3 and i.type_id=1", Integer.class, customerId);
         int returns=jdbc.queryForObject("select count(*) from orders.incident i join orders.purchase_order o on o.id=i.order_id where o.customer_id=? and i.status_id=3 and i.type_id=2",Integer.class,customerId);
         int pending=jdbc.queryForObject("select count(*) from orders.incident i join orders.purchase_order o on o.id=i.order_id where o.customer_id=? and i.status_id in (1,2)",Integer.class,customerId);
-        int overdue=jdbc.queryForObject("select count(*) from payments.credit_charge where customer_id=? and voided_at is null and ((paid_at is null and due_at<now()) or paid_at>due_at)", Integer.class, customerId);
+        int overdue=jdbc.queryForObject("select count(*) from payments.credit_charge where customer_id=? and ((paid_at is null and voided_at is null and due_at<now()) or paid_at>due_at)", Integer.class, customerId);
         int declined=jdbc.queryForObject("select count(*) from payments.payment_attempt p join orders.purchase_order o on o.id=p.order_id where o.customer_id=? and p.result_id=2", Integer.class, customerId);
         BigDecimal limit=new BigDecimal(jdbc.queryForObject("select value from config.setting where key='credit.limit'", String.class));
         BigDecimal used=jdbc.queryForObject("select coalesce(sum(amount),0) from payments.credit_charge where customer_id=? and paid_at is null and voided_at is null", BigDecimal.class, customerId);
