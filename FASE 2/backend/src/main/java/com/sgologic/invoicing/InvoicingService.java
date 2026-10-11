@@ -117,7 +117,7 @@ public class InvoicingService {
                     HttpStatus.CONFLICT,
                     "la orden " + orderId + " no está pagada; no se puede facturar antes de cobrar");
         }
-        if (order.getStatus() == OrderStatus.CANCELLED) {
+        if (order.getStatus() == OrderStatus.CANCELLED || order.getStatus() == OrderStatus.RETURNED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "la orden " + orderId + " está cancelada");
         }
 
@@ -144,7 +144,9 @@ public class InvoicingService {
 
     /** La factura salió hacia la SAT pero no hubo respuesta: queda como enviada, a la espera. */
     private void markSent(Long invoiceId, Long orderId, String error) {
+        load(orderId);
         Invoice invoice = invoices.findById(invoiceId).orElseThrow();
+        if(invoice.getStatus()==InvoiceStatus.ACCEPTED) return;
         invoice.setStatus(InvoiceStatus.SENT);
         invoice.setSatResponse("sin respuesta de la SAT: " + error);
         audit.recordSystem("FACTURA_SIN_RESPUESTA", "invoice", invoiceId, orderId, null,
@@ -152,8 +154,10 @@ public class InvoicingService {
     }
 
     private Invoice apply(Long orderId, Long invoiceId, SatClient.SatResponse response) {
-        Invoice invoice = invoices.findById(invoiceId).orElseThrow();
         PurchaseOrder order = load(orderId);
+        Invoice invoice = invoices.findById(invoiceId).orElseThrow();
+        if(invoice.getStatus()==InvoiceStatus.ACCEPTED) return invoice;
+        if(order.getStatus()==OrderStatus.RETURNED || order.getStatus()==OrderStatus.CANCELLED) throw new ResponseStatusException(HttpStatus.CONFLICT,"orden cerrada");
 
         invoice.setStatus(response.accepted() ? InvoiceStatus.ACCEPTED : InvoiceStatus.REJECTED);
         invoice.setSatResponse(response.message());
@@ -189,7 +193,7 @@ public class InvoicingService {
     }
 
     private PurchaseOrder load(Long orderId) {
-        return orders.findById(orderId)
+        return orders.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "orden no encontrada"));
     }
 

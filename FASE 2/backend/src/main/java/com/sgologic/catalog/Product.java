@@ -36,6 +36,9 @@ public class Product {
     @Column(nullable = false)
     private BigDecimal price;
 
+    @jakarta.persistence.Transient
+    private BigDecimal originalPrice;
+
     @Column(nullable = false)
     private boolean active;
 }

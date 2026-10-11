@@ -93,7 +93,7 @@ public class DispatchService {
     }
 
     private Long prepare(Long orderId) {
-        PurchaseOrder order = loadOrder(orderId);
+        PurchaseOrder order = orders.findByIdForUpdate(orderId).orElseThrow();
 
         if (order.getStatus() == OrderStatus.PENDING_PAYMENT
                 || order.getStatus() == OrderStatus.PAYMENT_IN_PROGRESS
@@ -126,7 +126,7 @@ public class DispatchService {
         Shipment shipment = new Shipment();
         shipment.setOrderId(orderId);
         shipment.setOriginLocationId(origin.locationId());
-        shipment.setCarrier(Carrier.LOGIEXPRESS);
+        shipment.setCarrier(order.getPickupLocationId()==null ? Carrier.LOGIEXPRESS : Carrier.PICKUP);
         shipment.setStatus(ShipmentStatus.ASSIGNED);
         shipment = shipments.save(shipment);
 
@@ -156,6 +156,7 @@ public class DispatchService {
             return shipment;
         }
 
+        if(shipment.getCarrier()==Carrier.PICKUP) return tx.execute(status -> applyGuide(shipmentId,"PICKUP-"+shipmentId));
         CircuitBreaker breaker = breakers.of(Provider.LOGIEXPRESS);
         if (!breaker.allowsRequest()) {
             // Degradación controlada: ni se intenta, el evento vuelve a la cola.
@@ -169,7 +170,12 @@ public class DispatchService {
             LogiExpressClient.GuideResponse guide = logiexpress.requestGuide(
                     shipmentId, request.originCode(), request.deliveryAddress());
             breaker.recordSuccess();
-            return tx.execute(status -> applyGuide(shipmentId, guide.trackingNumber()));
+            return tx.execute(status -> {
+                Shipment current=loadShipmentForUpdate(shipmentId);
+                if(!locationCodeOf(current.getOriginLocationId()).equals(request.originCode()))
+                    throw new ProviderUnavailableException(Provider.LOGIEXPRESS,0,false,"el origen cambió; se requiere una guía nueva");
+                return applyGuide(shipmentId,guide.trackingNumber());
+            });
         } catch (ProviderUnavailableException e) {
             breaker.recordFailure();
             tx.executeWithoutResult(status -> recordGuideFailure(shipmentId, e.getMessage()));
@@ -207,7 +213,8 @@ public class DispatchService {
      */
     public Shipment reassign(Long shipmentId, String locationCode) {
         boolean guideWasIssued = Boolean.TRUE.equals(tx.execute(status -> {
-            Shipment shipment = loadShipment(shipmentId);
+            Shipment shipment = loadShipmentForUpdate(shipmentId);
+            orders.findByIdForUpdate(shipment.getOrderId()).orElseThrow();
             if (shipment.getStatus() != ShipmentStatus.ASSIGNED
                     && shipment.getStatus() != ShipmentStatus.GUIDE_REQUESTED
                     && shipment.getStatus() != ShipmentStatus.GUIDE_ISSUED) {
@@ -258,7 +265,17 @@ public class DispatchService {
      */
     public Shipment applyTrackingUpdate(Long shipmentId, ShipmentStatus status, String detail) {
         return tx.execute(tstatus -> {
-            Shipment shipment = loadShipment(shipmentId);
+            Shipment shipment = loadShipmentForUpdate(shipmentId);
+            orders.findByIdForUpdate(shipment.getOrderId()).orElseThrow();
+            if (shipment.getStatus() == status) return shipment;
+            if (shipment.getStatus() == ShipmentStatus.DELIVERED) throw new ResponseStatusException(HttpStatus.CONFLICT,"el envío ya fue entregado");
+            if ((status == ShipmentStatus.IN_TRANSIT || status == ShipmentStatus.DELIVERED) && shipment.getTrackingNumber()==null)
+                throw new ResponseStatusException(HttpStatus.CONFLICT,"se requiere una guía antes de actualizar la entrega");
+            if(status != ShipmentStatus.IN_TRANSIT && status != ShipmentStatus.DELIVERED && status != ShipmentStatus.FAILED)
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"transición logística no permitida");
+            PurchaseOrder owningOrder=orders.findByIdForUpdate(shipment.getOrderId()).orElseThrow();
+            if(owningOrder.getStatus()==OrderStatus.RETURNED || owningOrder.getStatus()==OrderStatus.CANCELLED)
+                throw new ResponseStatusException(HttpStatus.CONFLICT,"la orden ya está cerrada");
             shipment.setStatus(status);
             shipment.setUpdatedAt(OffsetDateTime.now());
             trackingEvents.save(new TrackingEvent(shipmentId, status, detail));
@@ -330,7 +347,7 @@ public class DispatchService {
     }
 
     private GuideRequest markGuideRequested(Long shipmentId) {
-        Shipment shipment = loadShipment(shipmentId);
+        Shipment shipment = loadShipmentForUpdate(shipmentId);
         if (shipment.getStatus() == ShipmentStatus.ASSIGNED) {
             shipment.setStatus(ShipmentStatus.GUIDE_REQUESTED);
             shipment.setUpdatedAt(OffsetDateTime.now());
@@ -344,7 +361,8 @@ public class DispatchService {
     }
 
     private Shipment applyGuide(Long shipmentId, String trackingNumber) {
-        Shipment shipment = loadShipment(shipmentId);
+        Shipment shipment = loadShipmentForUpdate(shipmentId);
+        if(shipment.getTrackingNumber()!=null) return shipment;
         shipment.setTrackingNumber(trackingNumber);
         shipment.setStatus(ShipmentStatus.GUIDE_ISSUED);
         shipment.setUpdatedAt(OffsetDateTime.now());
@@ -353,13 +371,14 @@ public class DispatchService {
         audit.recordSystem("GUIA_EMITIDA", "shipment", shipmentId, shipment.getOrderId(), null,
                 Map.of("guia", trackingNumber));
         notifications.queueForOrder(shipment.getOrderId(),
-                "Tu orden " + shipment.getOrderId() + " ya tiene guía de rastreo: " + trackingNumber + ".");
+                shipment.getCarrier()==Carrier.PICKUP ? "Tu orden " + shipment.getOrderId() + " está lista para retirar en " + locationCodeOf(shipment.getOriginLocationId()) : "Tu orden " + shipment.getOrderId() + " ya tiene guía de rastreo: " + trackingNumber + ".");
         log.info("envío {} con guía {}", shipmentId, trackingNumber);
         return shipment;
     }
 
     private void recordGuideFailure(Long shipmentId, String error) {
-        Shipment shipment = loadShipment(shipmentId);
+        Shipment shipment = loadShipmentForUpdate(shipmentId);
+        if(shipment.getTrackingNumber()!=null) return;
         trackingEvents.save(new TrackingEvent(shipmentId, ShipmentStatus.GUIDE_REQUESTED,
                 "LogiExpress no emitió la guía: " + error));
         audit.recordSystem("GUIA_FALLIDA", "shipment", shipmentId, shipment.getOrderId(), null,
@@ -373,6 +392,10 @@ public class DispatchService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "ubicación no encontrada: " + code);
         }
         return found.get(0);
+    }
+
+    private Shipment loadShipmentForUpdate(Long id) {
+        return shipments.findByIdForUpdate(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"envío no encontrado"));
     }
 
     private Shipment loadShipment(Long shipmentId) {

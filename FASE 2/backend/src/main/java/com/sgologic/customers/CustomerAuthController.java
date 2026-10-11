@@ -71,7 +71,7 @@ public class CustomerAuthController {
     public record RegisterRequest(
             @NotBlank String fullName,
             @NotBlank @Email String email,
-            @NotBlank String password,
+            @NotBlank @jakarta.validation.constraints.Size(min=8,max=72) String password,
             String phone,
             String address) {
     }

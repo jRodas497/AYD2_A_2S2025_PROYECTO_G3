@@ -16,5 +16,7 @@ public record OrderOverview(
         Integer paymentAttempts,
         String invoiceStatus,
         String shipmentStatus,
-        String trackingNumber) {
+        String trackingNumber,
+        String deliveryAddress,
+        java.util.List<java.util.Map<String,Object>> items) {
 }

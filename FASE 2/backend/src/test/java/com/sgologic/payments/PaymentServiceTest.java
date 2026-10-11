@@ -100,7 +100,7 @@ class PaymentServiceTest {
     @Test
     void un_cobro_aprobado_marca_la_orden_como_pagada_y_publica_el_evento() {
         PurchaseOrder order = pendingOrder(1L);
-        when(orders.findById(1L)).thenReturn(Optional.of(order));
+        when(orders.findByIdForUpdate(1L)).thenReturn(Optional.of(order));
         when(attempts.nextAttemptNumber(1L)).thenReturn(1);
         when(attempts.insert(eq(1L), eq(1), eq(PaymentResult.APPROVED), any(), any(), any(), any(), any()))
                 .thenReturn(new PaymentAttempt(
@@ -120,7 +120,7 @@ class PaymentServiceTest {
     @Test
     void un_cobro_rechazado_deja_la_orden_en_pago_fallido_y_notifica_al_cliente() {
         PurchaseOrder order = pendingOrder(2L);
-        when(orders.findById(2L)).thenReturn(Optional.of(order));
+        when(orders.findByIdForUpdate(2L)).thenReturn(Optional.of(order));
         when(attempts.nextAttemptNumber(2L)).thenReturn(1);
         when(attempts.insert(eq(2L), eq(1), eq(PaymentResult.DECLINED), any(), any(), any(), any(), any()))
                 .thenReturn(new PaymentAttempt(
@@ -141,7 +141,7 @@ class PaymentServiceTest {
     void rechaza_cobrar_una_orden_que_ya_esta_pagada() {
         PurchaseOrder order = pendingOrder(3L);
         order.setStatus(OrderStatus.PAID);
-        when(orders.findById(3L)).thenReturn(Optional.of(order));
+        when(orders.findByIdForUpdate(3L)).thenReturn(Optional.of(order));
 
         assertThatThrownBy(() -> service.pay(3L, PaymentMethod.CARD, "tok_abc", "1111"))
                 .isInstanceOf(ResponseStatusException.class)
@@ -154,7 +154,7 @@ class PaymentServiceTest {
     void rechaza_cobrar_una_orden_cancelada() {
         PurchaseOrder order = pendingOrder(4L);
         order.setStatus(OrderStatus.CANCELLED);
-        when(orders.findById(4L)).thenReturn(Optional.of(order));
+        when(orders.findByIdForUpdate(4L)).thenReturn(Optional.of(order));
 
         assertThatThrownBy(() -> service.pay(4L, PaymentMethod.CARD, "tok_abc", "1111"))
                 .isInstanceOf(ResponseStatusException.class)

@@ -38,6 +38,12 @@ public class SettingController {
     public Setting update(@PathVariable String key, @Valid @RequestBody UpdateSetting body) {
         Setting setting = settings.findById(key)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "parámetro no encontrado: " + key));
+        try {
+            java.math.BigDecimal value=new java.math.BigDecimal(body.value());
+            if(value.signum()<=0 || value.compareTo(java.math.BigDecimal.valueOf(1000000))>0) throw new NumberFormatException();
+            if(!key.equals("credit.limit") && value.stripTrailingZeros().scale()>0) throw new NumberFormatException();
+            if(key.equals("payment.timeout_ms") && value.compareTo(java.math.BigDecimal.valueOf(5000))>0) throw new NumberFormatException();
+        } catch(NumberFormatException e) { throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"valor positivo requerido; los intervalos deben ser enteros y el timeout no debe superar 5000 ms"); }
         setting.setValue(body.value());
         return settings.save(setting);
     }

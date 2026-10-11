@@ -49,4 +49,6 @@ public class PurchaseOrder {
 
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt = OffsetDateTime.now();
+    @jakarta.persistence.Column(name="pickup_location_id")
+    private Long pickupLocationId;
 }

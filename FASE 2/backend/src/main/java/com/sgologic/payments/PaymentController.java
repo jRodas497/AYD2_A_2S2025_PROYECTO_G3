@@ -47,6 +47,9 @@ public class PaymentController {
         }
 
         PaymentMethod method = body.method() == null ? PaymentMethod.CARD : body.method();
+        if (method != PaymentMethod.CREDIT && (body.cardToken() == null || body.cardToken().isBlank())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"cardToken es obligatorio");
+        }
         if (method == PaymentMethod.CARD && body.cardLast4() == null) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST, "cardLast4 es obligatorio cuando el método es CARD");
@@ -62,7 +65,7 @@ public class PaymentController {
 
     public record PayRequest(
             PaymentMethod method,
-            @NotBlank String cardToken,
+            String cardToken,
             @Pattern(regexp = "^[0-9]{4}$", message = "deben ser exactamente 4 dígitos") String cardLast4,
             /** Solo existe para poder rechazarlo con un mensaje claro: aquí nunca entra un PAN. */
             String cardNumber) {

@@ -24,6 +24,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwt;
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbc;
 
     public JwtAuthenticationFilter(JwtService jwt) {
         this.jwt = jwt;
@@ -39,11 +41,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (claims != null) {
                 @SuppressWarnings("unchecked")
                 List<String> roles = claims.get("roles", List.class);
+                if (claims.get("customerId") == null && jdbc != null) {
+                    var versions = jdbc.queryForList("select auth_version from config.app_user where username=? and active", Integer.class, claims.getSubject());
+                    Number claimedVersion = claims.get("authVersion", Number.class);
+                    if (versions.isEmpty() || versions.get(0) != (claimedVersion == null ? 0 : claimedVersion.intValue())) {
+                        chain.doFilter(request,response); return;
+                    }
+                    roles = jdbc.queryForList("select r.code from config.app_user u join config.user_role ur on ur.user_id=u.id join config.role r on r.id=ur.role_id where u.username=? and u.active",String.class,claims.getSubject());
+                    if (roles.isEmpty()) { chain.doFilter(request,response); return; }
+                }
                 List<GrantedAuthority> authorities = roles == null
                         ? List.of()
                         : roles.stream().map(r -> (GrantedAuthority) new SimpleGrantedAuthority("ROLE_" + r)).toList();
-                SecurityContextHolder.getContext()
-                        .setAuthentication(new UsernamePasswordAuthenticationToken(claims.getSubject(), null, authorities));
+                var authentication=new UsernamePasswordAuthenticationToken(claims.getSubject(), null, authorities);
+                authentication.setDetails(claims.get("customerId"));
+                SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         }
         chain.doFilter(request, response);

@@ -15,7 +15,10 @@ public class OrderQueryService {
 
     private static final String COLUMNS =
             "order_id, created_at, customer_id, customer, channel, status, total, "
-                    + "last_payment_result, payment_attempts, invoice_status, shipment_status, tracking_number";
+                    + "last_payment_result, payment_attempts, invoice_status, shipment_status, tracking_number, "
+                    + "(select delivery_address from orders.purchase_order o where o.id=order_overview.order_id) as delivery_address, "
+                    + "(select coalesce(jsonb_agg(jsonb_build_object('productId',p.id,'nombre',p.name,'sku',p.sku,'cantidad',oi.quantity,'precioUnitario',oi.unit_price)), '[]'::jsonb) "
+                    + "from orders.order_item oi join catalog.product p on p.id=oi.product_id where oi.order_id=order_overview.order_id) as items";
 
     private final JdbcTemplate jdbc;
 
@@ -61,8 +64,14 @@ public class OrderQueryService {
             args.add("%" + texto + "%");
         }
         sql.append(" order by created_at desc limit ?");
-        args.add(limit);
+        args.add(Math.max(1,Math.min(500,limit)));
         return jdbc.query(sql.toString(), mapper(), args.toArray());
+    }
+
+    @SuppressWarnings("unchecked")
+    private static java.util.List<java.util.Map<String,Object>> parseItems(String value) {
+        try { return new com.fasterxml.jackson.databind.ObjectMapper().readValue(value, java.util.List.class); }
+        catch(Exception e) { throw new IllegalStateException("detalle de orden inválido",e); }
     }
 
     private static RowMapper<OrderOverview> mapper() {
@@ -82,6 +91,8 @@ public class OrderQueryService {
                         : ((Number) rs.getObject("payment_attempts")).intValue(),
                 rs.getString("invoice_status"),
                 rs.getString("shipment_status"),
-                rs.getString("tracking_number"));
+                rs.getString("tracking_number"),
+                rs.getString("delivery_address"),
+                parseItems(rs.getString("items")));
     }
 }

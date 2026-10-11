@@ -102,6 +102,7 @@ class DispatchServiceTest {
             return shipment;
         });
         when(shipments.findById(900L)).thenAnswer(inv -> Optional.ofNullable(savedShipment));
+        when(shipments.findByIdForUpdate(900L)).thenAnswer(inv -> Optional.ofNullable(savedShipment));
 
         service = new DispatchService(shipments, trackingEvents, orders, reservations, posEvents, notifications,
                 logiexpress, breakers, audit, settings, jdbc, tx);
@@ -119,6 +120,8 @@ class DispatchServiceTest {
     void despacha_desde_el_origen_con_mas_unidades_y_obtiene_la_guia() {
         PurchaseOrder order = invoicedOrder(1L);
         when(orders.findById(1L)).thenReturn(Optional.of(order));
+        when(orders.findByIdForUpdate(1L)).thenReturn(Optional.of(order));
+        when(orders.findByIdForUpdate(1L)).thenReturn(Optional.of(order));
         when(shipments.findFirstByOrderIdOrderByIdDesc(1L)).thenReturn(Optional.empty());
 
         ReservedLine line = new ReservedLine(10L, 5L, "CD1", LocationType.DISTRIBUTION_CENTER, 100L, 2);
@@ -144,6 +147,7 @@ class DispatchServiceTest {
         PurchaseOrder order = invoicedOrder(2L);
         order.setStatus(OrderStatus.PAID);
         when(orders.findById(2L)).thenReturn(Optional.of(order));
+        when(orders.findByIdForUpdate(2L)).thenReturn(Optional.of(order));
 
         assertThatThrownBy(() -> service.dispatch(2L))
                 .isInstanceOf(ResponseStatusException.class)
@@ -158,6 +162,7 @@ class DispatchServiceTest {
         PurchaseOrder order = invoicedOrder(3L);
         order.setStatus(OrderStatus.CANCELLED);
         when(orders.findById(3L)).thenReturn(Optional.of(order));
+        when(orders.findByIdForUpdate(3L)).thenReturn(Optional.of(order));
 
         assertThatThrownBy(() -> service.dispatch(3L))
                 .isInstanceOf(ResponseStatusException.class)
@@ -172,6 +177,7 @@ class DispatchServiceTest {
         shipment.setOriginLocationId(5L);
         shipment.setStatus(ShipmentStatus.ASSIGNED);
         when(shipments.findById(901L)).thenReturn(Optional.of(shipment));
+        when(shipments.findByIdForUpdate(901L)).thenReturn(Optional.of(shipment));
         when(jdbc.queryForObject(anyString(), eq(String.class), any()))
                 .thenReturn("dirección", "CD1");
         when(logiexpress.requestGuide(any(), any(), any()))

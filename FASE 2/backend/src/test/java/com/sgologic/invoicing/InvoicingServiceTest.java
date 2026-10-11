@@ -101,7 +101,7 @@ class InvoicingServiceTest {
     @Test
     void la_sat_acepta_la_factura_y_la_orden_pasa_a_facturada() {
         PurchaseOrder order = paidOrder(1L);
-        when(orders.findById(1L)).thenReturn(Optional.of(order));
+        when(orders.findByIdForUpdate(1L)).thenReturn(Optional.of(order));
         when(invoices.findByOrderId(1L)).thenReturn(Optional.empty());
         when(sat.send(any(), any())).thenReturn(new SatClient.SatResponse(true, "documento aceptado"));
 
@@ -116,7 +116,7 @@ class InvoicingServiceTest {
     void rechaza_facturar_una_orden_que_todavia_no_esta_pagada() {
         PurchaseOrder order = paidOrder(2L);
         order.setStatus(OrderStatus.PENDING_PAYMENT);
-        when(orders.findById(2L)).thenReturn(Optional.of(order));
+        when(orders.findByIdForUpdate(2L)).thenReturn(Optional.of(order));
 
         assertThatThrownBy(() -> service.issue(2L))
                 .isInstanceOf(ResponseStatusException.class)
@@ -128,7 +128,7 @@ class InvoicingServiceTest {
     @Test
     void si_la_sat_rechaza_el_documento_la_orden_no_avanza_a_facturada() {
         PurchaseOrder order = paidOrder(3L);
-        when(orders.findById(3L)).thenReturn(Optional.of(order));
+        when(orders.findByIdForUpdate(3L)).thenReturn(Optional.of(order));
         when(invoices.findByOrderId(3L)).thenReturn(Optional.empty());
         when(sat.send(any(), any()))
                 .thenReturn(new SatClient.SatResponse(false, "serie no autorizada para el emisor"));
@@ -143,7 +143,7 @@ class InvoicingServiceTest {
     @Test
     void si_la_sat_no_responde_el_error_se_propaga_para_que_el_evento_se_reintente() {
         PurchaseOrder order = paidOrder(4L);
-        when(orders.findById(4L)).thenReturn(Optional.of(order));
+        when(orders.findByIdForUpdate(4L)).thenReturn(Optional.of(order));
         when(invoices.findByOrderId(4L)).thenReturn(Optional.empty());
         when(sat.send(any(), any())).thenThrow(
                 new ProviderUnavailableException(Provider.SAT, 5000, true, "la SAT tardó más de la ventana tolerable"));

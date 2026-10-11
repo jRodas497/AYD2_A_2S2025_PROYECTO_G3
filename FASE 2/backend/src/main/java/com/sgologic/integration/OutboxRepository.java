@@ -18,12 +18,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class OutboxRepository {
 
-    /**
-     * Cuánto tiempo queda "en préstamo" un evento tomado por el repartidor. Si el proceso se
-     * cae en medio del envío, el préstamo vence y otro lo vuelve a tomar: nunca se pierde.
-     */
-    private static final int LEASE_SECONDS = 120;
-
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;
 
@@ -42,28 +36,6 @@ public class OutboxRepository {
                 Long.class, aggregateType, aggregateId, eventType, toJson(payload));
     }
 
-    /**
-     * Toma hasta {@code limit} eventos pendientes y les corre la próxima cita hacia adelante,
-     * de modo que el siguiente barrido no los vuelva a tomar mientras se están enviando.
-     * 1 = PENDING en config.delivery_status.
-     */
-    public List<OutboxEvent> lease(int limit) {
-        return jdbc.query(
-                """
-                update integration.outbox
-                set next_attempt_at = now() + make_interval(secs => ?)
-                where id in (
-                    select id from integration.outbox
-                    where status_id = 1 and next_attempt_at <= now()
-                    order by next_attempt_at
-                    limit ?
-                    for update skip locked
-                )
-                returning id, aggregate_type, aggregate_id, event_type, payload, attempts, created_at
-                """,
-                mapper(), (double) LEASE_SECONDS, limit);
-    }
-
     public void markDelivered(Long id, int attempts) {
         jdbc.update(
                 "update integration.outbox set status_id = 2, attempts = ?, processed_at = now(), "
@@ -71,35 +43,18 @@ public class OutboxRepository {
                 attempts, id);
     }
 
-    public void markForRetry(Long id, int attempts, long backoffSeconds, String error) {
-        jdbc.update(
-                """
-                update integration.outbox
-                set attempts = ?, next_attempt_at = now() + make_interval(secs => ?), last_error = ?
-                where id = ?
-                """,
-                attempts, (double) backoffSeconds, trim(error), id);
-    }
-
-    public void markFailed(Long id, int attempts, String error) {
-        jdbc.update(
-                "update integration.outbox set status_id = 3, attempts = ?, processed_at = now(), "
-                        + "last_error = ? where id = ?",
-                attempts, trim(error), id);
-    }
-
     /** Vuelve a poner un evento en la cola, para la reanudación manual tras agotar reintentos. */
     public int requeue(Long id) {
         return jdbc.update(
                 "update integration.outbox set status_id = 1, attempts = 0, next_attempt_at = now(), "
-                        + "processed_at = null where id = ?",
+                        + "processed_at = null, kafka_published_at=null, relay_lease_until=null where id = ? and status_id=3",
                 id);
     }
 
     public List<OutboxEvent> findByStatus(DeliveryStatus status, int limit) {
         return jdbc.query(
                 """
-                select id, aggregate_type, aggregate_id, event_type, payload, attempts, created_at
+                select id, aggregate_type, aggregate_id, event_type, payload, attempts, created_at, last_error
                 from integration.outbox
                 where status_id = ?
                 order by id desc
@@ -126,6 +81,10 @@ public class OutboxRepository {
                 });
     }
 
+    public OutboxEvent findById(Long id) {
+        return jdbc.queryForObject("select id, aggregate_type, aggregate_id, event_type, payload, attempts, created_at, last_error from integration.outbox where id=?", mapper(), id);
+    }
+
     private RowMapper<OutboxEvent> mapper() {
         return (rs, rowNum) -> new OutboxEvent(
                 rs.getLong("id"),
@@ -134,7 +93,7 @@ public class OutboxRepository {
                 rs.getString("event_type"),
                 fromJson(rs.getString("payload")),
                 rs.getInt("attempts"),
-                rs.getObject("created_at", OffsetDateTime.class));
+                rs.getObject("created_at", OffsetDateTime.class), rs.getString("last_error"));
     }
 
     private String toJson(Map<String, Object> payload) {

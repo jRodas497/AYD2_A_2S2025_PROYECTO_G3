@@ -4,7 +4,7 @@ import com.sgologic.common.ReferenceValue;
 
 /** logistics.carrier. Hoy solo LogiExpress, el transportista con contrato vigente (DR-07). */
 public enum Carrier implements ReferenceValue {
-    LOGIEXPRESS((short) 1);
+    LOGIEXPRESS((short) 1), PICKUP((short) 2);
 
     private final short id;
 

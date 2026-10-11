@@ -3,6 +3,7 @@ package com.sgologic.orders;
 import com.sgologic.audit.AuditService;
 import com.sgologic.notifications.NotificationService;
 import java.time.OffsetDateTime;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,6 +30,10 @@ public class IncidentService {
     private static final Set<OrderStatus> RETURNABLE =
             Set.of(OrderStatus.PAID, OrderStatus.INVOICED, OrderStatus.IN_DISPATCH, OrderStatus.DELIVERED);
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.sgologic.payments.RefundService refunds;
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbc;
     private final IncidentRepository incidents;
     private final PurchaseOrderRepository orders;
     private final AuditService audit;
@@ -47,8 +52,11 @@ public class IncidentService {
 
     @Transactional
     public Incident register(Long orderId, IncidentType type, String description) {
-        PurchaseOrder order = orders.findById(orderId)
+        PurchaseOrder order = orders.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "orden no encontrada"));
+        if(!RETURNABLE.contains(order.getStatus())) throw new ResponseStatusException(HttpStatus.CONFLICT,"solo se admiten solicitudes para compras confirmadas");
+        if(jdbc.queryForObject("select exists(select 1 from orders.incident where order_id=? and type_id=? and status_id in (1,2))",Boolean.class,orderId,type.id()))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,"ya existe una solicitud abierta de este tipo");
         Incident incident = new Incident();
         incident.setOrderId(orderId);
         incident.setType(type);
@@ -80,7 +88,8 @@ public class IncidentService {
 
     @Transactional
     public Incident updateStatus(Long incidentId, IncidentStatus status) {
-        Incident incident = findById(incidentId);
+        Incident incident = incidents.findByIdForUpdate(incidentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"incidencia no encontrada"));
         IncidentStatus previous = incident.getStatus();
         if (previous.isClosed()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -90,6 +99,13 @@ public class IncidentService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "una incidencia no puede volver a REGISTERED");
         }
 
+        PurchaseOrder lockedOrder=orders.findByIdForUpdate(incident.getOrderId()).orElseThrow();
+        if(status==IncidentStatus.RESOLVED && incident.getType()==IncidentType.RETURN) {
+            var authentication=SecurityContextHolder.getContext().getAuthentication();
+            BigDecimal threshold=new BigDecimal(jdbc.queryForObject("select value from config.setting where key='refund.finance_threshold_q'",String.class));
+            boolean finance=authentication!=null && authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_FINANCE"));
+            if(lockedOrder.getTotal().compareTo(threshold)>0 && !finance) throw new ResponseStatusException(HttpStatus.FORBIDDEN,"esta devolución requiere aprobación de Finanzas");
+        }
         incident.setStatus(status);
         if (status.isClosed()) {
             incident.setResolvedAt(OffsetDateTime.now());
@@ -99,6 +115,7 @@ public class IncidentService {
         PurchaseOrder order = orders.findById(incident.getOrderId()).orElseThrow();
         if (status == IncidentStatus.RESOLVED && incident.getType() == IncidentType.RETURN
                 && RETURNABLE.contains(order.getStatus())) {
+            refunds.queue(order);
             order.setStatus(OrderStatus.RETURNED);
             order.setUpdatedAt(OffsetDateTime.now());
         }

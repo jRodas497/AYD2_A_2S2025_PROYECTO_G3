@@ -62,7 +62,10 @@ public class ErpBatchService {
      */
     @Transactional
     public Optional<Long> generateBatch() {
-        List<ErpSale> sales = pendingSales();
+        jdbc.execute("select pg_advisory_xact_lock(70001)");
+        List<ErpSale> sales = new java.util.ArrayList<>(pendingSales());
+        List<ErpSale> returns=returnSales(null);
+        sales.addAll(returns);
         if (sales.isEmpty()) {
             return Optional.empty();
         }
@@ -73,7 +76,7 @@ public class ErpBatchService {
             start = end.minusMinutes(1);
         }
         BatchWindow window = new BatchWindow(start, end);
-        String fileName = "SGO-VENTAS-" + FILE_STAMP.format(end.toInstant()) + "." + format.extension();
+        String fileName = "SGO-VENTAS-" + FILE_STAMP.format(end.toInstant()) + "-" + java.util.UUID.randomUUID().toString().substring(0, 8) + "." + format.extension();
 
         Long batchId = jdbc.queryForObject(
                 """
@@ -84,12 +87,17 @@ public class ErpBatchService {
                 Long.class, start, end, format.id(), fileName);
 
         for (ErpSale sale : sales) {
+            if(sale.orderId()<0) {
+                jdbc.update("insert into integration.erp_batch_refund(refund_id,batch_id) values(?,?)",-sale.orderId(),batchId);
+                continue;
+            }
             jdbc.update("insert into integration.erp_batch_order (order_id, batch_id) values (?, ?)",
                     sale.orderId(), batchId);
         }
 
         String content = writer.write(format, window, sales);
-        boolean written = deliver(batchId, fileName, content);
+        jdbc.update("update integration.erp_batch set file_content=? where id=?",content,batchId);
+        boolean written = false; // Kafka delivers after the batch transaction commits.
 
         // Paso 10 del flujo: con la ventana cerrada, las 32 tiendas reciben la existencia actualizada.
         int stores = posEvents.publishConsolidatedInventory(start, end);
@@ -104,6 +112,8 @@ public class ErpBatchService {
 
     /** El contenido del archivo de un lote, reconstruido a partir de sus órdenes. */
     public String content(Long batchId) {
+        String stored=jdbc.queryForObject("select file_content from integration.erp_batch where id=?",String.class,batchId);
+        if(stored!=null) return stored;
         BatchWindow window = jdbc.queryForObject(
                 "select window_start, window_end from integration.erp_batch where id = ?",
                 (rs, rowNum) -> new BatchWindow(
@@ -119,7 +129,7 @@ public class ErpBatchService {
         return jdbc.queryForList(
                 """
                 select id, window_start, window_end, format, file_name, status, created_at, sent_at,
-                       order_count, total_amount
+                       order_count, total_amount, attempts, last_error
                 from integration.erp_batch_summary
                 order by id desc
                 limit ?
@@ -131,7 +141,7 @@ public class ErpBatchService {
         List<Map<String, Object>> found = jdbc.queryForList(
                 """
                 select id, window_start, window_end, format, file_name, status, created_at, sent_at,
-                       order_count, total_amount
+                       order_count, total_amount, attempts, last_error
                 from integration.erp_batch_summary
                 where id = ?
                 """,
@@ -140,8 +150,15 @@ public class ErpBatchService {
     }
 
     public List<ErpSale> salesOfBatch(Long batchId) {
-        return jdbc.query(salesQuery("join integration.erp_batch_order b on b.order_id = o.id where b.batch_id = ?"),
-                saleMapper(), batchId);
+        var sales=new java.util.ArrayList<>(jdbc.query(salesQuery("join integration.erp_batch_order b on b.order_id = o.id where b.batch_id = ?"),saleMapper(),batchId));
+        sales.addAll(returnSales(batchId));
+        return sales;
+    }
+
+    private List<ErpSale> returnSales(Long batchId) {
+        String filter=batchId==null ? "r.status_id=2 and e.refund_id is null" : "e.batch_id=?";
+        String sql="select -r.id as id,r.refunded_at as created_at,ch.code as channel,c.full_name,c.tax_id,-r.amount as total,coalesce(i.series,'') as series,coalesce(i.cui,'') as cui from payments.refund r join orders.purchase_order o on o.id=r.order_id join customers.customer c on c.id=o.customer_id join config.channel ch on ch.id=o.channel_id left join invoicing.invoice i on i.order_id=o.id left join integration.erp_batch_refund e on e.refund_id=r.id where " + filter;
+        return batchId==null ? jdbc.query(sql,saleMapper()) : jdbc.query(sql,saleMapper(),batchId);
     }
 
     /** Las ventas facturadas que todavía no entraron en ningún lote. */
@@ -186,29 +203,6 @@ public class ErpBatchService {
         return lastWindowEnd();
     }
 
-    /**
-     * Reintenta la entrega de los lotes que quedaron PENDING porque la carpeta de intercambio no
-     * estaba disponible (CDU-07, E1). Sus órdenes ya pertenecen al lote, así que no vuelven a
-     * entrar en otro: se reenvía el mismo archivo, reconstruido a partir de ellas. Por eso
-     * reintentar nunca duplica una venta en el ERP.
-     */
-    @Transactional
-    public int retryPendingDeliveries() {
-        List<Map<String, Object>> pending = jdbc.queryForList(
-                "select id, file_name from integration.erp_batch where status_id = 1 order by id");
-        int delivered = 0;
-        for (Map<String, Object> batch : pending) {
-            Long batchId = ((Number) batch.get("id")).longValue();
-            String fileName = (String) batch.get("file_name");
-            if (deliver(batchId, fileName, content(batchId))) {
-                audit.recordSystem("ERP_LOTE_REENVIADO", "erp_batch", batchId, null, null,
-                        Map.of("archivo", fileName));
-                delivered++;
-            }
-        }
-        return delivered;
-    }
-
     /** Reintento manual de un lote. Devuelve false si sigue sin poder entregarse. */
     @Transactional
     public boolean retry(Long batchId) {
@@ -219,25 +213,15 @@ public class ErpBatchService {
         if ("DELIVERED".equals(batch.get("status"))) {
             return true;
         }
-        boolean delivered = deliver(batchId, (String) batch.get("file_name"), content(batchId));
-        if (delivered) {
-            audit.recordSystem("ERP_LOTE_REENVIADO", "erp_batch", batchId, null, null,
-                    Map.of("archivo", String.valueOf(batch.get("file_name")), "manual", true));
-        }
-        return delivered;
+        jdbc.update("update integration.erp_batch set status_id=1, attempts=0,last_error=null,kafka_published_at=null, relay_lease_until=null where id=? and status_id=3", batchId);
+        return false;
     }
 
-    /** Deja el archivo para el ERP. Si no se puede, el lote queda PENDING y se reintenta. */
-    private boolean deliver(Long batchId, String fileName, String content) {
-        try {
-            drop.drop(fileName, content);
-            // 2 = DELIVERED: el archivo ya está donde el ERP lo recoge.
-            jdbc.update("update integration.erp_batch set status_id = 2, sent_at = now() where id = ?", batchId);
-            return true;
-        } catch (ProviderUnavailableException e) {
-            log.warn("el lote {} ({}) queda pendiente de entrega: {}", batchId, fileName, e.getMessage());
-            return false;
-        }
+    public void deliverOne(Long batchId) {
+        var batch = summary(batchId);
+        if (batch == null || !"PENDING".equals(batch.get("status"))) return;
+        drop.drop((String) batch.get("file_name"), content(batchId));
+        jdbc.update("update integration.erp_batch set status_id=2, sent_at=now(),attempts=attempts+1,last_error=null where id=?", batchId);
     }
 
     /** La ventana de tiempo que cubre un lote. */

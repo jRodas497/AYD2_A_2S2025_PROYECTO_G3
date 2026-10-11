@@ -22,23 +22,29 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/api/simulation")
 public class SimulationController {
 
-    private final ExternalSimulation simulation;
+    private final ProviderHttp http;
 
-    public SimulationController(ExternalSimulation simulation) {
-        this.simulation = simulation;
+    public SimulationController(ProviderHttp http) {
+        this.http = http;
     }
 
     @GetMapping
     public Map<String, String> modes() {
-        return simulation.modes().entrySet().stream()
-                .collect(Collectors.toMap(e -> e.getKey().name(), e -> e.getValue().name()));
+        Map<String, String> result = new java.util.LinkedHashMap<>();
+        for (Provider provider : Provider.values()) {
+            try {
+                Map<?, ?> health = http.request(provider, "/health", "GET", null, null, 1500, Map.class);
+                result.put(provider.name(), String.valueOf(health.get("mode")));
+            } catch (ProviderUnavailableException e) { result.put(provider.name(), "OFFLINE"); }
+        }
+        return result;
     }
 
     @PutMapping("/{provider}")
     public Map<String, String> setMode(@PathVariable String provider, @RequestBody ModeRequest body) {
         Provider target = parse(Provider.class, provider, "proveedor");
         SimulationMode mode = parse(SimulationMode.class, body.mode(), "modo");
-        simulation.setMode(target, mode);
+        http.request(target, "/admin/mode", "PUT", null, Map.of("mode", mode.name()), 2000, Map.class);
         return modes();
     }
 

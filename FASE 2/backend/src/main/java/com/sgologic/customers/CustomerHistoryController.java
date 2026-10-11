@@ -26,6 +26,8 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/api/customers/{customerId}")
 public class CustomerHistoryController {
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.sgologic.orders.OrderQueryService orderQueries;
     private final CustomerRepository customers;
     private final IncidentService incidents;
     private final JdbcTemplate jdbc;
@@ -39,30 +41,7 @@ public class CustomerHistoryController {
     @GetMapping("/orders")
     public List<OrderOverview> orders(@PathVariable Long customerId, @RequestParam(defaultValue = "50") int limit) {
         requireCustomer(customerId);
-        return jdbc.query(
-                """
-                select order_id, created_at, customer_id, customer, channel, status, total,
-                       last_payment_result, payment_attempts, invoice_status, shipment_status, tracking_number
-                from orders.order_overview
-                where customer_id = ?
-                order by created_at desc
-                limit ?
-                """,
-                (rs, rowNum) -> new OrderOverview(
-                        rs.getLong("order_id"),
-                        rs.getObject("created_at", OffsetDateTime.class),
-                        rs.getLong("customer_id"),
-                        rs.getString("customer"),
-                        rs.getString("channel"),
-                        rs.getString("status"),
-                        rs.getBigDecimal("total"),
-                        rs.getString("last_payment_result"),
-                        rs.getObject("payment_attempts") == null
-                                ? null : ((Number) rs.getObject("payment_attempts")).intValue(),
-                        rs.getString("invoice_status"),
-                        rs.getString("shipment_status"),
-                        rs.getString("tracking_number")),
-                customerId, limit);
+        return orderQueries.search(null,customerId,null,null,Math.max(1,Math.min(500,limit)));
     }
 
     /** Órdenes e incidencias en una sola respuesta: lo que ve el agente al abrir la ficha del cliente. */

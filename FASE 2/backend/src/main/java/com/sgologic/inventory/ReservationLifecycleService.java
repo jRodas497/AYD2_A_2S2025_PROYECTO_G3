@@ -35,6 +35,15 @@ public class ReservationLifecycleService {
                 orderId);
     }
 
+    @Transactional
+    public void releaseForOrder(Long orderId) {
+        var lines=jdbc.queryForList("select id,location_id,product_id,quantity from inventory.reservation where order_id=? and status_id in (1,2) order by id for update",orderId);
+        for(var line:lines) {
+            jdbc.update("update inventory.stock set reserved=reserved-?,updated_at=now() where location_id=? and product_id=?",line.get("quantity"),line.get("location_id"),line.get("product_id"));
+            jdbc.update("update inventory.reservation set status_id=3,closed_at=now() where id=?",line.get("id"));
+        }
+    }
+
     /** Las reservas confirmadas de la orden, con la ubicación donde está apartada la mercancía. */
     public List<ReservedLine> confirmedLines(Long orderId) {
         return jdbc.query(
@@ -64,6 +73,7 @@ public class ReservationLifecycleService {
      */
     @Transactional
     public List<ReservedLine> ensureReservedForDispatch(Long orderId, int ttlMinutes) {
+        confirmForOrder(orderId);
         Map<Long, Integer> reservedByProduct = confirmedLines(orderId).stream()
                 .collect(java.util.stream.Collectors.toMap(
                         ReservedLine::productId, ReservedLine::quantity, Integer::sum));
@@ -78,7 +88,9 @@ public class ReservationLifecycleService {
             long productId = item[0];
             int missing = (int) item[1] - reservedByProduct.getOrDefault(productId, 0);
             if (missing > 0) {
-                reservations.reserve(orderId, productId, missing, ttlMinutes);
+                Long pickup=jdbc.queryForObject("select pickup_location_id from orders.purchase_order where id=?",Long.class,orderId);
+                if(pickup==null) reservations.reserve(orderId, productId, missing, ttlMinutes);
+                else reservations.reserveAtLocation(orderId,productId,missing,ttlMinutes,pickup);
                 reservedSomething = true;
             }
         }

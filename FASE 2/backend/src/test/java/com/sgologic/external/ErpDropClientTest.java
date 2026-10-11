@@ -22,38 +22,10 @@ import org.junit.jupiter.api.Test;
 class ErpDropClientTest {
 
     @Test
-    void deja_el_archivo_con_el_storage_cuando_el_erp_esta_normal() throws IOException {
-        ExternalSimulation simulation = mock(ExternalSimulation.class);
-        ErpFileStorage storage = mock(ErpFileStorage.class);
-        when(simulation.modeOf(Provider.ERP)).thenReturn(SimulationMode.NORMAL);
-
-        new ErpDropClient(simulation, storage).drop("lote.csv", "contenido");
-
-        verify(storage).write(eq("lote.csv"), eq("contenido"));
-    }
-
-    @Test
-    void no_llama_al_storage_si_el_erp_esta_caido() {
-        ExternalSimulation simulation = mock(ExternalSimulation.class);
-        ErpFileStorage storage = mock(ErpFileStorage.class);
-        when(simulation.modeOf(Provider.ERP)).thenReturn(SimulationMode.DOWN);
-
-        assertThatThrownBy(() -> new ErpDropClient(simulation, storage).drop("lote.csv", "x"))
-                .isInstanceOf(ProviderUnavailableException.class);
-
-        verifyNoInteractions(storage);
-    }
-
-    @Test
-    void convierte_un_fallo_de_escritura_en_proveedor_no_disponible() throws IOException {
-        ExternalSimulation simulation = mock(ExternalSimulation.class);
-        ErpFileStorage storage = mock(ErpFileStorage.class);
-        when(simulation.modeOf(Provider.ERP)).thenReturn(SimulationMode.NORMAL);
-        doThrow(new IOException("sin espacio")).when(storage).write(eq("lote.csv"), eq("x"));
-
-        assertThatThrownBy(() -> new ErpDropClient(simulation, storage).drop("lote.csv", "x"))
-                .isInstanceOf(ProviderUnavailableException.class)
-                .hasMessageContaining("sin espacio");
+    void transmits_to_independent_erp_adapter() {
+        ProviderHttp http=mock(ProviderHttp.class);
+        new ErpDropClient(http).drop("lote.csv","contenido");
+        verify(http).execute(eq(Provider.ERP),eq("lote.csv"),eq(java.util.Map.of("fileName","lote.csv","content","contenido")),eq(5000L),eq(java.util.Map.class));
     }
 
     @Test

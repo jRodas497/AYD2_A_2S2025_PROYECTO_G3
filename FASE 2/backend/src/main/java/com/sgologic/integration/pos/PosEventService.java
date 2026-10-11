@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
@@ -41,15 +40,6 @@ public class PosEventService {
     private final JdbcTemplate jdbc;
     private final PosClient pos;
     private final ObjectMapper json;
-
-    @Value("${sgologic.pos.max-attempts:5}")
-    private int maxAttempts;
-
-    @Value("${sgologic.pos.batch-size:25}")
-    private int batchSize;
-
-    @Value("${sgologic.pos.base-backoff-seconds:5}")
-    private long baseBackoffSeconds;
 
     public PosEventService(JdbcTemplate jdbc, PosClient pos, ObjectMapper json) {
         this.jdbc = jdbc;
@@ -116,57 +106,11 @@ public class PosEventService {
         return stores.size();
     }
 
-    /** Entrega los eventos pendientes cuya próxima cita ya llegó. 1 = PENDING. */
-    @Transactional
-    public int deliverPending() {
-        List<PosEvent> pending = jdbc.query(
-                """
-                select e.id, e.store_id, l.code as store_code, e.event_type, e.payload::text as payload,
-                       e.status_id, e.attempts, e.last_error, e.created_at, e.delivered_at
-                from integration.pos_event e
-                join inventory.location l on l.id = e.store_id
-                where e.status_id = 1 and e.next_attempt_at <= now()
-                order by e.id
-                limit ?
-                """,
-                mapper(), batchSize);
-
-        int delivered = 0;
-        for (PosEvent event : pending) {
-            if (deliver(event)) {
-                delivered++;
-            }
-        }
-        return delivered;
-    }
-
-    private boolean deliver(PosEvent event) {
-        int attempts = event.attempts() + 1;
-        try {
-            pos.deliver(event.storeCode(), event.eventType(), event.payload());
-            jdbc.update(
-                    "update integration.pos_event set status_id = 2, attempts = ?, delivered_at = now(), "
-                            + "last_error = null where id = ?",
-                    attempts, event.id());
-            return true;
-        } catch (ProviderUnavailableException e) {
-            if (attempts >= maxAttempts) {
-                log.warn("el POS de {} no recibió el evento {} tras {} intentos", event.storeCode(), event.id(),
-                        attempts);
-                jdbc.update(
-                        "update integration.pos_event set status_id = 3, attempts = ?, last_error = ? where id = ?",
-                        attempts, e.getMessage(), event.id());
-            } else {
-                jdbc.update(
-                        """
-                        update integration.pos_event
-                        set attempts = ?, next_attempt_at = now() + make_interval(secs => ?), last_error = ?
-                        where id = ?
-                        """,
-                        attempts, (double) (baseBackoffSeconds * (1L << (attempts - 1))), e.getMessage(), event.id());
-            }
-            return false;
-        }
+    public void deliverOne(Long id) {
+        PosEvent e = byId(id).orElseThrow();
+        if (e.status() != DeliveryStatus.PENDING) return;
+        pos.deliver(e.storeCode(), e.eventType(), e.payload());
+        jdbc.update("update integration.pos_event set status_id=2, attempts=attempts+1, delivered_at=now(), last_error=null where id=?", id);
     }
 
     public java.util.Optional<PosEvent> byId(Long id) {
@@ -201,7 +145,7 @@ public class PosEventService {
     public int requeue(Long id) {
         return jdbc.update(
                 "update integration.pos_event set status_id = 1, attempts = 0, next_attempt_at = now(), "
-                        + "delivered_at = null where id = ?",
+                        + "delivered_at = null, kafka_published_at=null, relay_lease_until=null where id = ? and status_id=3",
                 id);
     }
 

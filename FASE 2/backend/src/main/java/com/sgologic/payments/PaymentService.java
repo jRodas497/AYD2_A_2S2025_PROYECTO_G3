@@ -50,6 +50,11 @@ public class PaymentService {
 
     private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private CreditService credit;
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbc;
+
     private final PurchaseOrderRepository orders;
     private final PaymentAttemptRepository attempts;
     private final PayKlikClient payklik;
@@ -86,9 +91,25 @@ public class PaymentService {
 
     /** Cobro pedido por el cliente desde el checkout. */
     public PaymentOutcome pay(Long orderId, PaymentMethod method, String cardToken, String cardLast4) {
-        OrderSnapshot order = tx.execute(status -> start(orderId, method, false));
+        if (method == PaymentMethod.CREDIT) {
+            return tx.execute(status -> {
+                OrderSnapshot snapshot = start(orderId, method, false);
+                String reference = credit.purchase(load(orderId));
+                return settle(snapshot, method, null, null, new ChargeOutcome(PaymentResult.APPROVED, reference, null, 0, false), false);
+            });
+        }
+        OrderSnapshot order = tx.execute(status -> {
+            OrderSnapshot snapshot = start(orderId, method, false);
+            if(jdbc!=null) jdbc.update("insert into payments.payment_intent(order_id,card_token,method) values(?,?,?) on conflict(order_id) do update set card_token=excluded.card_token,method=excluded.method,updated_at=now()",orderId,cardToken,method.name());
+            Map<String,Object> intent = new HashMap<>();
+            intent.put("orderId",orderId); intent.put("metodo",method.name());
+            intent.put("cardToken",cardToken); intent.put("cardLast4",cardLast4);
+            // Persist BEFORE calling PayKlik; a process crash cannot strand the payment.
+            outbox.publishForOrder(orderId, EventTypes.PAYMENT_RETRY_REQUESTED, intent);
+            return snapshot;
+        });
         ChargeOutcome charge = charge(order, cardToken);
-        return tx.execute(status -> settle(order, method, cardToken, cardLast4, charge, true));
+        return tx.execute(status -> settle(order, method, cardToken, cardLast4, charge, false));
     }
 
     /**
@@ -97,7 +118,13 @@ public class PaymentService {
      * espera creciente, en vez de encolar un evento nuevo en cada vuelta.
      */
     public PaymentOutcome retry(Long orderId, PaymentMethod method, String cardToken, String cardLast4) {
-        OrderSnapshot order = tx.execute(status -> start(orderId, method, true));
+        OrderSnapshot order = tx.execute(status -> {
+            if(jdbc!=null) {
+                var tokens=jdbc.queryForList("select card_token from payments.payment_intent where order_id=?",String.class,orderId);
+                if(!tokens.isEmpty() && !java.util.Objects.equals(tokens.get(0),cardToken)) return null;
+            }
+            return start(orderId, method, true);
+        });
         if (order == null) {
             return null; // la orden ya se había cobrado: el evento se da por atendido
         }
@@ -122,6 +149,7 @@ public class PaymentService {
             if (order.getStatus() != OrderStatus.PAYMENT_IN_PROGRESS) {
                 return;
             }
+            reservations.releaseForOrder(orderId);
             order.setStatus(OrderStatus.PAYMENT_FAILED);
             order.setUpdatedAt(OffsetDateTime.now());
             audit.recordSystem("COBRO_AGOTADO", "order", orderId, orderId, order.getChannel(),
@@ -143,6 +171,8 @@ public class PaymentService {
             }
             throw new ResponseStatusException(HttpStatus.CONFLICT, "la orden " + orderId + " ya fue pagada");
         }
+        if (isRetry && (status == OrderStatus.CANCELLED || status == OrderStatus.RETURNED)) return null;
+        if (isRetry && status == OrderStatus.PAYMENT_FAILED && attempts.findByOrder(orderId).stream().anyMatch(a -> a.result()==PaymentResult.DECLINED)) return null;
         if (status == OrderStatus.CANCELLED || status == OrderStatus.RETURNED) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT, "la orden " + orderId + " está " + status.code() + " y no admite cobro");
@@ -153,6 +183,10 @@ public class PaymentService {
                     "la orden " + orderId + " ya tiene un cobro en proceso; consulta su estado antes de reintentar");
         }
 
+        if(!isRetry && attempts.findByOrder(orderId).stream().filter(a -> a.result()==PaymentResult.DECLINED).count()>=3)
+            throw new ResponseStatusException(HttpStatus.CONFLICT,"se agotaron los tres intentos rechazados; cancela la orden y crea una nueva compra");
+        // Reserve missing/expired items BEFORE charging; never approve a sale with no stock.
+        reservations.ensureReservedForDispatch(orderId, settings.reservationTtlMinutes());
         order.setStatus(OrderStatus.PAYMENT_IN_PROGRESS);
         order.setUpdatedAt(OffsetDateTime.now());
         audit.recordSystem(isRetry ? "COBRO_REINTENTADO" : "COBRO_INICIADO", "order", orderId, orderId,
@@ -192,6 +226,12 @@ public class PaymentService {
             ChargeOutcome charge, boolean publishRetryEvent) {
 
         PurchaseOrder order = load(snapshot.id());
+        if(order.getStatus()==OrderStatus.CANCELLED || order.getStatus()==OrderStatus.RETURNED)
+            return new PaymentOutcome(snapshot.id(),0,charge.result().code(),order.getStatus().code(),charge.providerReference(),charge.latencyMs(),"la orden ya está cerrada");
+        if (order.getStatus() == OrderStatus.PAID || order.getStatus() == OrderStatus.INVOICED
+                || order.getStatus() == OrderStatus.IN_DISPATCH || order.getStatus() == OrderStatus.DELIVERED) {
+            return new PaymentOutcome(snapshot.id(),0,"APPROVED",order.getStatus().code(),charge.providerReference(),charge.latencyMs(),"pago ya registrado");
+        }
         int attemptNumber = attempts.nextAttemptNumber(snapshot.id());
         PaymentAttempt attempt = attempts.insert(
                 snapshot.id(), attemptNumber, charge.result(), snapshot.total(),
@@ -216,6 +256,7 @@ public class PaymentService {
                 message = "cobro aprobado";
             }
             case DECLINED -> {
+                reservations.releaseForOrder(snapshot.id());
                 order.setStatus(OrderStatus.PAYMENT_FAILED);
                 notifications.queueForOrder(snapshot.id(),
                         "Tu pago de la orden " + snapshot.id() + " fue rechazado: " + charge.failureReason());
@@ -246,13 +287,14 @@ public class PaymentService {
                 charge.providerReference(), charge.latencyMs(), message);
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public List<PaymentAttempt> attemptsOf(Long orderId) {
         load(orderId);
         return attempts.findByOrder(orderId);
     }
 
     private PurchaseOrder load(Long orderId) {
-        return orders.findById(orderId)
+        return orders.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "orden no encontrada"));
     }
 

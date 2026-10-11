@@ -11,6 +11,25 @@ server:
 spring:
   application:
     name: sgologic-backend
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      properties:
+        enable.idempotence: true
+        delivery.timeout.ms: 10000
+        request.timeout.ms: 5000
+        max.block.ms: 5000
+    consumer:
+      group-id: sgologic
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      ack-mode: record
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:sgologic}
     username: ${DB_APP_USER:sgologic_app}
@@ -45,27 +64,13 @@ sgologic:
   # --- Backend 2: transacciones e integraciones ---
 
   outbox:
-    # El broker del MVP: cada cuánto se reparten los eventos pendientes y cómo se reintentan.
+    # Recovery relay DB -> Kafka only; business retries belong to Kafka retry topics.
     poll-fixed-delay-ms: 2000
-    batch-size: 25
-    max-attempts: 5
-    base-backoff-seconds: 2
 
   circuit:
     # Fallas seguidas antes de abrir el circuito de un tercero, y cuánto se queda abierto.
     failure-threshold: 3
     open-seconds: 20
-
-  notifications:
-    fixed-delay-ms: 5000
-    max-attempts: 3
-    batch-size: 50
-
-  pos:
-    fixed-delay-ms: 5000
-    max-attempts: 5
-    batch-size: 25
-    base-backoff-seconds: 5
 
   erp:
     # El intervalo real (30 min) vive en config.setting; esto es cada cuánto se revisa si ya toca.
@@ -78,17 +83,10 @@ sgologic:
     issuer-name: MegaStore, S.A.
     issuer-tax-id: 1234567-8
 
-  simulation:
-    # PayKlik, la SAT, LogiExpress, el proveedor de mensajería y el POS no existen para
-    # conectarse de verdad. Estos modos se cambian en caliente desde /api/simulation para
-    # demostrar los escenarios de falla. Valores: NORMAL, SLOW, DOWN, REJECT.
-    payklik: NORMAL
-    sat: NORMAL
-    logiexpress: NORMAL
-    messaging: NORMAL
-    pos: NORMAL
-    erp: NORMAL
-    normal-latency-ms: 80
-    slow-latency-ms: 5500
-    # El ~2% de timeouts que LogiExpress tiene documentado (ADR-0004). En 0 la demo es determinista.
-    logiexpress-timeout-rate: 0.02
+  providers:
+    payklik: ${PAYKLIK_URL:http://payklik:8090}
+    sat: ${SAT_URL:http://sat:8090}
+    logiexpress: ${LOGIEXPRESS_URL:http://logiexpress:8090}
+    messaging: ${MESSAGING_URL:http://messaging:8090}
+    pos: ${POS_URL:http://pos:8090}
+    erp: ${ERP_URL:http://erp:8090}

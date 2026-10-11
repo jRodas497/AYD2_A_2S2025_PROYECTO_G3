@@ -30,12 +30,6 @@ public class ErpSyncJob {
 
     @Scheduled(fixedDelayString = "${sgologic.erp.check-fixed-delay-ms:60000}")
     public void closeWindowIfDue() {
-        // Primero lo que quedó sin entregar: un lote pendiente no espera a la siguiente ventana.
-        int resent = batches.retryPendingDeliveries();
-        if (resent > 0) {
-            log.info("se reentregaron {} lote(s) pendiente(s) al ERP", resent);
-        }
-
         OffsetDateTime due = OffsetDateTime.now().minusMinutes(settings.erpBatchIntervalMinutes());
         boolean isDue = batches.lastBatchAt().map(last -> last.isBefore(due)).orElse(true);
         if (!isDue) {

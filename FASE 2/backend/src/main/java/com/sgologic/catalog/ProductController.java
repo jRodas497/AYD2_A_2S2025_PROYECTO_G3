@@ -21,6 +21,8 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/api/products")
 public class ProductController {
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private PricingService pricing;
     private final ProductRepository products;
     private final ProductService productService;
 
@@ -30,14 +32,23 @@ public class ProductController {
     }
 
     @GetMapping
-    public List<Product> list() {
-        return products.findByActiveTrue();
+    public List<Product> list(@org.springframework.web.bind.annotation.RequestParam(defaultValue="false") boolean includeInactive) {
+        var auth=org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        boolean admin=auth!=null && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        return (includeInactive && admin ? products.findAll() : products.findByActiveTrue()).stream().map(this::priced).toList();
     }
 
     @GetMapping("/{id}")
     public Product get(@PathVariable Long id) {
-        return products.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "producto no encontrado"));
+        return priced(products.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "producto no encontrado")));
+    }
+
+    private Product priced(Product product) {
+        BigDecimal price=product.getPrice();
+        product.setOriginalPrice(price);
+        product.setPrice(pricing.unitPrice(product));
+        return product;
     }
 
     /** Configurar Catálogo de Productos: alta. Deja el producto con existencia 0 en las 34 ubicaciones. */
@@ -57,13 +68,13 @@ public class ProductController {
             @NotBlank String sku,
             @NotBlank String name,
             @NotNull ProductCategory category,
-            @NotNull @DecimalMin(value = "0", inclusive = true) BigDecimal price) {
+            @NotNull @DecimalMin("0.01") BigDecimal price) {
     }
 
     public record UpdateProduct(
             @NotBlank String name,
             @NotNull ProductCategory category,
-            @NotNull @DecimalMin(value = "0", inclusive = true) BigDecimal price,
+            @NotNull @DecimalMin("0.01") BigDecimal price,
             Boolean active) {
     }
 }

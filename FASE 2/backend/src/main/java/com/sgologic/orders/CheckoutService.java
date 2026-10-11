@@ -1,6 +1,7 @@
 package com.sgologic.orders;
 
 import com.sgologic.catalog.Product;
+import com.sgologic.common.Channel;
 import com.sgologic.catalog.ProductRepository;
 import com.sgologic.config.SettingsService;
 import com.sgologic.inventory.InventoryReservationService;
@@ -19,6 +20,16 @@ import org.springframework.web.server.ResponseStatusException;
  */
 @Service
 public class CheckoutService {
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbc;
+
+    public void requireCustomer(Long id,String email) {
+        Boolean owned=jdbc.queryForObject("select exists(select 1 from customers.customer where id=? and email=?)",Boolean.class,id,email);
+        if(!Boolean.TRUE.equals(owned)) throw new ResponseStatusException(HttpStatus.FORBIDDEN,"cliente ajeno");
+    }
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.sgologic.catalog.PricingService pricing;
 
     private final CartRepository carts;
     private final CartItemRepository cartItems;
@@ -45,10 +56,28 @@ public class CheckoutService {
         this.settings = settings;
     }
 
+    private BigDecimal priceOf(Product product) { return pricing == null ? product.getPrice() : pricing.unitPrice(product); }
+
     @Transactional
-    public PurchaseOrder checkout(Long customerId, String deliveryAddress) {
+    public PurchaseOrder checkout(Long customerId, String deliveryAddress) { return checkout(customerId,deliveryAddress,null); }
+
+    @Transactional
+    public PurchaseOrder checkout(Long customerId, String deliveryAddress, Long pickupLocationId) {
+        return checkout(customerId,deliveryAddress,pickupLocationId,null);
+    }
+
+    @Transactional
+    public PurchaseOrder checkout(Long customerId, String deliveryAddress, Long pickupLocationId, Channel channel) {
+        if(pickupLocationId!=null) {
+            var locations=jdbc.queryForList("select code,name from inventory.location where id=? and type_id=2",pickupLocationId);
+            if(locations.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"tienda de retiro inválida");
+            deliveryAddress="Retiro en tienda " + locations.get(0).get("code") + ": " + locations.get(0).get("name");
+        }
+        // Serializes simultaneous checkout requests for the same customer's cart.
+        if (jdbc != null) jdbc.queryForObject("select id from customers.customer where id=? for update",Long.class,customerId);
         Cart cart = carts.findByCustomerIdAndStatusIn(customerId, List.of(CartStatus.OPEN, CartStatus.IN_CHECKOUT))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "el cliente no tiene un carrito activo"));
+        if(channel!=null) cart.setLastChannel(channel);
 
         List<CartItem> items = cartItems.findById_Cart(cart.getId());
         if (items.isEmpty()) {
@@ -61,7 +90,7 @@ public class CheckoutService {
                     .filter(Product::isActive)
                     .orElseThrow(() -> new ResponseStatusException(
                             HttpStatus.CONFLICT, "el producto " + item.getId().getProduct() + " ya no está disponible"));
-            total = total.add(product.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
+            total = total.add(priceOf(product).multiply(BigDecimal.valueOf(item.getQuantity())));
         }
 
         PurchaseOrder order = new PurchaseOrder();
@@ -71,15 +100,17 @@ public class CheckoutService {
         order.setStatus(OrderStatus.PENDING_PAYMENT);
         order.setTotal(total);
         order.setDeliveryAddress(deliveryAddress);
+        order.setPickupLocationId(pickupLocationId);
         order = orders.save(order);
 
         int ttlMinutes = settings.reservationTtlMinutes();
         for (CartItem item : items) {
             Product product = products.findById(item.getId().getProduct()).orElseThrow();
-            orderItems.save(new OrderItem(order.getId(), product.getId(), item.getQuantity(), product.getPrice()));
+            orderItems.save(new OrderItem(order.getId(), product.getId(), item.getQuantity(), priceOf(product)));
             // Si no hay existencia, esto lanza InsufficientStockException y toda la transacción
             // se revierte: no queda una orden a medio reservar.
-            reservations.reserve(order.getId(), product.getId(), item.getQuantity(), ttlMinutes);
+            if(pickupLocationId==null) reservations.reserve(order.getId(), product.getId(), item.getQuantity(), ttlMinutes);
+            else reservations.reserveAtLocation(order.getId(),product.getId(),item.getQuantity(),ttlMinutes,pickupLocationId);
         }
 
         cart.setStatus(CartStatus.CONVERTED);

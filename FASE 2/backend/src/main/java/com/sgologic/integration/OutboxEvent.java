@@ -11,7 +11,8 @@ public record OutboxEvent(
         String eventType,
         Map<String, Object> payload,
         int attempts,
-        OffsetDateTime createdAt) {
+        OffsetDateTime createdAt,
+        String lastError) {
 
     public Long longValue(String key) {
         Object value = payload.get(key);

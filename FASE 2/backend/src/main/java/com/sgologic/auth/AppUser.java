@@ -40,6 +40,9 @@ public class AppUser {
     @Column(name = "failed_attempts", nullable = false)
     private int failedAttempts = 0;
 
+    @Column(name = "auth_version", nullable = false)
+    private int authVersion = 0;
+
     @Column(name = "locked_until")
     private OffsetDateTime lockedUntil;
 

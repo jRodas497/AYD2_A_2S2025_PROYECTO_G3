@@ -66,11 +66,19 @@ public class InventoryReservationService {
         throw new InsufficientStockException(productId, quantity);
     }
 
+    @Transactional
+    public Reservation reserveAtLocation(Long orderId,Long productId,int quantity,int ttlMinutes,Long locationId) {
+        int changed=jdbc.update("update inventory.stock set reserved=reserved+?,updated_at=now() where location_id=? and product_id=? and on_hand-reserved>=?",quantity,locationId,productId,quantity);
+        if(changed!=1) throw new InsufficientStockException(productId,quantity);
+        Reservation r=new Reservation();r.setOrderId(orderId);r.setProductId(productId);r.setLocationId(locationId);r.setQuantity(quantity);r.setStatus(ReservationStatus.ACTIVE);r.setExpiresAt(OffsetDateTime.now().plusMinutes(ttlMinutes));
+        return reservations.save(r);
+    }
+
     /** Libera las reservas activas ya vencidas: baja el stock reservado y las marca EXPIRED. */
     @Transactional
     public int releaseExpired() {
         List<Reservation> expired =
-                reservations.findByStatusAndExpiresAtBefore(ReservationStatus.ACTIVE, OffsetDateTime.now());
+                reservations.findExpiredLocked();
         for (Reservation r : expired) {
             jdbc.update(
                     "update inventory.stock set reserved = reserved - ?, updated_at = now() "

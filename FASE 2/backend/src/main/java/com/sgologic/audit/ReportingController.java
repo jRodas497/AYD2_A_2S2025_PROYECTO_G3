@@ -140,9 +140,11 @@ public class ReportingController {
                 where o.created_at between ? and ?
                 """,
                 since, until);
+        var returns=jdbc.queryForMap("select coalesce(sum(r.amount),0) as monto_reembolsado,coalesce(sum(r.amount) filter(where b.status_id=2),0) as devoluciones_entregadas_al_erp,count(r.id) filter(where b.status_id is distinct from 2) as devoluciones_pendientes_erp from payments.refund r left join integration.erp_batch_refund e on e.refund_id=r.id left join integration.erp_batch b on b.id=e.batch_id where r.status_id=2 and r.refunded_at between ? and ?",since,until);
+        reconciliation.putAll(returns);
         reconciliation.put("cuadra",
                 ((Number) reconciliation.get("facturadas")).longValue()
-                        == ((Number) reconciliation.get("entregadas_al_erp")).longValue());
+                        == ((Number) reconciliation.get("entregadas_al_erp")).longValue() && ((Number)returns.get("devoluciones_pendientes_erp")).longValue()==0);
 
         audit.record("api", "REPORTE_VENTAS_GENERADO", "report", "sales", null, null,
                 Map.of("desde", since.toString(), "hasta", until.toString(),

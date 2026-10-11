@@ -35,7 +35,7 @@ public class CustomerController {
     @GetMapping
     public java.util.List<Customer> search(
             @RequestParam(required = false) String q, @RequestParam(defaultValue = "50") int limit) {
-        return customers.search(q, org.springframework.data.domain.PageRequest.of(0, limit));
+        return customers.search(q, org.springframework.data.domain.PageRequest.of(0, Math.max(1,Math.min(500,limit))));
     }
 
     @PostMapping

@@ -21,6 +21,11 @@ public class InventoryController {
         this.jdbc = jdbc;
     }
 
+    @GetMapping("/locations")
+    public java.util.List<java.util.Map<String,Object>> locations() {
+        return jdbc.queryForList("select id,code,name,type_id from inventory.location order by id");
+    }
+
     @GetMapping("/products/{productId}/availability")
     public Availability availability(@PathVariable Long productId) {
         List<LocationAvailability> byLocation = jdbc.query(

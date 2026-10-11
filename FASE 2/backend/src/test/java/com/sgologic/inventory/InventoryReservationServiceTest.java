@@ -92,7 +92,7 @@ class InventoryReservationServiceTest {
         expired.setQuantity(3);
         expired.setStatus(ReservationStatus.ACTIVE);
 
-        when(reservations.findByStatusAndExpiresAtBefore(eq(ReservationStatus.ACTIVE), any()))
+        when(reservations.findExpiredLocked())
                 .thenReturn(List.of(expired));
 
         int released = service.releaseExpired();
@@ -110,7 +110,7 @@ class InventoryReservationServiceTest {
 
     @Test
     void no_hace_nada_si_no_hay_reservas_vencidas() {
-        when(reservations.findByStatusAndExpiresAtBefore(eq(ReservationStatus.ACTIVE), any()))
+        when(reservations.findExpiredLocked())
                 .thenReturn(List.of());
 
         int released = service.releaseExpired();

@@ -8,5 +8,5 @@ package com.sgologic.payments;
 public enum PaymentMethod {
     CARD,
     TRANSFER,
-    WALLET
+    WALLET, CREDIT
 }

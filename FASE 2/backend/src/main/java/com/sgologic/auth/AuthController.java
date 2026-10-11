@@ -22,6 +22,12 @@ public class AuthController {
         return auth.login(body.username(), body.password());
     }
 
+    @org.springframework.web.bind.annotation.GetMapping("/me")
+    public java.util.Map<String,Object> me(org.springframework.security.core.Authentication authentication) {
+        return java.util.Map.of("username", authentication.getName(), "roles", authentication.getAuthorities().stream()
+                .map(a -> a.getAuthority().replaceFirst("^ROLE_", "")).toList());
+    }
+
     public record LoginRequest(@NotBlank String username, @NotBlank String password) {
     }
 }

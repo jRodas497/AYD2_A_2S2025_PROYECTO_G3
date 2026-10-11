@@ -68,7 +68,7 @@ public class AuthService {
                     .toList();
         });
 
-        return new LoginResult(jwt.issue(user.getUsername(), roles), user.getUsername(), roles);
+        return new LoginResult(jwt.issue(user.getUsername(), roles, java.util.Map.of("authVersion", user.getAuthVersion())), user.getUsername(), roles);
     }
 
     private void registerFailedAttempt(Long userId) {

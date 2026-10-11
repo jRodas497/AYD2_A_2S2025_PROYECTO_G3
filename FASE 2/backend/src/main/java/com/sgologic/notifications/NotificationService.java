@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Limit;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -29,12 +28,6 @@ public class NotificationService {
     private final NotificationRepository notifications;
     private final MessagingClient messaging;
     private final JdbcTemplate jdbc;
-
-    @Value("${sgologic.notifications.max-attempts:3}")
-    private int maxAttempts;
-
-    @Value("${sgologic.notifications.batch-size:50}")
-    private int batchSize;
 
     public NotificationService(
             NotificationRepository notifications, MessagingClient messaging, JdbcTemplate jdbc) {
@@ -63,48 +56,16 @@ public class NotificationService {
         return Optional.of(notifications.save(notification));
     }
 
-    /**
-     * Envía los avisos pendientes. Cada uno va por su cuenta: que uno falle no detiene a los
-     * demás, y al agotar los intentos queda como FAILED con su último error.
-     */
     @Transactional
-    public int sendPending() {
-        List<Notification> pending =
-                notifications.findByStatusOrderByIdAsc(DeliveryStatus.PENDING, Limit.of(batchSize));
-        int sent = 0;
-        for (Notification notification : pending) {
-            if (send(notification)) {
-                sent++;
-            }
-        }
-        return sent;
-    }
-
-    private boolean send(Notification notification) {
-        notification.setAttempts(notification.getAttempts() + 1);
-        try {
-            String rejection = messaging.send(
-                    notification.getChannel().code(), notification.getRecipient(), notification.getMessage());
-            if (rejection == null) {
-                notification.setStatus(DeliveryStatus.DELIVERED);
-                notification.setSentAt(OffsetDateTime.now());
-                notification.setLastError(null);
-                return true;
-            }
-            fail(notification, rejection);
-        } catch (ProviderUnavailableException e) {
-            fail(notification, e.getMessage());
-        }
-        return false;
-    }
-
-    private void fail(Notification notification, String error) {
-        notification.setLastError(error);
-        if (notification.getAttempts() >= maxAttempts) {
-            notification.setStatus(DeliveryStatus.FAILED);
-            log.warn("el aviso {} de la orden {} se agotó tras {} intentos: {}",
-                    notification.getId(), notification.getOrderId(), notification.getAttempts(), error);
-        }
+    public void deliverOne(Long id) {
+        Notification n = notifications.findById(id).orElseThrow();
+        if (n.getStatus() != DeliveryStatus.PENDING) return;
+        n.setAttempts(n.getAttempts() + 1);
+        String rejection = messaging.send(n.getChannel().code(), n.getRecipient(), n.getMessage());
+        if (rejection != null) throw new IllegalStateException(rejection);
+        n.setStatus(DeliveryStatus.DELIVERED);
+        n.setSentAt(OffsetDateTime.now());
+        n.setLastError(null);
     }
 
     /** Vuelve a poner en cola un aviso que se dio por perdido. */
@@ -112,9 +73,11 @@ public class NotificationService {
     public Notification retry(Long notificationId) {
         Notification notification = notifications.findById(notificationId)
                 .orElseThrow(() -> new IllegalArgumentException("aviso no encontrado: " + notificationId));
+        if(notification.getStatus()!=DeliveryStatus.FAILED) return notification;
         notification.setStatus(DeliveryStatus.PENDING);
         notification.setAttempts(0);
         notification.setLastError(null);
+        jdbc.update("update notifications.notification set kafka_published_at=null, relay_lease_until=null where id=?", notificationId);
         return notification;
     }
 
