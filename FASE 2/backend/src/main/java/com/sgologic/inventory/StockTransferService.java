@@ -129,6 +129,7 @@ public class StockTransferService {
     @Transactional public Map<String,Object> receive(Long id,String reference,boolean provider) {
         var t=lock(id);
         if(provider&&"CANCELLED".equals(t.get("status")))return detail(id);
+        if(provider&&"PENDING".equals(t.get("status")))throw error(HttpStatus.CONFLICT,"el traslado todavía no salió; vuelve a confirmar la recepción después de la salida");
         if(provider&&(!"LogiExpress".equals(t.get("carrier_name"))||!Objects.equals(reference,t.get("transport_reference"))))throw error(HttpStatus.CONFLICT,"la actualización no corresponde al transporte vigente");
         if(!provider)stores.requireLocation(locationCode(number(t,"destination_id")));
         if("RECEIVED".equals(t.get("status")))return detail(id);
