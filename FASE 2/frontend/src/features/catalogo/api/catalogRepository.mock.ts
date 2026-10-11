@@ -1,5 +1,6 @@
+import { coincide } from './catalogSearch'
 import type { CatalogRepository } from './catalogRepository'
-import type { Categoria, Product } from '../types'
+import type { Product } from '../types'
 
 export const PRODUCTO_AGOTADO_SKU = 'EL-0999'
 
@@ -67,11 +68,7 @@ const PRODUCTOS: Product[] = [
   },
 ]
 
-export function coincide(producto: Product, query: string, categoria?: Categoria): boolean {
-  const coincideCategoria = !categoria || producto.categoria === categoria
-  const coincideTexto = !query || producto.nombre.toLowerCase().includes(query.toLowerCase())
-  return coincideCategoria && coincideTexto
-}
+export { coincide } from './catalogSearch'
 
 export const mockCatalogRepository: CatalogRepository = {
   async list() {

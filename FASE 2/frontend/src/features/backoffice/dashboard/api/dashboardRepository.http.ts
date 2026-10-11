@@ -1,3 +1,4 @@
+import { apiFetch as fetch } from '../../../../shared/api/apiFetch'
 import type { DashboardRepository } from './dashboardRepository'
 import type { DashboardData } from '../types'
 import { manejarRespuesta } from '../../../../shared/api/httpErrors'

@@ -1,21 +1,24 @@
 import { useEffect, useState } from 'react'
-import { mockPricingRepository } from '../api/pricingRepository.mock'
+import { httpPricingRepository } from '../api/pricingRepository.http'
 import type { Promotion } from '../api/pricingRepository'
 
 export function PromocionesPage() {
   const [promociones, setPromociones] = useState<Promotion[]>([])
+  const [error, setError] = useState<string | null>(null)
   const [cargando, setCargando] = useState(true)
 
   useEffect(() => {
-    mockPricingRepository.listActivePromotions().then((resultado) => {
+    httpPricingRepository.listActivePromotions().then((resultado) => {
       setPromociones(resultado)
       setCargando(false)
-    })
+    }).catch(e => { setError(e.message); setCargando(false) })
   }, [])
 
   return (
     <div>
       <h1 className="text-2xl font-semibold text-ink mb-6">Promociones vigentes</h1>
+      {error && <p role="alert" className="text-falla">{error}</p>}
+      {!cargando && promociones.length === 0 && <p>No hay promociones vigentes.</p>}
       {cargando ? (
         <p className="text-sm text-gray-400">Cargando promociones…</p>
       ) : (

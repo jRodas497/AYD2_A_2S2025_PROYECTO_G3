@@ -63,7 +63,7 @@ export function ReservasPage() {
         <div className="bg-white border border-linea rounded divide-y divide-linea">
           {reservas.map((r) => (
             <div key={r.id} className="flex items-center justify-between gap-3 p-3 text-sm">
-              <Link to={`/ordenes/${r.orderId}`} className="font-medium text-brand hover:underline">
+              <Link to={`/administracion/ordenes/${r.orderId}`} className="font-medium text-brand hover:underline">
                 Orden {r.orderId}
               </Link>
               <span className="text-gray-500 flex-1 px-3 truncate">

@@ -1,5 +1,9 @@
+import { useCustomer } from '../../../shared/context/CustomerContext'
+import { apiFetch } from '../../../shared/api/apiFetch'
+import { manejarRespuesta } from '../../../shared/api/httpErrors'
+import type { CreditAccount } from '../../credito/CreditPage'
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { BackLink } from '../../../shared/components/BackLink'
 import { Button } from '../../../shared/components/Button'
 import { Pill } from '../../../shared/components/Pill'
@@ -24,6 +28,9 @@ function formatQ(valor: number): string {
 export function PaymentPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const basePath = useLocation().pathname.startsWith('/administracion') ? '/administracion' : ''
+  const { customer } = useCustomer()
+  const [credit, setCredit] = useState<CreditAccount | null>(null)
   const { notificar } = useNotify()
   const [orden, setOrden] = useState<Order | null>(null)
   const [intentosFallidos, setIntentosFallidos] = useState(0)
@@ -49,6 +56,11 @@ export function PaymentPage() {
       })
   }, [id])
 
+  useEffect(() => {
+    const creditCustomer = basePath ? orden?.customerId : customer?.id
+    if (creditCustomer) apiFetch(`/api/customers/${creditCustomer}/credit`).then(r => manejarRespuesta<CreditAccount>(r)).then(setCredit).catch(() => setCredit(null))
+  }, [customer?.id, orden?.customerId, basePath])
+
   if (cargando) return <p className="text-sm text-gray-400">Cargando…</p>
   if (error) return <p className="text-sm text-falla">{error}</p>
   if (!orden) return <p className="text-sm text-falla">No encontramos una orden con ese número.</p>
@@ -56,7 +68,7 @@ export function PaymentPage() {
   if (orden.estado === 'pagada' || orden.estado === 'facturada' || orden.estado === 'en_despacho' || orden.estado === 'entregada') {
     return (
       <div>
-        <BackLink to={`/ordenes/${orden.id}`} label="Volver a la orden" />
+        <BackLink to={`${basePath}/ordenes/${orden.id}`} label="Volver a la orden" />
         <p className="text-sm text-ok">Esta orden ya está pagada.</p>
       </div>
     )
@@ -65,7 +77,7 @@ export function PaymentPage() {
   if (orden.estado === 'cancelada' || orden.estado === 'devuelta') {
     return (
       <div>
-        <BackLink to={`/ordenes/${orden.id}`} label="Volver a la orden" />
+        <BackLink to={`${basePath}/ordenes/${orden.id}`} label="Volver a la orden" />
         <p className="text-sm text-falla">Esta orden ya no admite pagos.</p>
       </div>
     )
@@ -74,7 +86,7 @@ export function PaymentPage() {
   if (orden.estado === 'pago_en_proceso') {
     return (
       <div>
-        <BackLink to={`/ordenes/${orden.id}`} label="Volver a la orden" />
+        <BackLink to={`${basePath}/ordenes/${orden.id}`} label="Volver a la orden" />
         <p className="text-sm text-gray-400">Tu pago se está confirmando. Consulta el estado de la orden para ver el resultado.</p>
       </div>
     )
@@ -83,7 +95,7 @@ export function PaymentPage() {
   if (intentosFallidos >= httpPaymentRepository.maxIntentosFallidos) {
     return (
       <div>
-        <BackLink to={`/ordenes/${orden.id}`} label="Volver a la orden" />
+        <BackLink to={`${basePath}/ordenes/${orden.id}`} label="Volver a la orden" />
         <h1 className="text-2xl font-semibold text-ink mb-2">Pago fallido definitivamente</h1>
         <p className="text-sm text-gray-500">
           Se agotaron los intentos de cobro para esta orden. Te notificaremos para que puedas reintentar más
@@ -127,13 +139,13 @@ export function PaymentPage() {
 
     if (intento.resultado === 'aprobado') {
       notificar('Pago aprobado. Tu orden fue confirmada.', 'ok')
-      navigate(`/ordenes/${orden.id}`)
+      navigate(`${basePath}/ordenes/${orden.id}`)
       return
     }
 
     if (intento.resultado === 'en_proceso') {
       notificar('Tu pago quedó en proceso. Te avisaremos cuando se confirme.', 'info')
-      navigate(`/ordenes/${orden.id}`)
+      navigate(`${basePath}/ordenes/${orden.id}`)
       return
     }
 
@@ -152,7 +164,7 @@ export function PaymentPage() {
 
   return (
     <div>
-      <BackLink to={`/ordenes/${orden.id}`} label="Volver a la orden" />
+      <BackLink to={`${basePath}/ordenes/${orden.id}`} label="Volver a la orden" />
       <h1 className="text-2xl font-semibold text-ink mb-6">Pagar orden {orden.id}</h1>
 
       {rechazoMotivo && (
@@ -164,10 +176,11 @@ export function PaymentPage() {
         </div>
       )}
 
+      {credit && <p className="text-sm mb-4">Crédito: {credit.reason}. Disponible: Q {Number(credit.available).toFixed(2)}</p>}
       <form onSubmit={handlePagar}>
         <h2 className="text-sm font-medium text-ink mb-2">Método de pago</h2>
         <div className="space-y-2 mb-4">
-          {OPCIONES_METODO.map((opcion) => (
+          {[...OPCIONES_METODO, ...(credit?.eligible && Number(credit.available) >= orden.total ? [{ valor: 'credito' as MetodoPago, etiqueta: `Crédito MegaStore · ${credit.termDays} días` }] : [])].map((opcion) => (
             <label
               key={opcion.valor}
               className={`flex items-center gap-3 border rounded p-3 cursor-pointer bg-white ${

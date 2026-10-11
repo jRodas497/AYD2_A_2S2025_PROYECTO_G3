@@ -1,3 +1,6 @@
+import { useAuth } from '../../../../shared/context/AuthContext'
+import { hasPermission } from '../../../../shared/auth/accessPolicy'
+import { SimulationPanel } from '../SimulationPanel'
 import { useEffect, useState } from 'react'
 import { Pill } from '../../../../shared/components/Pill'
 import { useNotify } from '../../../../shared/notifications/NotificationContext'
@@ -14,6 +17,9 @@ function TonoCircuito({ estado }: { estado: string }) {
 }
 
 export function IntegracionesPage() {
+  const { session } = useAuth()
+  const canRetry = hasPermission(session?.roles ?? [], 'editIntegrations')
+  const canErp = hasPermission(session?.roles ?? [], 'erp')
   const [salud, setSalud] = useState<SaludIntegraciones | null>(null)
   const [outbox, setOutbox] = useState<OutboxEventoVista[]>([])
   const [pos, setPos] = useState<PosEventoVista[]>([])
@@ -41,7 +47,7 @@ export function IntegracionesPage() {
         httpIntegracionesRepository.salud(),
         httpIntegracionesRepository.outbox('FAILED', 50),
         httpIntegracionesRepository.pos('FAILED', 50),
-        httpIntegracionesRepository.erpBatches(10),
+        canErp ? httpIntegracionesRepository.erpBatches(10) : Promise.resolve([]),
       ])
       setSalud(s)
       setOutbox(o)
@@ -56,7 +62,7 @@ export function IntegracionesPage() {
 
   useEffect(() => {
     cargar()
-  }, [])
+  }, [canErp])
 
   async function reintentarOutbox(id: number) {
     const clave = `outbox-${id}`
@@ -113,9 +119,11 @@ export function IntegracionesPage() {
         circuito sin forma de verlo es un punto ciego, no una protección.
       </p>
 
+      <SimulationPanel />
+      <button className="text-brand text-sm mb-4" onClick={() => void cargar()}>Actualizar estado</button>
       <div className="bg-white border border-linea rounded p-4 mb-4">
         <h2 className="text-sm font-medium text-ink mb-3">Circuitos</h2>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-4">
           {Object.entries(salud.circuitos).map(([proveedor, estado]) => (
             <div key={proveedor} className="flex items-center gap-2">
               <span className="text-sm text-gray-600">{proveedor}</span>
@@ -125,7 +133,7 @@ export function IntegracionesPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
         {(['outbox', 'pos', 'avisos', 'erp'] as const).map((cola) => (
           <div key={cola} className="bg-white border border-linea rounded p-3">
             <div className="text-xs text-gray-400 uppercase mb-1">{cola}</div>
@@ -150,14 +158,15 @@ export function IntegracionesPage() {
                 <span className="font-medium text-ink">{e.eventType}</span>
                 <span className="text-xs text-gray-400">{e.aggregateType} #{e.aggregateId}</span>
                 <span className="text-xs text-gray-400">{e.attempts} intentos</span>
+                {e.lastError && <span title={e.lastError} className="text-xs text-falla max-w-52 truncate">{e.lastError}</span>}
                 <span className="text-xs text-gray-400">{formatFecha(e.createdAt)}</span>
-                <button
+                {canRetry && <button
                   onClick={() => reintentarOutbox(e.id)}
                   disabled={pendientes.has(`outbox-${e.id}`)}
                   className="text-xs text-brand hover:underline disabled:opacity-50"
                 >
                   Reintentar
-                </button>
+                </button>}
               </div>
             ))}
           </div>
@@ -176,20 +185,20 @@ export function IntegracionesPage() {
                 <span className="text-xs text-gray-400">{e.eventType}</span>
                 <span className="text-gray-500 flex-1 px-3 truncate">{e.lastError}</span>
                 <span className="text-xs text-gray-400">{formatFecha(e.createdAt)}</span>
-                <button
+                {canRetry && <button
                   onClick={() => reintentarPos(e.id)}
                   disabled={pendientes.has(`pos-${e.id}`)}
                   className="text-xs text-brand hover:underline disabled:opacity-50"
                 >
                   Reintentar
-                </button>
+                </button>}
               </div>
             ))}
           </div>
         )}
       </div>
 
-      <div className="bg-white border border-linea rounded p-4">
+      {canErp && <div className="bg-white border border-linea rounded p-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-medium text-ink">Lotes del ERP</h2>
           <button onClick={generarLote} disabled={generandoLote} className="text-xs text-brand hover:underline disabled:opacity-50">
@@ -209,7 +218,7 @@ export function IntegracionesPage() {
             ))}
           </div>
         )}
-      </div>
+      </div>}
     </div>
   )
 }

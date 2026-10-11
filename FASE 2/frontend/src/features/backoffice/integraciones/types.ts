@@ -8,6 +8,7 @@ export interface SaludIntegraciones {
 
 export interface OutboxEventoVista {
   id: number
+  lastError?: string | null
   aggregateType: string
   aggregateId: number
   eventType: string

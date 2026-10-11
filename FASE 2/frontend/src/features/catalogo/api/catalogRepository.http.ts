@@ -1,5 +1,6 @@
+import { apiFetch as fetch } from '../../../shared/api/apiFetch'
 import type { CatalogRepository } from './catalogRepository'
-import { coincide } from './catalogRepository.mock'
+import { coincide } from './catalogSearch'
 import type { Categoria, Product } from '../types'
 import { NotFoundError, manejarRespuesta } from '../../../shared/api/httpErrors'
 
@@ -8,6 +9,7 @@ interface BackendProduct {
   sku: string
   name: string
   category: string
+  originalPrice?: number
   price: number
   active: boolean
 }
@@ -43,7 +45,7 @@ async function mapearProducto(backendProducto: BackendProduct): Promise<Product>
     categoria: mapearCategoria(backendProducto.category),
     // El backend no tiene un campo de descripción todavía (ver docs/contratos-api/catalog-service.md).
     descripcion: '',
-    precio: { original: backendProducto.price, final: backendProducto.price },
+    precio: { original: backendProducto.originalPrice ?? backendProducto.price, final: backendProducto.price },
     ...disponibilidad,
   }
 }

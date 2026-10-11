@@ -1,3 +1,4 @@
+import { canAccessStaffPath } from '../shared/auth/accessPolicy'
 import {
   AlertTriangle,
   BarChart3,
@@ -54,18 +55,19 @@ export const NAV_SECTIONS: NavSection[] = [
   },
   {
     titulo: 'Cuenta',
-    items: [{ label: 'Perfil', path: '/perfil', estado: 'activo', icon: User }],
+    items: [{ label: 'Mi crédito', path: '/credito', estado: 'activo', icon: BookmarkCheck }, { label: 'Perfil', path: '/perfil', estado: 'activo', icon: User }],
   },
   {
     titulo: 'Panel administrativo',
     items: [{ label: 'Dashboard', path: '/administracion/dashboard', estado: 'activo', icon: LayoutDashboard }],
   },
   {
-    titulo: 'Operaciones (admin)',
+    titulo: 'Operaciones',
     items: [
       { label: 'Órdenes', path: '/administracion/ordenes', estado: 'activo', icon: ClipboardList },
       { label: 'Incidencias', path: '/administracion/incidencias', estado: 'activo', icon: AlertTriangle },
       { label: 'Devoluciones', path: '/administracion/devoluciones', estado: 'activo', icon: Undo2 },
+      { label: 'Catálogo y promociones', path: '/administracion/catalogo', estado: 'activo', icon: Tag },
       { label: 'Inventario', path: '/administracion/inventario', estado: 'activo', icon: Boxes },
       { label: 'Reservas', path: '/administracion/reservas', estado: 'activo', icon: BookmarkCheck },
       { label: 'Logística', path: '/administracion/logistica', estado: 'activo', icon: Truck },
@@ -75,9 +77,11 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     titulo: 'Gestión',
     items: [
+      { label: 'Usuarios y roles', path: '/administracion/usuarios', estado: 'activo', icon: Users },
       { label: 'Clientes', path: '/administracion/clientes', estado: 'activo', icon: Users },
       { label: 'Auditoría', path: '/administracion/auditoria', estado: 'activo', icon: History },
       { label: 'Reportes', path: '/administracion/reportes', estado: 'activo', icon: BarChart3 },
+      { label: 'ERP y conciliación', path: '/administracion/erp', estado: 'activo', icon: FileText },
       { label: 'Facturas', path: '/administracion/facturas', estado: 'activo', icon: FileText },
       { label: 'Configuración', path: '/administracion/configuracion', estado: 'activo', icon: Settings },
     ],
@@ -90,3 +94,11 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
 ]
+
+export function visibleNavigation(isStaffArea: boolean, roles: readonly string[], customerSignedIn: boolean): NavSection[] {
+  return NAV_SECTIONS.map(section => ({ ...section, items: section.items.filter(item => {
+    if (isStaffArea) return canAccessStaffPath(roles, item.path)
+    if (item.path.startsWith('/administracion')) return false
+    return customerSignedIn || ['/catalogo', '/promociones'].includes(item.path)
+  }) })).filter(section => section.items.length > 0)
+}

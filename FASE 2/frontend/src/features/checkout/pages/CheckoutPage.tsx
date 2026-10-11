@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { apiFetch } from '../../../shared/api/apiFetch'
+import { manejarRespuesta } from '../../../shared/api/httpErrors'
+import { useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { BackLink } from '../../../shared/components/BackLink'
 import { Button } from '../../../shared/components/Button'
@@ -14,6 +16,10 @@ export function CheckoutPage() {
   const { cart, cargando, error: errorCarrito, total, resetearCarritoLocal } = useCarrito()
   const { customer } = useCustomer()
   const navigate = useNavigate()
+  const [pickup, setPickup] = useState(false)
+  const [storeId, setStoreId] = useState('')
+  const [stores, setStores] = useState<{id:number;code:string;name:string;type_id:number}[]>([])
+  useEffect(() => { apiFetch('/api/inventory/locations').then(r => manejarRespuesta<{id:number;code:string;name:string;type_id:number}[]>(r)).then(rows => setStores(rows.filter(r => r.type_id===2))).catch(() => setStores([])) }, [])
   const [direccionEntrega, setDireccionEntrega] = useState('')
   const [confirmando, setConfirmando] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -35,14 +41,16 @@ export function CheckoutPage() {
   }
 
   async function handleConfirmar() {
-    if (!direccionEntrega.trim()) return
+    if ((!pickup && !direccionEntrega.trim()) || (pickup && !storeId)) return
     setConfirmando(true)
     setError(null)
     try {
       const orden = await httpOrderRepository.createOrder({
         customerId,
+        channel: localStorage.getItem('sgo-channel') ?? 'WEB',
         items: cart.items,
-        direccionEntrega: direccionEntrega.trim(),
+        direccionEntrega: pickup ? 'Retiro en tienda' : direccionEntrega.trim(),
+        pickupLocationId: pickup ? Number(storeId) : undefined,
       })
       resetearCarritoLocal()
       navigate(`/ordenes/${orden.id}`)
@@ -57,12 +65,15 @@ export function CheckoutPage() {
       <BackLink to="/carrito" label="Volver al carrito" />
       <h1 className="text-2xl font-semibold text-ink mb-6">Checkout</h1>
 
+      <label className="flex gap-2 text-sm mb-3"><input type="checkbox" checked={pickup} onChange={e => setPickup(e.target.checked)} />Retirar en tienda</label>
+      {pickup && <label className="block text-sm mb-4">Tienda de retiro<select className="border rounded p-2 w-full" value={storeId} onChange={e => setStoreId(e.target.value)}><option value="">Selecciona una tienda</option>{stores.map(s => <option value={s.id} key={s.id}>{s.code} · {s.name}</option>)}</select></label>}
       <h2 className="text-sm font-medium text-ink mb-2">Dirección de entrega</h2>
       <input
         value={direccionEntrega}
         onChange={(e) => setDireccionEntrega(e.target.value)}
         placeholder="Zona 10, Ciudad de Guatemala"
-        required
+        required={!pickup}
+        disabled={pickup}
         className="w-full border border-linea rounded px-3 py-2 text-sm bg-white mb-6"
       />
 
@@ -75,7 +86,7 @@ export function CheckoutPage() {
         </div>
       </div>
 
-      <Button onClick={handleConfirmar} disabled={confirmando || !direccionEntrega.trim()}>
+      <Button onClick={handleConfirmar} disabled={confirmando || (pickup ? !storeId : !direccionEntrega.trim())}>
         {confirmando ? 'Confirmando…' : 'Confirmar compra'}
       </Button>
     </div>

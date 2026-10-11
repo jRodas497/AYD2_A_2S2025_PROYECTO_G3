@@ -12,7 +12,7 @@ export function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const ok = await login(username, password)
-    if (ok) navigate('/administracion/configuracion')
+    if (ok) navigate('/administracion')
   }
 
   if (session) {
@@ -25,8 +25,7 @@ export function LoginPage() {
         <p className="text-sm text-gray-500 mb-4">Roles: {session.roles.join(', ') || 'sin rol asignado'}</p>
         {!isAdmin && (
           <p className="text-sm text-alerta mb-4">
-            Esta cuenta no tiene el rol ADMIN: puede ver los paneles, pero no crear usuarios ni cambiar
-            configuración.
+            Los paneles y acciones disponibles corresponden a los roles asignados a esta cuenta.
           </p>
         )}
         <Button variant="secondary" onClick={logout}>
@@ -66,9 +65,7 @@ export function LoginPage() {
         <Button type="submit" disabled={loggingIn}>
           {loggingIn ? 'Ingresando…' : 'Ingresar'}
         </Button>
-        <p className="text-[11px] text-gray-400">
-          Usuario de desarrollo sembrado por la migración: <code>admin</code> / <code>admin123</code>.
-        </p>
+
       </form>
     </div>
   )

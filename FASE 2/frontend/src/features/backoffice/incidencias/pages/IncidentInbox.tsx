@@ -28,7 +28,8 @@ export function IncidentInbox({ tipoFijo, titulo, descripcion }: { tipoFijo?: 'E
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [procesando, setProcesando] = useState<number | null>(null)
-  const { isAdmin } = useAuth()
+  const { session } = useAuth()
+  const isAdmin = session?.roles.some(r => ['ADMIN', 'FINANCE', 'CALL_CENTER_AGENT', 'STORE_EMPLOYEE', 'STORE_MANAGER'].includes(r)) ?? false
   const { notificar } = useNotify()
 
   async function cargar() {
@@ -96,7 +97,7 @@ export function IncidentInbox({ tipoFijo, titulo, descripcion }: { tipoFijo?: 'E
           {incidencias.map((i) => (
             <div key={i.id} className="p-3">
               <div className="flex items-center justify-between gap-3 text-sm mb-1">
-                <Link to={`/ordenes/${i.orderId}`} className="font-medium text-brand hover:underline">
+                <Link to={`/administracion/ordenes/${i.orderId}`} className="font-medium text-brand hover:underline">
                   Orden {i.orderId}
                 </Link>
                 <span className="text-gray-500">{i.cliente}</span>

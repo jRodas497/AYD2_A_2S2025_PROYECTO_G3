@@ -1,3 +1,4 @@
+import { apiFetch as fetch } from '../../../shared/api/apiFetch'
 import type { OrderRepository } from './orderRepository'
 import type { EstadoOrden, Order } from '../types'
 import { NotFoundError, manejarRespuesta } from '../../../shared/api/httpErrors'
@@ -16,6 +17,8 @@ interface BackendOrder {
 }
 
 interface BackendOrderDetail {
+  items?: Order['items']
+  deliveryAddress?: string
   orderId: number
   createdAt: string | null
   customerId: number
@@ -53,7 +56,7 @@ export const httpOrderRepository: OrderRepository = {
       await fetch('/api/orders/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerId: Number(input.customerId), deliveryAddress: input.direccionEntrega }),
+        body: JSON.stringify({ customerId: Number(input.customerId), deliveryAddress: input.direccionEntrega, pickupLocationId: input.pickupLocationId, channel: input.channel }),
       }),
     )
     const orden: Order = {
@@ -78,9 +81,9 @@ export const httpOrderRepository: OrderRepository = {
       return {
         id: String(detalle.orderId),
         customerId: String(detalle.customerId),
-        items: snapshot?.items ?? [],
+        items: detalle.items?.map(i => ({ ...i, productId: String(i.productId) })) ?? snapshot?.items ?? [],
         total: detalle.total,
-        direccionEntrega: snapshot?.direccionEntrega ?? '',
+        direccionEntrega: detalle.deliveryAddress ?? snapshot?.direccionEntrega ?? '',
         estado: mapearEstado(detalle.status),
         creadaEn: detalle.createdAt ?? '',
         trackingNumber: detalle.trackingNumber ?? undefined,
@@ -106,9 +109,9 @@ export const httpOrderRepository: OrderRepository = {
         return {
           id,
           customerId: String(detalle.customerId),
-          items: snapshot?.items ?? [],
+          items: detalle.items?.map(i => ({ ...i, productId: String(i.productId) })) ?? snapshot?.items ?? [],
           total: detalle.total,
-          direccionEntrega: snapshot?.direccionEntrega ?? '',
+          direccionEntrega: detalle.deliveryAddress ?? snapshot?.direccionEntrega ?? '',
           estado: mapearEstado(detalle.status),
           creadaEn: detalle.createdAt ?? '',
           trackingNumber: detalle.trackingNumber ?? undefined,

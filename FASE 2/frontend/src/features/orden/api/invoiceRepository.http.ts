@@ -1,3 +1,4 @@
+import { apiFetch as fetch } from '../../../shared/api/apiFetch'
 import { manejarRespuesta, NotFoundError } from '../../../shared/api/httpErrors'
 
 export interface Invoice {

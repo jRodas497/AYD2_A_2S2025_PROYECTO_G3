@@ -1,3 +1,5 @@
+import { useAuth } from '../../../../shared/context/AuthContext'
+import { hasPermission } from '../../../../shared/auth/accessPolicy'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { BackLink } from '../../../../shared/components/BackLink'
@@ -17,6 +19,8 @@ function formatFecha(iso: string): string {
 }
 
 export function ClienteDetallePage() {
+  const { session } = useAuth()
+  const canEdit = hasPermission(session?.roles ?? [], 'editCustomers')
   const { id } = useParams<{ id: string }>()
   const [cliente, setCliente] = useState<ClienteDetalle | null>(null)
   const [cargando, setCargando] = useState(true)
@@ -132,9 +136,9 @@ export function ClienteDetallePage() {
                 <dd className="text-ink">{cliente.taxId}</dd>
               </div>
             </dl>
-            <Button variant="secondary" onClick={() => setEditando(true)}>
+            {canEdit && <Button variant="secondary" onClick={() => setEditando(true)}>
               Editar datos
-            </Button>
+            </Button>}
           </div>
         )}
       </div>
@@ -148,7 +152,7 @@ export function ClienteDetallePage() {
             {cliente.ordenes.map((o) => (
               <Link
                 key={o.orderId}
-                to={`/ordenes/${o.orderId}`}
+                to={`/administracion/ordenes/${o.orderId}`}
                 className="flex items-center justify-between py-2 text-sm hover:bg-crema/40"
               >
                 <span className="font-medium text-ink">Orden {o.orderId}</span>

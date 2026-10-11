@@ -15,6 +15,7 @@ export function CartPage() {
   // + y − cuentan cada clic: el servidor suma o resta en una sola sentencia, así que no hace falta
   // bloquear esos botones. Quitar sí se bloquea mientras está en curso, para no disparar un segundo
   // borrado de un producto que ya no está en el carrito.
+  const [channel, setChannel] = useState(localStorage.getItem('sgo-channel') ?? 'WEB')
   const [pendientes, setPendientes] = useState<Set<string>>(new Set())
 
   function marcarPendiente(productId: string, valor: boolean) {
@@ -62,6 +63,7 @@ export function CartPage() {
     <div>
       <h1 className="text-2xl font-semibold text-ink mb-6">Carrito</h1>
 
+      <label className="block text-sm mb-4">Canal de compra<select className="border rounded p-2 ml-3" value={channel} onChange={e => { setChannel(e.target.value); localStorage.setItem('sgo-channel', e.target.value) }}><option value="WEB">Web</option><option value="MOBILE">Aplicación móvil</option><option value="CALL_CENTER">Centro de atención</option></select></label>
       {cart.items.length === 0 ? (
         <p className="text-sm text-gray-400">
           Tu carrito está vacío. <Link to="/catalogo" className="text-brand underline">Ver catálogo</Link>

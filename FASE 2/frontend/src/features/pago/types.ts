@@ -1,4 +1,4 @@
-export type MetodoPago = 'tarjeta' | 'transferencia' | 'billetera'
+export type MetodoPago = 'tarjeta' | 'transferencia' | 'billetera' | 'credito'
 
 export type ResultadoCobro = 'aprobado' | 'en_proceso' | 'rechazado'
 

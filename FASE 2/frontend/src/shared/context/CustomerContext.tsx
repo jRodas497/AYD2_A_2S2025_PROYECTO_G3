@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { httpCustomerRepository } from '../../features/cliente/api/customerRepository.http'
 import type { Customer } from '../../features/cliente/types'
 import type { DatosRegistro } from '../../features/cliente/api/customerRepository'
@@ -45,6 +45,14 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   const [sesion, setSesion] = useState<SesionGuardada | null>(() => cargarSesion())
   const [authError, setAuthError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  useEffect(() => {
+    function expired(event: Event) {
+      if ((event as CustomEvent<string>).detail !== STORAGE_KEY) return
+      localStorage.removeItem(STORAGE_KEY); setSesion(null); setAuthError('La sesión venció. Ingresa de nuevo.')
+    }
+    window.addEventListener('sgo-session-expired', expired)
+    return () => window.removeEventListener('sgo-session-expired', expired)
+  }, [])
 
   function guardarSesion(nueva: SesionGuardada) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(nueva))

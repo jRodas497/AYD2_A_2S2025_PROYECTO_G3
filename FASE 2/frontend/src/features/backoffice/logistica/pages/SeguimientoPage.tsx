@@ -1,3 +1,7 @@
+import { useAuth } from '../../../../shared/context/AuthContext'
+import { hasPermission } from '../../../../shared/auth/accessPolicy'
+import { apiFetch } from '../../../../shared/api/apiFetch'
+import { manejarRespuesta } from '../../../../shared/api/httpErrors'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Button } from '../../../../shared/components/Button'
@@ -11,11 +15,15 @@ function formatFecha(iso: string): string {
 }
 
 export function SeguimientoPage() {
+  const { session } = useAuth()
+  const canEdit = hasPermission(session?.roles ?? [], 'editShipments')
   const [params] = useSearchParams()
   const [orderId, setOrderId] = useState(params.get('orden') ?? '')
   const [envio, setEnvio] = useState<Shipment | null>(null)
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [nuevoEstado, setNuevoEstado] = useState('IN_TRANSIT')
+  const [actualizando, setActualizando] = useState(false)
   const [nuevoOrigen, setNuevoOrigen] = useState('')
   const [reasignando, setReasignando] = useState(false)
   const { notificar } = useNotify()
@@ -57,6 +65,17 @@ export function SeguimientoPage() {
     } finally {
       setReasignando(false)
     }
+  }
+
+  async function actualizarRastreo() {
+    if (!envio || actualizando) return
+    setActualizando(true)
+    try {
+      await manejarRespuesta(await apiFetch(`/api/shipments/${envio.id}/${envio.transportista === 'PICKUP' ? 'tracking' : 'simulate-tracking'}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: nuevoEstado, detail: 'Actualización registrada por Logística' }) }))
+      await buscar(orderId)
+      notificar('Estado de entrega actualizado.', 'ok')
+    } catch (e) { notificar(e instanceof Error ? e.message : 'No se pudo actualizar', 'falla') }
+    finally { setActualizando(false) }
   }
 
   return (
@@ -128,6 +147,13 @@ export function SeguimientoPage() {
             </div>
           </div>
 
+          {canEdit && <>          <div className="bg-white border border-linea rounded p-4">
+            <label htmlFor="tracking-state" className="block font-medium mb-2">Actualizar entrega</label>
+            <select id="tracking-state" value={nuevoEstado} onChange={e => setNuevoEstado(e.target.value)} className="border rounded p-2 mr-3">
+              <option value="IN_TRANSIT">En tránsito</option><option value="DELIVERED">Entregado</option><option value="FAILED">Entrega fallida</option>
+            </select>
+            <Button disabled={actualizando || envio.estado === 'DELIVERED'} onClick={() => void actualizarRastreo()}>Guardar estado</Button>
+          </div>
           <div className="bg-white border border-linea rounded p-4">
             <h3 className="text-sm font-medium text-ink mb-3">Cambiar punto de despacho</h3>
             <p className="text-xs text-gray-500 mb-3">
@@ -145,7 +171,7 @@ export function SeguimientoPage() {
                 {reasignando ? 'Reasignando…' : 'Reasignar'}
               </Button>
             </div>
-          </div>
+          </div></>}
         </div>
       )}
     </div>

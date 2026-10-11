@@ -89,7 +89,7 @@ export function FacturasPage() {
         <div className="bg-white border border-linea rounded divide-y divide-linea">
           {facturas.map((f) => (
             <div key={f.id} className="flex items-center justify-between gap-3 p-3 text-sm">
-              <Link to={`/ordenes/${f.orderId}`} className="font-medium text-brand hover:underline flex-shrink-0">
+              <Link to={`/administracion/ordenes/${f.orderId}`} className="font-medium text-brand hover:underline flex-shrink-0">
                 Orden {f.orderId}
               </Link>
               <span className="text-xs text-gray-400">{f.cui}</span>

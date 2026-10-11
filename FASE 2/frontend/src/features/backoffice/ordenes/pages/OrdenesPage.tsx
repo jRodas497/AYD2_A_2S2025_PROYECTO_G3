@@ -98,7 +98,7 @@ export function OrdenesPage() {
             return (
               <Link
                 key={orden.id}
-                to={`/ordenes/${orden.id}`}
+                to={`/administracion/ordenes/${orden.id}`}
                 className="flex items-center justify-between gap-3 p-3 text-sm hover:bg-crema/40"
               >
                 <span className="font-medium text-ink">Orden {orden.id}</span>

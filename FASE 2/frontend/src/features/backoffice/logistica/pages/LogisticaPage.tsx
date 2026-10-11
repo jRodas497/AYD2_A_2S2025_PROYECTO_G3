@@ -1,3 +1,5 @@
+import { useAuth } from '../../../../shared/context/AuthContext'
+import { hasPermission } from '../../../../shared/auth/accessPolicy'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../../../../shared/components/Button'
@@ -11,6 +13,8 @@ function formatFecha(iso: string): string {
 }
 
 export function LogisticaPage() {
+  const { session } = useAuth()
+  const canEdit = hasPermission(session?.roles ?? [], 'editShipments')
   const [envios, setEnvios] = useState<Shipment[]>([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -72,9 +76,9 @@ export function LogisticaPage() {
               </div>
               <div className="text-xs text-gray-400">{formatFecha(envio.actualizadoEn)}</div>
               <Pill tone="alerta">{envio.estado}</Pill>
-              <Button variant="secondary" disabled={reintentando === envio.id} onClick={() => reintentarGuia(envio.id)}>
+              {canEdit && <Button variant="secondary" disabled={reintentando === envio.id} onClick={() => reintentarGuia(envio.id)}>
                 {reintentando === envio.id ? 'Pidiendo…' : 'Pedir guía de nuevo'}
-              </Button>
+              </Button>}
             </div>
           ))}
         </div>

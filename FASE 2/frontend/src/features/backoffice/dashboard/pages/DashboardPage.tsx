@@ -52,7 +52,7 @@ export function DashboardPage() {
               {datos.ordenesRecientes.map((orden) => (
                 <Link
                   key={orden.id}
-                  to={`/ordenes/${orden.id}`}
+                  to={`/administracion/ordenes/${orden.id}`}
                   className="flex items-center justify-between py-2.5 text-sm hover:bg-crema/40"
                 >
                   <div>

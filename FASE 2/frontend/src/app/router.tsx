@@ -1,3 +1,11 @@
+import { CatalogAdminPage } from '../features/backoffice/catalogo/CatalogAdminPage'
+import { ErpPage } from '../features/backoffice/erp/ErpPage'
+import { UsuariosPage } from '../features/backoffice/usuarios/UsuariosPage'
+import { CustomerGate } from '../shared/auth/CustomerGate'
+import { staffHome } from '../shared/auth/accessPolicy'
+import { useAuth } from '../shared/context/AuthContext'
+import { StaffGate } from '../shared/auth/StaffGate'
+import { CreditPage } from '../features/credito/CreditPage'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { CustomerLoginPage } from '../features/cliente/pages/CustomerLoginPage'
 import { CatalogListPage } from '../features/catalogo/pages/CatalogListPage'
@@ -28,6 +36,10 @@ import { IntegracionesPage } from '../features/backoffice/integraciones/pages/In
 import { NotificacionesAdminPage } from '../features/backoffice/notificaciones/pages/NotificacionesAdminPage'
 import { FacturasPage } from '../features/backoffice/facturas/pages/FacturasPage'
 
+function StaffHome() {
+  const { session } = useAuth()
+  return <Navigate to={staffHome(session?.roles ?? [])} replace />
+}
 export function AppRouter() {
   return (
     <Routes>
@@ -36,31 +48,37 @@ export function AppRouter() {
       <Route path="/catalogo" element={<CatalogListPage />} />
       <Route path="/productos/:id" element={<ProductDetailPage />} />
       <Route path="/promociones" element={<PromocionesPage />} />
-      <Route path="/carrito" element={<CartPage />} />
-      <Route path="/checkout" element={<CheckoutPage />} />
-      <Route path="/ordenes/:id" element={<OrderStatusPage />} />
-      <Route path="/ordenes/:id/pago" element={<PaymentPage />} />
-      <Route path="/mis-ordenes" element={<OrdersListPage />} />
-      <Route path="/notificaciones" element={<NotificacionesPage />} />
-      <Route path="/perfil" element={<PerfilPage />} />
+      <Route path="/carrito" element={<CustomerGate><CartPage /></CustomerGate>} />
+      <Route path="/checkout" element={<CustomerGate><CheckoutPage /></CustomerGate>} />
+      <Route path="/ordenes/:id" element={<CustomerGate><OrderStatusPage /></CustomerGate>} />
+      <Route path="/ordenes/:id/pago" element={<CustomerGate><PaymentPage /></CustomerGate>} />
+      <Route path="/mis-ordenes" element={<CustomerGate><OrdersListPage /></CustomerGate>} />
+      <Route path="/notificaciones" element={<CustomerGate><NotificacionesPage /></CustomerGate>} />
+      <Route path="/credito" element={<CustomerGate><CreditPage /></CustomerGate>} />
+      <Route path="/perfil" element={<CustomerGate><PerfilPage /></CustomerGate>} />
       <Route path="/administracion/login" element={<LoginPage />} />
-      <Route path="/administracion" element={<Navigate to="/administracion/dashboard" replace />} />
-      <Route path="/administracion/dashboard" element={<DashboardPage />} />
-      <Route path="/administracion/ordenes" element={<OrdenesPage />} />
-      <Route path="/administracion/incidencias" element={<IncidenciasPage />} />
-      <Route path="/administracion/devoluciones" element={<DevolucionesPage />} />
-      <Route path="/administracion/inventario" element={<InventarioPage />} />
-      <Route path="/administracion/reservas" element={<ReservasPage />} />
-      <Route path="/administracion/logistica" element={<LogisticaPage />} />
-      <Route path="/administracion/seguimiento" element={<SeguimientoPage />} />
-      <Route path="/administracion/clientes" element={<ClientesPage />} />
-      <Route path="/administracion/clientes/:id" element={<ClienteDetallePage />} />
-      <Route path="/administracion/auditoria" element={<AuditoriaPage />} />
-      <Route path="/administracion/reportes" element={<ReportesPage />} />
-      <Route path="/administracion/configuracion" element={<ConfiguracionPage />} />
-      <Route path="/administracion/integraciones" element={<IntegracionesPage />} />
-      <Route path="/administracion/notificaciones" element={<NotificacionesAdminPage />} />
-      <Route path="/administracion/facturas" element={<FacturasPage />} />
+      <Route path="/administracion" element={<StaffGate><StaffHome /></StaffGate>} />
+      <Route path="/administracion/dashboard" element={<StaffGate><DashboardPage /></StaffGate>} />
+      <Route path="/administracion/ordenes/:id/pago" element={<StaffGate><PaymentPage /></StaffGate>} />
+      <Route path="/administracion/ordenes/:id" element={<StaffGate><OrderStatusPage /></StaffGate>} />
+      <Route path="/administracion/ordenes" element={<StaffGate><OrdenesPage /></StaffGate>} />
+      <Route path="/administracion/incidencias" element={<StaffGate><IncidenciasPage /></StaffGate>} />
+      <Route path="/administracion/devoluciones" element={<StaffGate><DevolucionesPage /></StaffGate>} />
+      <Route path="/administracion/inventario" element={<StaffGate><InventarioPage /></StaffGate>} />
+      <Route path="/administracion/reservas" element={<StaffGate><ReservasPage /></StaffGate>} />
+      <Route path="/administracion/logistica" element={<StaffGate><LogisticaPage /></StaffGate>} />
+      <Route path="/administracion/seguimiento" element={<StaffGate><SeguimientoPage /></StaffGate>} />
+      <Route path="/administracion/clientes" element={<StaffGate><ClientesPage /></StaffGate>} />
+      <Route path="/administracion/clientes/:id" element={<StaffGate><ClienteDetallePage /></StaffGate>} />
+      <Route path="/administracion/auditoria" element={<StaffGate><AuditoriaPage /></StaffGate>} />
+      <Route path="/administracion/reportes" element={<StaffGate><ReportesPage /></StaffGate>} />
+      <Route path="/administracion/usuarios" element={<StaffGate><UsuariosPage /></StaffGate>} />
+      <Route path="/administracion/configuracion" element={<StaffGate><ConfiguracionPage /></StaffGate>} />
+      <Route path="/administracion/catalogo" element={<StaffGate><CatalogAdminPage /></StaffGate>} />
+      <Route path="/administracion/erp" element={<StaffGate><ErpPage /></StaffGate>} />
+      <Route path="/administracion/integraciones" element={<StaffGate><IntegracionesPage /></StaffGate>} />
+      <Route path="/administracion/notificaciones" element={<StaffGate><NotificacionesAdminPage /></StaffGate>} />
+      <Route path="/administracion/facturas" element={<StaffGate><FacturasPage /></StaffGate>} />
     </Routes>
   )
 }

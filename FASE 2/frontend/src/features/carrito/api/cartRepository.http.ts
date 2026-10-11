@@ -1,7 +1,10 @@
+import { apiFetch as fetch } from '../../../shared/api/apiFetch'
 import type { CartRepository } from './cartRepository'
 import { httpCatalogRepository } from '../../catalogo/api/catalogRepository.http'
 import type { Cart, CartItem } from '../types'
 import { NotFoundError, manejarRespuesta } from '../../../shared/api/httpErrors'
+
+function channel(): string { return localStorage.getItem('sgo-channel') ?? 'WEB' }
 
 interface BackendCartItem {
   productId: number
@@ -51,7 +54,7 @@ export const httpCartRepository: CartRepository = {
         await fetch(`/api/customers/${customerId}/cart/items`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productId: Number(productId), quantity: cantidad, channel: 'WEB' }),
+          body: JSON.stringify({ productId: Number(productId), quantity: cantidad, channel: channel() }),
         }),
       )
     } catch (e) {
@@ -63,7 +66,7 @@ export const httpCartRepository: CartRepository = {
 
   async decrementItem(customerId, productId) {
     const backendCart = await manejarRespuesta<BackendCart>(
-      await fetch(`/api/customers/${customerId}/cart/items/${productId}/decrement?channel=WEB`, { method: 'POST' }),
+      await fetch(`/api/customers/${customerId}/cart/items/${productId}/decrement?channel=${channel()}`, { method: 'POST' }),
     )
     return mapearCarrito(backendCart)
   },
@@ -73,7 +76,7 @@ export const httpCartRepository: CartRepository = {
       await fetch(`/api/customers/${customerId}/cart/items/${productId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quantity: cantidad, channel: 'WEB' }),
+        body: JSON.stringify({ quantity: cantidad, channel: channel() }),
       }),
     )
     return mapearCarrito(backendCart)
@@ -81,7 +84,7 @@ export const httpCartRepository: CartRepository = {
 
   async removeItem(customerId, productId) {
     const backendCart = await manejarRespuesta<BackendCart>(
-      await fetch(`/api/customers/${customerId}/cart/items/${productId}?channel=WEB`, { method: 'DELETE' }),
+      await fetch(`/api/customers/${customerId}/cart/items/${productId}?channel=${channel()}`, { method: 'DELETE' }),
     )
     return mapearCarrito(backendCart)
   },

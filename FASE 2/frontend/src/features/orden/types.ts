@@ -16,6 +16,7 @@ export interface Order {
   customerId: string
   items: CartItem[]
   total: number
+  pickupLocationId?: number
   direccionEntrega: string
   estado: EstadoOrden
   creadaEn: string
@@ -24,7 +25,9 @@ export interface Order {
 }
 
 export interface CrearOrdenInput {
+  channel?: string
   customerId: string
   items: CartItem[]
+  pickupLocationId?: number
   direccionEntrega: string
 }

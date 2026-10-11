@@ -1,5 +1,9 @@
+import { useAuth } from '../../../shared/context/AuthContext'
+import { hasPermission } from '../../../shared/auth/accessPolicy'
+import { OrderIncidents } from '../OrderIncidents'
+import { apiFetch, downloadFile } from '../../../shared/api/apiFetch'
 import { useEffect, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { Pill } from '../../../shared/components/Pill'
 import { BackLink } from '../../../shared/components/BackLink'
 import { Button } from '../../../shared/components/Button'
@@ -86,6 +90,9 @@ function formatQ(valor: number): string {
 }
 
 export function OrderStatusPage() {
+  const staffArea = useLocation().pathname.startsWith('/administracion')
+  const { session } = useAuth()
+  const canBuy = !staffArea || hasPermission(session?.roles ?? [], 'editCustomers')
   const { id } = useParams<{ id: string }>()
   const [orden, setOrden] = useState<Order | null>(null)
   const [cargando, setCargando] = useState(true)
@@ -127,7 +134,7 @@ export function OrderStatusPage() {
           setIntentosFallidos(fallidos)
 
           const esFalloDefinitivo = resultado.estado === 'pago_fallido' && fallidos >= httpPaymentRepository.maxIntentosFallidos
-          if ((ESTADOS_TERMINALES.includes(resultado.estado) || esFalloDefinitivo) && intervalo) {
+          if (((ESTADOS_TERMINALES.includes(resultado.estado) && resultado.estado !== 'entregada') || esFalloDefinitivo) && intervalo) {
             clearInterval(intervalo)
           }
         } else if (intervalo) {
@@ -185,7 +192,7 @@ export function OrderStatusPage() {
 
   return (
     <div>
-      <BackLink to="/catalogo" label="Seguir comprando" />
+      <BackLink to={staffArea ? "/administracion/ordenes" : "/catalogo"} label={staffArea ? "Volver a órdenes" : "Seguir comprando"} />
       <h1 className="text-2xl font-semibold text-ink mb-1">Orden {orden.id}</h1>
       <Pill tone={estado.tono}>{estado.texto}</Pill>
 
@@ -230,33 +237,28 @@ export function OrderStatusPage() {
             <dt>Emitida</dt>
             <dd className="text-ink">{formatFechaFactura(factura.generatedAt)}</dd>
           </dl>
-          <a
-            href={httpInvoiceRepository.xmlUrl(orden.id)}
-            target="_blank"
-            rel="noreferrer"
-            className="text-brand hover:underline text-xs"
-          >
-            Ver XML enviado a la SAT
-          </a>
+          <button onClick={() => void downloadFile(httpInvoiceRepository.xmlUrl(orden.id), `factura-${orden.id}.xml`).catch(e => notificar(e.message, 'falla'))} className="text-brand hover:underline text-xs">Ver XML enviado a la SAT</button>
         </div>
       )}
 
+      {canBuy && ['pendiente_pago','pago_fallido'].includes(orden.estado) && <button className="text-falla text-sm mr-4" onClick={() => void apiFetch(`/api/orders/${orden.id}/cancel`, { method: 'POST' }).then(async r => { if(!r.ok) throw new Error('No se pudo cancelar'); setOrden(await httpOrderRepository.getOrder(orden.id)) }).catch(e => notificar(e.message,'falla'))}>Cancelar orden</button>}
       {orden.estado === 'pago_fallido' && intentosFallidos >= httpPaymentRepository.maxIntentosFallidos && (
         <p className="text-sm text-falla">
           Se agotaron los intentos de cobro para esta orden. Te notificaremos para que puedas reintentar más tarde.
         </p>
       )}
 
-      {(orden.estado === 'pendiente_pago' ||
+      {canBuy && (orden.estado === 'pendiente_pago' ||
         (orden.estado === 'pago_fallido' && intentosFallidos < httpPaymentRepository.maxIntentosFallidos)) && (
         <>
           {orden.estado === 'pago_fallido' && <p className="text-sm text-falla mb-2">El pago no se pudo confirmar.</p>}
-          <Link to={`/ordenes/${orden.id}/pago`}>
+          <Link to={`${staffArea ? "/administracion" : ""}/ordenes/${orden.id}/pago`}>
             <Button>Pagar ahora</Button>
           </Link>
         </>
       )}
 
+      {['entregada', 'en_despacho', 'facturada', 'devuelta'].includes(orden.estado) && <OrderIncidents orderId={orden.id} />}
       {orden.estado === 'pago_en_proceso' && (
         <p className="text-sm text-gray-400">
           Estamos confirmando tu pago. Esta página se actualiza sola cuando tengamos el resultado.

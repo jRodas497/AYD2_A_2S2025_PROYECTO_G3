@@ -1,3 +1,7 @@
+import { useAuth } from '../../../../shared/context/AuthContext'
+import { hasPermission } from '../../../../shared/auth/accessPolicy'
+import { apiFetch } from '../../../../shared/api/apiFetch'
+import { manejarRespuesta } from '../../../../shared/api/httpErrors'
 import { useState } from 'react'
 import { Button } from '../../../../shared/components/Button'
 import { useNotify } from '../../../../shared/notifications/NotificationContext'
@@ -11,6 +15,8 @@ function formatFecha(iso: string): string {
 }
 
 export function InventarioPage() {
+  const { session } = useAuth()
+  const canEdit = hasPermission(session?.roles ?? [], 'editInventory')
   const [query, setQuery] = useState('')
   const [resultados, setResultados] = useState<Product[]>([])
   const [buscando, setBuscando] = useState(false)
@@ -19,7 +25,7 @@ export function InventarioPage() {
   const [movimientos, setMovimientos] = useState<StockMovement[]>([])
   const [locationCode, setLocationCode] = useState('')
   const [cantidad, setCantidad] = useState('')
-  const [tipo, setTipo] = useState<'IN' | 'OUT'>('IN')
+  const [tipo, setTipo] = useState<'IN' | 'OUT' | 'COUNT'>('IN')
   const [motivo, setMotivo] = useState('')
   const [enviando, setEnviando] = useState(false)
   const { notificar } = useNotify()
@@ -29,7 +35,7 @@ export function InventarioPage() {
     setBuscando(true)
     try {
       setResultados(await httpCatalogRepository.search(query.trim()))
-    } finally {
+    } catch (e) { notificar(e instanceof Error ? e.message : 'No se pudo buscar', 'falla') } finally {
       setBuscando(false)
     }
   }
@@ -61,7 +67,9 @@ export function InventarioPage() {
     if (!producto || !locationCode.trim() || !cantidad.trim() || !motivo.trim()) return
     setEnviando(true)
     try {
-      await httpInventoryOpsRepository.registerMovement({
+      if (tipo === 'COUNT') {
+        await manejarRespuesta(await apiFetch('/api/inventory/adjustments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ locationCode: locationCode.trim().toUpperCase(), productId: Number(producto.id), countedQuantity: Number(cantidad), source: motivo }) }))
+      } else await httpInventoryOpsRepository.registerMovement({
         locationCode: locationCode.trim().toUpperCase(),
         productId: Number(producto.id),
         type: tipo,
@@ -141,7 +149,7 @@ export function InventarioPage() {
             </div>
           </div>
 
-          <form onSubmit={registrarMovimiento} className="bg-white border border-linea rounded p-4">
+          {canEdit && <form onSubmit={registrarMovimiento} className="bg-white border border-linea rounded p-4">
             <h3 className="text-sm font-medium text-ink mb-3">Registrar movimiento</h3>
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
@@ -157,11 +165,11 @@ export function InventarioPage() {
                 <label className="block text-xs text-gray-500 mb-1">Tipo</label>
                 <select
                   value={tipo}
-                  onChange={(e) => setTipo(e.target.value as 'IN' | 'OUT')}
+                  onChange={(e) => setTipo(e.target.value as 'IN' | 'OUT' | 'COUNT')}
                   className="w-full border border-linea rounded px-3 py-2 text-sm bg-white"
                 >
                   <option value="IN">Entrada</option>
-                  <option value="OUT">Salida</option>
+                  <option value="OUT">Salida</option><option value="COUNT">Conteo físico</option>
                 </select>
               </div>
               <div>
@@ -170,7 +178,7 @@ export function InventarioPage() {
                   value={cantidad}
                   onChange={(e) => setCantidad(e.target.value)}
                   type="number"
-                  min={1}
+                  min={tipo === 'COUNT' ? 0 : 1}
                   className="w-full border border-linea rounded px-3 py-2 text-sm"
                 />
               </div>
@@ -187,7 +195,7 @@ export function InventarioPage() {
             <Button type="submit" disabled={enviando}>
               {enviando ? 'Registrando…' : 'Registrar'}
             </Button>
-          </form>
+          </form>}
 
           <div className="bg-white border border-linea rounded p-4">
             <h3 className="text-sm font-medium text-ink mb-3">Últimos movimientos</h3>

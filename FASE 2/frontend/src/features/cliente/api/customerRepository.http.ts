@@ -1,3 +1,4 @@
+import { apiFetch as fetch } from '../../../shared/api/apiFetch'
 import type { CustomerRepository, DatosCliente, DatosLogin, DatosRegistro, SesionCliente } from './customerRepository'
 import type { Customer } from '../types'
 import { NotFoundError, manejarRespuesta } from '../../../shared/api/httpErrors'

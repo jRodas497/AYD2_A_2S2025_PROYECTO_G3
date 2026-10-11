@@ -1,3 +1,4 @@
+import { apiFetch as fetch } from '../../../../shared/api/apiFetch'
 import type { Shipment } from '../types'
 import { manejarRespuesta, NotFoundError } from '../../../../shared/api/httpErrors'
 

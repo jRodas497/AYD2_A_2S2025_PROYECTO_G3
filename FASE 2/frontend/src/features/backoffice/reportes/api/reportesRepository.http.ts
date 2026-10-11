@@ -1,3 +1,4 @@
+import { apiFetch as fetch } from '../../../../shared/api/apiFetch'
 import type { ReportesRepository } from './reportesRepository'
 import type { PeriodoReporte, VentaMensual } from '../types'
 import { manejarRespuesta } from '../../../../shared/api/httpErrors'
@@ -8,6 +9,8 @@ interface BackendSalesTotal {
 }
 
 interface BackendReconciliation {
+  monto_reembolsado?: number
+  devoluciones_pendientes_erp?: number
   facturadas: number
   monto_facturado: number
   entregadas_al_erp: number
@@ -117,6 +120,10 @@ export const httpReportesRepository: ReportesRepository = {
             ? 'cuadra con lo facturado'
             : `${reporte.reconciliation.facturadas_sin_lote} facturadas, sin lote todavía`,
         },
+        ...(reporte.reconciliation.monto_reembolsado !== undefined ? [
+          { id: 'reembolsos', titulo: 'Reembolsos', valor: formatQ(reporte.reconciliation.monto_reembolsado), descripcion: `${reporte.reconciliation.devoluciones_pendientes_erp ?? 0} ajustes pendientes de entregar al ERP` },
+          { id: 'neto', titulo: 'Facturación neta', valor: formatQ(reporte.reconciliation.monto_facturado - reporte.reconciliation.monto_reembolsado), descripcion: 'Facturas menos devoluciones del periodo' },
+        ] : []),
       ],
       ventasMensuales: tendencia,
       estadoOrdenes: reporte.byStatus.map((s) => ({

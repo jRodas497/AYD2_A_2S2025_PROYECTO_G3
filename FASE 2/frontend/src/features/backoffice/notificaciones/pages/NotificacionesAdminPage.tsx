@@ -1,3 +1,5 @@
+import { useAuth } from '../../../../shared/context/AuthContext'
+import { hasPermission } from '../../../../shared/auth/accessPolicy'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useNotify } from '../../../../shared/notifications/NotificationContext'
@@ -8,6 +10,8 @@ function formatFecha(iso: string): string {
 }
 
 export function NotificacionesAdminPage() {
+  const { session } = useAuth()
+  const canEdit = hasPermission(session?.roles ?? [], 'editNotifications')
   const [estado, setEstado] = useState('FAILED')
   const [avisos, setAvisos] = useState<NotificacionAdmin[]>([])
   const [cargando, setCargando] = useState(true)
@@ -80,14 +84,15 @@ export function NotificacionesAdminPage() {
         <div className="bg-white border border-linea rounded divide-y divide-linea">
           {avisos.map((a) => (
             <div key={a.id} className="flex items-center justify-between gap-3 p-3 text-sm">
-              <Link to={`/ordenes/${a.orderId}`} className="font-medium text-brand hover:underline flex-shrink-0">
+              <Link to={`/administracion/ordenes/${a.orderId}`} className="font-medium text-brand hover:underline flex-shrink-0">
                 Orden {a.orderId}
               </Link>
               <span className="text-xs text-gray-400">{a.channel}</span>
               <span className="text-gray-600 flex-1 px-3 truncate">{a.message}</span>
               <span className="text-xs text-gray-400">{a.attempts} intentos</span>
+              {a.lastError && <span title={a.lastError} className="text-xs text-falla max-w-48 truncate">{a.lastError}</span>}
               <span className="text-xs text-gray-400">{formatFecha(a.createdAt)}</span>
-              {a.status === 'FAILED' && (
+              {canEdit && a.status === 'FAILED' && (
                 <button
                   onClick={() => reintentar(a.id)}
                   disabled={pendientes.has(a.id)}

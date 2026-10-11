@@ -1,3 +1,4 @@
+import { apiFetch as fetch } from '../../../../shared/api/apiFetch'
 import type { AuditEntry, AuditSearchFilters } from '../types'
 import { manejarRespuesta } from '../../../../shared/api/httpErrors'
 

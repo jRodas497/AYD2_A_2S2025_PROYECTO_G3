@@ -1,3 +1,4 @@
+import { apiFetch as fetch } from '../../../shared/api/apiFetch'
 import type { PaymentRepository } from './paymentRepository'
 import type { DatosTarjeta, MetodoPago, PaymentAttempt, ResultadoCobro } from '../types'
 import { NotFoundError, manejarRespuesta } from '../../../shared/api/httpErrors'
@@ -8,6 +9,7 @@ const MAPA_METODO: Record<MetodoPago, string> = {
   tarjeta: 'CARD',
   transferencia: 'TRANSFER',
   billetera: 'WALLET',
+  credito: 'CREDIT',
 }
 
 const MAPA_RESULTADO: Record<string, ResultadoCobro> = {

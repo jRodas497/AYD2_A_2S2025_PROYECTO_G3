@@ -1,3 +1,4 @@
+import { apiFetch as fetch } from '../../../../shared/api/apiFetch'
 import { manejarRespuesta } from '../../../../shared/api/httpErrors'
 import type { ClienteDetalle, ClienteResumen } from '../types'
 
