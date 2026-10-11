@@ -9,7 +9,8 @@ async function iniciarSesion(page: import('@playwright/test').Page) {
   await page.waitForURL('**/administracion/configuracion')
 }
 
-test('cada pantalla del backoffice carga datos reales sin sesión necesaria para solo leer', async ({ page }) => {
+test('cada pantalla del backoffice carga datos reales con sesión de personal', async ({ page }) => {
+  await iniciarSesion(page)
   await page.goto('/administracion/dashboard')
   await expect(page.getByRole('heading', { name: 'Resumen general' })).toBeVisible()
   await expect(page.getByText('Cargando panel…')).toHaveCount(0, { timeout: 10_000 })
@@ -40,7 +41,7 @@ test('cada pantalla del backoffice carga datos reales sin sesión necesaria para
 
   await page.goto('/administracion/integraciones')
   await expect(page.getByRole('heading', { name: 'Integraciones' })).toBeVisible()
-  await expect(page.getByText('PAYKLIK')).toBeVisible({ timeout: 10_000 })
+  await expect(page.getByText('PAYKLIK', { exact: true }).first()).toBeVisible({ timeout: 10_000 })
 
   await page.goto('/administracion/notificaciones')
   await expect(page.getByRole('heading', { name: 'Notificaciones' })).toBeVisible()
@@ -53,17 +54,21 @@ test('cada pantalla del backoffice carga datos reales sin sesión necesaria para
   await expect(page.getByText('reservation.ttl_minutes')).toBeVisible({ timeout: 10_000 })
 })
 
-test('el personal inicia sesión y puede procesar una incidencia real', async ({ page }) => {
+test('el personal inicia sesión y puede procesar una incidencia real', async ({ page, request }) => {
   await iniciarSesion(page)
 
+  const session = await page.evaluate(() => JSON.parse(localStorage.getItem('sgo-admin-auth')!))
+  const headers = { Authorization: `Bearer ${session.token}` }
+  const customer = await request.post('/api/customers', { headers, data: { fullName: 'QA incidencia UI', email: `incidente-${Date.now()}@example.com` } }).then(r => r.json())
+  await request.post(`/api/customers/${customer.id}/cart/items`, { headers, data: { productId: 7, quantity: 1, channel: 'WEB' } })
+  const order = await request.post('/api/orders/checkout', { headers, data: { customerId: customer.id, deliveryAddress: 'QA' } }).then(r => r.json())
+  await request.post(`/api/orders/${order.id}/payments`, { headers, data: { method: 'CARD', cardToken: `tok_incident_${order.id}`, cardLast4: '4242' } })
+  await request.post(`/api/orders/${order.id}/incidents`, { headers, data: { type: 'EXCHANGE', description: 'QA incidencia navegador' } })
   await page.goto('/administracion/incidencias')
   await page.getByRole('combobox').selectOption('REGISTERED')
 
   const primeraFila = page.locator('div.bg-white.border.border-linea.rounded.divide-y > div').first()
-  const hayIncidenciasRegistradas = await primeraFila.isVisible().catch(() => false)
-  if (!hayIncidenciasRegistradas) {
-    test.skip(true, 'no hay incidencias REGISTERED en los datos de prueba de esta corrida')
-  }
+  await expect(primeraFila).toBeVisible()
 
   await primeraFila.getByRole('button', { name: 'Marcar en proceso' }).click()
   await expect(page.getByText('Incidencia actualizada.')).toBeVisible()
@@ -71,8 +76,7 @@ test('el personal inicia sesión y puede procesar una incidencia real', async ({
 
 test('configuración exige ADMIN para editar un parámetro', async ({ page }) => {
   await page.goto('/administracion/configuracion')
-  await expect(page.getByText('reservation.ttl_minutes')).toBeVisible({ timeout: 10_000 })
-  await expect(page.getByRole('button', { name: 'Editar' })).toHaveCount(0)
+  await page.waitForURL('**/administracion/login')
 
   await iniciarSesion(page)
   await page.goto('/administracion/configuracion')

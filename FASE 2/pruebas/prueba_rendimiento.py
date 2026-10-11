@@ -19,10 +19,12 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 
+TOKEN = None
+
 def pedir(url):
     inicio = time.perf_counter()
     try:
-        with urllib.request.urlopen(url, timeout=30) as r:
+        with urllib.request.urlopen(urllib.request.Request(url,headers={"Authorization":"Bearer " + TOKEN}), timeout=30) as r:
             r.read()
             codigo = r.status
     except urllib.error.HTTPError as e:
@@ -72,11 +74,14 @@ def main():
     ap.add_argument("--salida", default="resultados-rendimiento.json")
     a = ap.parse_args()
 
-    # El rango de órdenes existentes sale del reporte de ventas del último año.
-    with urllib.request.urlopen(a.base + "/api/reports/sales?from=2000-01-01T00:00:00Z") as r:
-        total = json.load(r)["total"]["ordenes"]
-    ids = [random.randint(1, total) for _ in range(a.peticiones)]
-    # Un 404 es un id que no existe (la secuencia deja huecos cuando un checkout se revierte).
+    global TOKEN
+    request=urllib.request.Request(a.base + "/api/auth/login",data=json.dumps({"username":"admin","password":"admin123"}).encode(),headers={"Content-Type":"application/json"},method="POST")
+    with urllib.request.urlopen(request) as response: TOKEN=json.load(response)["token"]
+    request=urllib.request.Request(a.base + "/api/orders?limit=500",headers={"Authorization":"Bearer " + TOKEN})
+    with urllib.request.urlopen(request) as response: existing=[row["orderId"] for row in json.load(response)]
+    if not existing: raise RuntimeError("No hay órdenes para medir; ejecutar prueba_fase2.py primero")
+    total=len(existing)
+    ids=[random.choice(existing) for _ in range(a.peticiones)]
 
     escenarios = [
         escenario("RC01 · GET /api/orders/{id} (estado, despacho y entrega)", 5000,
@@ -103,6 +108,7 @@ def main():
     with open(a.salida, "w") as f:
         json.dump({"ordenes": total, "escenarios": escenarios}, f, indent=2, ensure_ascii=False)
     print(f"\nDetalle guardado en {a.salida}")
+    if not all(r["cumple"] for r in escenarios): raise SystemExit(1)
 
 
 if __name__ == "__main__":

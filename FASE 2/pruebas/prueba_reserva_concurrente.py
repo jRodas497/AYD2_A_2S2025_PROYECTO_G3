@@ -18,15 +18,18 @@ Necesita Docker (lee la base con el rol de solo aplicación). Uso:
 """
 import argparse
 import json
+import os
 import subprocess
 import time
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 
+TOKEN = None
+
 def sql(consulta):
     salida = subprocess.run(
-        ["docker", "exec", "-e", "PGPASSWORD=sgologic_app_dev", "sgologic-db",
+        ["docker", "exec", "-e", "PGPASSWORD=" + os.environ.get("DB_APP_PASSWORD", "sgologic_app_dev"), "sgologic-db",
          "psql", "-h", "127.0.0.1", "-U", "sgologic_app", "-d", "sgologic", "-tAc", consulta],
         capture_output=True, text=True, check=True)
     return salida.stdout.strip()
@@ -34,7 +37,7 @@ def sql(consulta):
 
 def http(metodo, url, cuerpo=None):
     datos = json.dumps(cuerpo).encode() if cuerpo is not None else None
-    req = urllib.request.Request(url, data=datos, method=metodo, headers={"Content-Type": "application/json"})
+    req = urllib.request.Request(url, data=datos, method=metodo, headers={"Content-Type": "application/json", **({"Authorization": "Bearer " + TOKEN} if TOKEN else {})})
     try:
         with urllib.request.urlopen(req, timeout=60) as r:
             return r.status, json.load(r)
@@ -52,6 +55,8 @@ def main():
                     help="unidades que se reponen en CD-01 antes de la prueba (0 para no reponer)")
     a = ap.parse_args()
     B = a.base
+    global TOKEN
+    TOKEN = http("POST", B + "/api/auth/login", {"username":"admin","password":"admin123"})[1]["token"]
 
     # Por defecto: el producto con más existencia, y una cantidad tal que la ubicación más surtida
     # solo alcance para unas 10 órdenes. Así todas las peticiones pelean por las mismas pocas filas.
@@ -129,8 +134,13 @@ def main():
         print(f"| {nombre} | {valor} | {'' if ok is None else ('Sí' if ok else 'NO')} |")
     # Limpieza: los carritos que no se convirtieron en orden se borran para no dejar basura.
     sql("delete from orders.cart where status_id in (1,2) and customer_id in (%s)" % ",".join(map(str, libres)))
+    for order in exitos:
+        status,_ = http("POST", f"{B}/api/orders/{order['id']}/cancel", {})
+        assert status==200, status
 
-    print("\nSIN SOBREVENTA" if all(ok for _, _, ok in checks if ok is not None) else "\nFALLÓ")
+    success=all(ok for _, _, ok in checks if ok is not None)
+    print("\nSIN SOBREVENTA" if success else "\nFALLÓ")
+    if not success: raise SystemExit(1)
 
 
 if __name__ == "__main__":

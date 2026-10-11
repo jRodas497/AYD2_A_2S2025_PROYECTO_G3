@@ -12,6 +12,7 @@ Uso:
 """
 import argparse
 import json
+import os
 import subprocess
 import time
 import urllib.request
@@ -21,16 +22,18 @@ from concurrent.futures import ThreadPoolExecutor
 CANALES = ["WEB", "MOBILE", "CALL_CENTER"]
 
 
+TOKEN = None
+
 def sql(consulta):
     return subprocess.run(
-        ["docker", "exec", "-e", "PGPASSWORD=sgologic_app_dev", "sgologic-db",
+        ["docker", "exec", "-e", "PGPASSWORD=" + os.environ.get("DB_APP_PASSWORD", "sgologic_app_dev"), "sgologic-db",
          "psql", "-h", "127.0.0.1", "-U", "sgologic_app", "-d", "sgologic", "-tAc", consulta],
         capture_output=True, text=True, check=True).stdout.strip()
 
 
 def http(metodo, url, cuerpo=None):
     datos = json.dumps(cuerpo).encode() if cuerpo is not None else None
-    req = urllib.request.Request(url, data=datos, method=metodo, headers={"Content-Type": "application/json"})
+    req = urllib.request.Request(url, data=datos, method=metodo, headers={"Content-Type": "application/json", **({"Authorization": "Bearer " + TOKEN} if TOKEN else {})})
     try:
         with urllib.request.urlopen(req, timeout=60) as r:
             return r.status, json.load(r)
@@ -46,6 +49,8 @@ def main():
     ap.add_argument("--espera", type=int, default=90, help="segundos máximos esperando al outbox")
     a = ap.parse_args()
     B = a.base
+    global TOKEN
+    TOKEN = http("POST", B + "/api/auth/login", {"username":"admin","password":"admin123"})[1]["token"]
 
     # Fixture: existencia suficiente para que ninguna orden falle por stock (esto prueba el flujo,
     # no la sobreventa; esa la cubre prueba_reserva_concurrente.py).
@@ -98,10 +103,12 @@ def main():
     canales = Counter(e["channel"] for e in estados.values())
     print(f"\nCanales: {dict(canales)}")
     print(f"Con guía de LogiExpress: {len(listas)} de {len(ids)}")
-    print("\nFLUJO COMPLETO" if len(listas) == len(ids) == len(clientes) else
+    success=len(listas) == len(ids) == len(clientes)
+    print("\nFLUJO COMPLETO" if success else
           "\nALGUNAS ÓRDENES NO LLEGARON A GUÍA (ver /api/shipments?status=GUIDE_REQUESTED: "
-          "LogiExpress simula ~2% de timeouts y el reintento tarda unos segundos más)")
+          "consultar estado/error de eventos Kafka)")
 
+    if not success: raise SystemExit(1)
 
 if __name__ == "__main__":
     main()

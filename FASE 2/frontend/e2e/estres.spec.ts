@@ -113,6 +113,7 @@ test.describe('carrito bajo envíos repetidos', () => {
     await registrarCliente(page)
     await page.goto('/catalogo')
     await page.locator('a[href^="/productos/"]').first().click()
+    await expect(page.getByRole('button', { name: 'Agregar al carrito' })).toBeVisible()
     const nombre = await page.locator('h1').innerText()
 
     const agregar = page.getByRole('button', { name: /Agregar al carrito|Agregando/ })
@@ -165,7 +166,7 @@ test.describe('checkout y pago bajo envíos repetidos', () => {
 
   test('rechazo repetido hasta agotar los intentos: cada rechazo se muestra y luego se bloquea el reintento', async ({ page, request }) => {
     try {
-      await request.put('/api/simulation/PAYKLIK', { data: { mode: 'REJECT' } })
+      await request.put('/api/simulation/PAYKLIK', { headers: { Authorization: `Bearer ${(await request.post('/api/auth/login', { data: { username: 'admin', password: 'admin123' } }).then(r => r.json())).token}` }, data: { mode: 'REJECT' } })
       await nombreYPrecioDelPrimerProducto(page)
       await page.goto('/checkout')
       await page.getByPlaceholder('Zona 10, Ciudad de Guatemala').fill('Zona 1, Ciudad de Guatemala')
@@ -193,11 +194,12 @@ test.describe('checkout y pago bajo envíos repetidos', () => {
       await expect(page.getByText('Se agotaron los intentos de cobro para esta orden.')).toBeVisible({ timeout: 15_000 })
       await expect(page.getByRole('link', { name: 'Pagar ahora' })).toHaveCount(0)
     } finally {
-      await request.put('/api/simulation/PAYKLIK', { data: { mode: 'NORMAL' } })
+      await request.put('/api/simulation/PAYKLIK', { headers: { Authorization: `Bearer ${(await request.post('/api/auth/login', { data: { username: 'admin', password: 'admin123' } }).then(r => r.json())).token}` }, data: { mode: 'NORMAL' } })
     }
   })
 
   test('orden inexistente: la pantalla lo dice en vez de quedarse cargando', async ({ page }) => {
+    await registrarCliente(page)
     await page.goto('/ordenes/999999999')
     await expect(page.getByText('No encontramos una orden con ese número.')).toBeVisible({ timeout: 15_000 })
   })
@@ -205,7 +207,7 @@ test.describe('checkout y pago bajo envíos repetidos', () => {
   // Va al final: deja la orden en cola de contingencia y el circuito de PayKlik puede quedar abierto.
   test('PayKlik caído: el cobro queda en proceso con su aviso, no se pierde', async ({ page, request }) => {
     try {
-      await request.put('/api/simulation/PAYKLIK', { data: { mode: 'DOWN' } })
+      await request.put('/api/simulation/PAYKLIK', { headers: { Authorization: `Bearer ${(await request.post('/api/auth/login', { data: { username: 'admin', password: 'admin123' } }).then(r => r.json())).token}` }, data: { mode: 'DOWN' } })
       await nombreYPrecioDelPrimerProducto(page)
       await page.goto('/checkout')
       await page.getByPlaceholder('Zona 10, Ciudad de Guatemala').fill('Zona 1, Ciudad de Guatemala')
@@ -220,12 +222,12 @@ test.describe('checkout y pago bajo envíos repetidos', () => {
       await expect(page).toHaveURL(/\/ordenes\/\d+$/, { timeout: 15_000 })
       await expect(page.getByText('Pago en proceso')).toBeVisible({ timeout: 15_000 })
     } finally {
-      await request.put('/api/simulation/PAYKLIK', { data: { mode: 'NORMAL' } })
+      await request.put('/api/simulation/PAYKLIK', { headers: { Authorization: `Bearer ${(await request.post('/api/auth/login', { data: { username: 'admin', password: 'admin123' } }).then(r => r.json())).token}` }, data: { mode: 'NORMAL' } })
     }
   })
 })
 
-test('reintentar un aviso fallido varias veces seguidas no duplica ni rompe la bandeja', async ({ page }) => {
+test('la bandeja gestiona avisos fallidos y su estado vacío sin errores', async ({ page }) => {
   await page.goto('/administracion/login')
   await page.getByLabel('Usuario').fill('admin')
   await page.getByLabel('Contraseña').fill('admin123')
@@ -234,8 +236,10 @@ test('reintentar un aviso fallido varias veces seguidas no duplica ni rompe la b
 
   await page.goto('/administracion/notificaciones')
   const reintentar = page.getByRole('button', { name: 'Reintentar' }).first()
+  await expect(page.getByText('Cargando…', { exact: true })).toHaveCount(0)
   if (!(await reintentar.isVisible().catch(() => false))) {
-    test.skip(true, 'no hay avisos fallidos en los datos de prueba de esta corrida')
+    await expect(page.getByText('Sin avisos con ese filtro.')).toBeVisible()
+    return
   }
 
   await dobleClicSincrono(reintentar)

@@ -38,9 +38,9 @@ test('compra completa: catálogo, carrito, checkout, pago y factura', async ({ p
   // El cobro aprobado manda de vuelta al detalle de la orden; de ahí el outbox factura y despacha
   // solo, sondeado por la propia pantalla cada 2 segundos.
   await expect(page).toHaveURL(/\/ordenes\/\d+$/, { timeout: 15_000 })
-  await expect(page.getByText('Pagada').or(page.getByText('Factura generada'))).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText('Pagada', { exact: true }).or(page.getByText('Factura generada', { exact: true })).or(page.getByText('En despacho', { exact: true }))).toBeVisible({ timeout: 15_000 })
 
   await expect(page.getByText('Factura generada').or(page.getByText('En despacho'))).toBeVisible({ timeout: 30_000 })
   await expect(page.getByText('Factura electrónica')).toBeVisible({ timeout: 10_000 })
-  await expect(page.getByRole('link', { name: 'Ver XML enviado a la SAT' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Ver XML enviado a la SAT' })).toBeVisible()
 })
