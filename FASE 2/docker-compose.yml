@@ -1,5 +1,6 @@
 services:
   db:
+    restart: unless-stopped
     image: postgres:16-alpine
     container_name: sgologic-db
     environment:
@@ -11,19 +12,61 @@ services:
       - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
-      - ./db/migrations:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U sgologic -d sgologic"]
       interval: 5s
       timeout: 3s
       retries: 10
 
+  migrate:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: sgologic
+      POSTGRES_USER: sgologic
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-sgologic_dev}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:-sgologic_app_dev}
+    volumes:
+      - ./db/migrations:/migrations:ro
+      - ./db/migrate.sh:/migrate.sh:ro
+    entrypoint: ["sh", "/migrate.sh"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  kafka:
+    restart: unless-stopped
+    image: apache/kafka:3.8.1
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_HEAP_OPTS: -Xms256m -Xmx512m
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list >/dev/null"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+
   backend:
+    restart: unless-stopped
     build:
       context: ..
       dockerfile: Dockerfile.backend
     container_name: sgologic-backend
     environment:
+      CARRIER_WEBHOOK_KEY: ${CARRIER_WEBHOOK_KEY:-sgologic-local-carrier-key}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      JWT_SECRET: ${JWT_SECRET:-sgologic-dev-secret-cambiar-en-produccion-0123456789}
       DB_HOST: db
       DB_PORT: 5432
       DB_NAME: sgologic
@@ -34,12 +77,21 @@ services:
     volumes:
       # Los archivos CSV/XML que el ERP-Core AS/400 recoge (CDU-07). Se montan afuera para
       # poder abrirlos sin entrar al contenedor.
-      - ./erp-out:/app/erp-out
+      - erp_data:/app/erp-out
     depends_on:
-      db:
+      migrate:
+        condition: service_completed_successfully
+      kafka:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/api/products"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
 
   frontend:
+    restart: unless-stopped
     build:
       context: ..
       dockerfile: Dockerfile.frontend
@@ -52,7 +104,65 @@ services:
     ports:
       - "127.0.0.1:${FRONTEND_PORT:-8081}:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+
+  payklik:
+    build: ./providers
+    environment:
+      PROVIDER: payklik
+    volumes:
+      - payklik_data:/data
+    restart: unless-stopped
+
+  sat:
+    build: ./providers
+    environment:
+      PROVIDER: sat
+    volumes:
+      - sat_data:/data
+    restart: unless-stopped
+
+  logiexpress:
+    build: ./providers
+    environment:
+      PROVIDER: logiexpress
+      CARRIER_WEBHOOK_KEY: ${CARRIER_WEBHOOK_KEY:-sgologic-local-carrier-key}
+      COMMERCE_URL: http://backend:8080
+    volumes:
+      - logiexpress_data:/data
+    restart: unless-stopped
+
+  messaging:
+    build: ./providers
+    environment:
+      PROVIDER: messaging
+    volumes:
+      - messaging_data:/data
+    restart: unless-stopped
+
+  pos:
+    build: ./providers
+    environment:
+      PROVIDER: pos
+    volumes:
+      - pos_data:/data
+    restart: unless-stopped
+
+  erp:
+    build: ./providers
+    environment:
+      PROVIDER: erp
+    volumes:
+      - erp_data:/data
+    restart: unless-stopped
 
 volumes:
   db_data:
+  kafka_data:
+  payklik_data:
+  sat_data:
+  logiexpress_data:
+  messaging_data:
+  pos_data:
+  erp_data:

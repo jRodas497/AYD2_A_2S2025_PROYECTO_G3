@@ -15,6 +15,7 @@ if [ -z "${1:-}" ]; then
     exit 1
 fi
 
+if [ -z "${DB_APP_PASSWORD:-}" ]; then echo "Definir DB_APP_PASSWORD antes de reiniciar." >&2; exit 1; fi
 URL="$1"
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -24,6 +25,7 @@ drop schema if exists
     config, catalog, customers, inventory, orders, payments, invoicing, logistics, notifications,
     integration, audit
 cascade;
+drop table if exists public.schema_migration;
 "
 
 echo "Recreando desde las migraciones..."

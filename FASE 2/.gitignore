@@ -4,3 +4,7 @@ erp-out/
 # Personalización local de iniciar.sh/docker-compose (puertos, RESET_SEED). Plantilla en
 # .env.example, esa sí se versiona.
 .env
+
+# Cachés locales de las pruebas Python.
+__pycache__/
+*.pyc

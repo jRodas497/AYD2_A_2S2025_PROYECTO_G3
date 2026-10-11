@@ -46,6 +46,8 @@ if [ "$estado" != "healthy" ]; then
     exit 1
 fi
 
+docker compose -f "$compose" run --rm migrate
+
 echo "Base lista, con el catálogo, el stock y los clientes de ejemplo."
 
 if [ -n "$ordenes" ]; then

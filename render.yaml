@@ -1,3 +1,5 @@
+# Vista parcial para nube: requiere Kafka y los seis proveedores externos provisionados.
+# Compose es el entorno completo reproducible; consultar DEPLOY-RENDER.md.
 # Blueprint de Render para SGO-Logic (https://docs.render.com/infrastructure-as-code).
 #
 # Levanta el backend (Spring Boot) y el frontend (React compilado y servido con nginx) con
@@ -39,6 +41,22 @@ services:
       - key: PORT
         value: "8080"
       - key: DATABASE_URL
+        sync: false
+      - key: KAFKA_BOOTSTRAP_SERVERS
+        sync: false
+      - key: PAYKLIK_URL
+        sync: false
+      - key: SAT_URL
+        sync: false
+      - key: LOGIEXPRESS_URL
+        sync: false
+      - key: MESSAGING_URL
+        sync: false
+      - key: POS_URL
+        sync: false
+      - key: ERP_URL
+        sync: false
+      - key: CARRIER_WEBHOOK_KEY
         sync: false
       - key: JWT_SECRET
         generateValue: true

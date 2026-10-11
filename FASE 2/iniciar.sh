@@ -19,4 +19,4 @@ if [ "${RESET_SEED:-false}" = "true" ]; then
     ./db/scripts/reiniciar-base.sh -y
 fi
 
-docker compose up -d --build
+docker compose up -d --build --wait --wait-timeout 180

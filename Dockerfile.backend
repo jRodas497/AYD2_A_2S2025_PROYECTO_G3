@@ -8,7 +8,7 @@ WORKDIR /app
 COPY ["FASE 2/backend/pom.xml", "."]
 RUN mvn -q -B dependency:go-offline
 COPY ["FASE 2/backend/src", "./src"]
-RUN mvn -q -B -DskipTests package
+RUN mvn -q -B verify
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app

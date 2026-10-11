@@ -8,7 +8,11 @@
 --
 -- La contraseña real la fija V6__contrasena_de_la_app.sh a partir de DB_APP_PASSWORD. El valor
 -- de aquí es un cierre temporal para que el rol nunca quede sin contraseña entre un paso y otro.
-create role sgologic_app with login password 'se-cambia-en-V6';
+do $$ begin
+    if not exists(select 1 from pg_roles where rolname='sgologic_app') then
+        create role sgologic_app with login password 'se-cambia-en-V6';
+    end if;
+end $$;
 
 grant usage on schema
     config, catalog, customers, inventory, orders, payments, invoicing, logistics,
