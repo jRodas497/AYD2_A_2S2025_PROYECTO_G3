@@ -7,6 +7,8 @@ interface Session {
   token: string
   username: string
   roles: string[]
+  storeId?: number | null
+  storeCode?: string | null
 }
 
 interface BackendLoginResult {
@@ -65,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem(STORAGE_KEY); setSession(null); setVerifiedToken(null)
         setLoginError('La sesión venció o fue revocada. Ingresa de nuevo.'); return
       }
-      const current = await manejarRespuesta<{ username: string; roles: string[] }>(response)
+      const current = await manejarRespuesta<{ username: string; roles: string[]; storeId?: number | null; storeCode?: string | null }>(response)
       if (cargarSesion()?.token !== token) return
       const next = { token, ...current }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); setSession(next)

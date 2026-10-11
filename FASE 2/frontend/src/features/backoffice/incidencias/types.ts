@@ -9,4 +9,5 @@ export interface IncidenciaGlobal {
   totalOrden: number
   creadaEn: string
   resueltaEn: string | null
+  replacementOrderId?: number | null
 }

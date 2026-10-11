@@ -3,9 +3,14 @@ import { Navigate } from 'react-router-dom'
 import { Button } from '../../../shared/components/Button'
 import { useCustomer } from '../../../shared/context/CustomerContext'
 import { useNotify } from '../../../shared/notifications/NotificationContext'
+import { apiFetch } from '../../../shared/api/apiFetch'
+import { manejarRespuesta } from '../../../shared/api/httpErrors'
 
 export function PerfilPage() {
-  const { customer, actualizarPerfil } = useCustomer()
+  const { customer, actualizarPerfil, logout } = useCustomer()
+  const [password,setPassword]=useState('')
+  const [currentPassword,setCurrentPassword]=useState('')
+  const [changing,setChanging]=useState(false)
   const { notificar } = useNotify()
   const [form, setForm] = useState({
     nombre: customer?.nombre ?? '',
@@ -78,6 +83,16 @@ export function PerfilPage() {
         <Button type="submit" disabled={guardando}>
           {guardando ? 'Guardando…' : 'Guardar'}
         </Button>
+      </form>
+      <form className="bg-white border rounded p-4 mt-4 space-y-3" onSubmit={async e=>{
+        e.preventDefault();if(changing)return;setChanging(true)
+        try{await manejarRespuesta(await apiFetch(`/api/customers/${customer.id}/password`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({currentPassword,password})}));setPassword('');setCurrentPassword('');logout();notificar('Contraseña actualizada. Inicia sesión de nuevo.','ok')}
+        catch(e){notificar(e instanceof Error?e.message:'No se pudo cambiar la contraseña','falla')}finally{setChanging(false)}
+      }}>
+        <h2 className="font-semibold">Cambiar contraseña</h2>
+        <label className="block">Contraseña actual<input className="border rounded p-2 block w-full" type="password" autoComplete="current-password" required value={currentPassword} onChange={e=>setCurrentPassword(e.target.value)}/></label>
+        <label className="block">Nueva contraseña<input className="border rounded p-2 block w-full" type="password" autoComplete="new-password" minLength={8} maxLength={72} required value={password} onChange={e=>setPassword(e.target.value)}/></label>
+        <Button type="submit" disabled={changing}>Cambiar contraseña y cerrar sesión</Button>
       </form>
     </div>
   )

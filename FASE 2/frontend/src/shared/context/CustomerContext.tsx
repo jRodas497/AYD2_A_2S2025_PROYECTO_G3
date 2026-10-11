@@ -31,6 +31,7 @@ interface CustomerContextValue {
   /** null mientras no haya iniciado sesión: las páginas que lo necesitan deben revisarlo y
    * redirigir a /ingresar, igual que el personal con isAdmin. */
   customer: Customer | null
+  checking: boolean
   authError: string | null
   submitting: boolean
   login: (email: string, password: string) => Promise<boolean>
@@ -45,6 +46,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   const [sesion, setSesion] = useState<SesionGuardada | null>(() => cargarSesion())
   const [authError, setAuthError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [checking,setChecking]=useState(!!cargarSesion())
   useEffect(() => {
     function expired(event: Event) {
       if ((event as CustomEvent<string>).detail !== STORAGE_KEY) return
@@ -53,6 +55,26 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     window.addEventListener('sgo-session-expired', expired)
     return () => window.removeEventListener('sgo-session-expired', expired)
   }, [])
+  useEffect(()=>{
+    let stopped=false
+    async function refresh() {
+      const saved=cargarSesion()
+      if(!saved){if(!stopped){setSesion(null);setChecking(false)}return}
+      try{
+        const response=await globalThis.fetch(`/api/customers/${saved.id}`,{headers:{Authorization:`Bearer ${saved.token}`}})
+        if(stopped||cargarSesion()?.token!==saved.token)return
+        if(response.status===401||response.status===403){localStorage.removeItem(STORAGE_KEY);setSesion(null);setAuthError('La sesión venció o fue revocada.');return}
+        if(!response.ok) return
+        const c=await response.json()
+        const next={...saved,nombre:c.fullName,email:c.email??'',telefono:c.phone??'',direccion:c.address??''}
+        if(!stopped&&cargarSesion()?.token===saved.token){localStorage.setItem(STORAGE_KEY,JSON.stringify(next));setSesion(next)}
+      }finally{if(!stopped)setChecking(false)}
+    }
+    const tick=()=>{void refresh().catch(()=>{if(!stopped)setChecking(false)})}
+    const storage=(e:StorageEvent)=>{if(e.key===STORAGE_KEY){setSesion(cargarSesion());setChecking(!!cargarSesion());tick()}}
+    tick();const timer=setInterval(tick,10000);window.addEventListener('focus',tick);window.addEventListener('storage',storage)
+    return()=>{stopped=true;clearInterval(timer);window.removeEventListener('focus',tick);window.removeEventListener('storage',storage)}
+  },[])
 
   function guardarSesion(nueva: SesionGuardada) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(nueva))
@@ -114,7 +136,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <CustomerContext.Provider value={{ customer, authError, submitting, login, register, logout, actualizarPerfil }}>
+    <CustomerContext.Provider value={{ customer, checking, authError, submitting, login, register, logout, actualizarPerfil }}>
       {children}
     </CustomerContext.Provider>
   )

@@ -5,7 +5,7 @@ import { apiFetch } from '../../shared/api/apiFetch'
 import { manejarRespuesta } from '../../shared/api/httpErrors'
 import { Button } from '../../shared/components/Button'
 export interface CreditAccount { eligible: boolean; limit: number; used: number; available: number; termDays: number; reason: string; deliveredOrders: number }
-interface Charge { id: number; order_id: number; amount: number; due_at: string; paid_at: string | null; voided_at: string | null; repayment_reference: string | null; overdue: boolean }
+interface Charge { id: number; order_id: number; amount: number; due_at: string; paid_at: string | null; voided_at: string | null; repayment_reference: string | null; repayment_error: string | null; overdue: boolean }
 export function CreditPage() {
   const { customer } = useCustomer()
   const [account, setAccount] = useState<CreditAccount | null>(null)
@@ -58,6 +58,11 @@ export function CreditPage() {
       <span>Q {Number(c.amount).toFixed(2)}</span>
       <span>Vence: {new Date(c.due_at).toLocaleDateString('es-GT')}</span>
       <span className={c.overdue ? 'text-falla' : 'text-ok'}>{c.voided_at ? 'Anulado por devolución' : c.paid_at ? 'Pagado' : c.repayment_reference === 'PENDING' ? 'Abono en proceso' : c.overdue ? 'Vencido' : 'Pendiente'}</span>
+      {c.repayment_error&&!c.paid_at&&!c.voided_at&&<><span role="alert" className="text-falla">El abono requiere un reintento.</span><Button disabled={pending!==null} onClick={async()=>{
+        setPending(c.id);setError(null)
+        try{await manejarRespuesta(await apiFetch(`/api/customers/${customer.id}/credit/charges/${c.id}/retry`,{method:'POST'}));await load();setMessage('Reintento encolado. Se usará el mismo abono, sin duplicar el cobro.')}
+        catch(e){setError(e instanceof Error?e.message:'No se pudo reintentar')}finally{setPending(null)}
+      }}>Reintentar abono</Button></>}
       {!c.paid_at && !c.voided_at && <Button disabled={pending !== null || !card.trim() || !cvv || c.repayment_reference === 'PENDING'} onClick={() => void repay(c.id)}>{pending === c.id ? 'Procesando…' : 'Pagar saldo'}</Button>}
     </div>)}
   </div>

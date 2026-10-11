@@ -29,6 +29,7 @@ const ROUTES: Record<string, Permission> = {
 }
 export function canAccessStaffPath(roles: readonly string[], path: string): boolean {
   const segment = path.split('/')[2]
+  if(segment === 'ventas' || /^\/administracion\/clientes\/[^/]+\/venta$/.test(path)) return hasPermission(roles,'editCustomers')
   if (/^\/administracion\/ordenes\/[^/]+\/pago$/.test(path)) return hasPermission(roles, 'editCustomers')
   if (path === '/administracion' || path === '/administracion/') return roles.some(role => (STAFF_ROLES as readonly string[]).includes(role))
   return path.startsWith('/administracion/') && !!ROUTES[segment] && hasPermission(roles, ROUTES[segment])

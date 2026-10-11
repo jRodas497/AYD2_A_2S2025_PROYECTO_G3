@@ -3,6 +3,7 @@ export interface ClienteResumen {
   nombre: string
   email: string
   telefono: string
+  active?: boolean
 }
 
 export interface OrdenDeCliente {

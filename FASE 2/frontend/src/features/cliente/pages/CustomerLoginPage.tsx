@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { Button } from '../../../shared/components/Button'
 import { useCustomer } from '../../../shared/context/CustomerContext'
 
@@ -95,6 +95,7 @@ export function CustomerLoginPage() {
         <Button type="submit" disabled={submitting}>
           {submitting ? 'Un momento…' : modo === 'login' ? 'Ingresar' : 'Crear cuenta'}
         </Button>
+        {modo==='login'&&<Link to="/recuperar" className="block text-sm text-brand">Olvidé mi contraseña</Link>}
 
         <button
           type="button"

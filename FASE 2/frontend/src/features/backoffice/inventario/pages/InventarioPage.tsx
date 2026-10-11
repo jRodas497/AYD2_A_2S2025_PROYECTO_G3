@@ -17,6 +17,7 @@ function formatFecha(iso: string): string {
 export function InventarioPage() {
   const { session } = useAuth()
   const canEdit = hasPermission(session?.roles ?? [], 'editInventory')
+  const scoped = !!session?.roles.some(r=>r==='STORE_MANAGER'||r==='STORE_EMPLOYEE')&&!session.roles.some(r=>r==='ADMIN'||r==='LOGISTICS')
   const [query, setQuery] = useState('')
   const [resultados, setResultados] = useState<Product[]>([])
   const [buscando, setBuscando] = useState(false)
@@ -64,13 +65,14 @@ export function InventarioPage() {
 
   async function registrarMovimiento(e: React.FormEvent) {
     e.preventDefault()
-    if (!producto || !locationCode.trim() || !cantidad.trim() || !motivo.trim()) return
+    const selectedLocation=scoped?session?.storeCode??'':locationCode
+    if (!producto || !selectedLocation.trim() || !cantidad.trim() || !motivo.trim()) return
     setEnviando(true)
     try {
       if (tipo === 'COUNT') {
-        await manejarRespuesta(await apiFetch('/api/inventory/adjustments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ locationCode: locationCode.trim().toUpperCase(), productId: Number(producto.id), countedQuantity: Number(cantidad), source: motivo }) }))
+        await manejarRespuesta(await apiFetch('/api/inventory/adjustments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ locationCode: selectedLocation.trim().toUpperCase(), productId: Number(producto.id), countedQuantity: Number(cantidad), source: motivo }) }))
       } else await httpInventoryOpsRepository.registerMovement({
-        locationCode: locationCode.trim().toUpperCase(),
+        locationCode: selectedLocation.trim().toUpperCase(),
         productId: Number(producto.id),
         type: tipo,
         quantity: Number(cantidad),
@@ -155,7 +157,8 @@ export function InventarioPage() {
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Ubicación</label>
                 <input
-                  value={locationCode}
+                  value={scoped?session?.storeCode??'':locationCode}
+                  readOnly={scoped}
                   onChange={(e) => setLocationCode(e.target.value)}
                   placeholder="CD1, T-014…"
                   className="w-full border border-linea rounded px-3 py-2 text-sm"
@@ -192,7 +195,8 @@ export function InventarioPage() {
                 />
               </div>
             </div>
-            <Button type="submit" disabled={enviando}>
+            {scoped&&!session?.storeCode&&<p role="alert">Solicita una tienda asignada al administrador.</p>}
+            <Button type="submit" disabled={enviando||(scoped&&!session?.storeCode)}>
               {enviando ? 'Registrando…' : 'Registrar'}
             </Button>
           </form>}

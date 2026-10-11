@@ -5,6 +5,10 @@ import { useAuth } from '../../../../shared/context/AuthContext'
 import { useNotify } from '../../../../shared/notifications/NotificationContext'
 import { httpIncidenciasRepository } from '../api/incidenciasRepository.http'
 import type { IncidenciaGlobal } from '../types'
+import { apiFetch } from '../../../../shared/api/apiFetch'
+import { manejarRespuesta } from '../../../../shared/api/httpErrors'
+import { httpCatalogRepository } from '../../../catalogo/api/catalogRepository.http'
+import type { Product } from '../../../catalogo/types'
 
 const TONO_ESTADO: Record<IncidenciaGlobal['estado'], 'ok' | 'alerta' | 'falla' | 'info'> = {
   REGISTERED: 'alerta',
@@ -28,6 +32,11 @@ export function IncidentInbox({ tipoFijo, titulo, descripcion }: { tipoFijo?: 'E
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [procesando, setProcesando] = useState<number | null>(null)
+  const [exchange,setExchange]=useState<number|null>(null)
+  const [query,setQuery]=useState('')
+  const [products,setProducts]=useState<Product[]>([])
+  const [product,setProduct]=useState('')
+  const [quantity,setQuantity]=useState(1)
   const { session } = useAuth()
   const isAdmin = session?.roles.some(r => ['ADMIN', 'FINANCE', 'CALL_CENTER_AGENT', 'STORE_EMPLOYEE', 'STORE_MANAGER'].includes(r)) ?? false
   const { notificar } = useNotify()
@@ -106,6 +115,7 @@ export function IncidentInbox({ tipoFijo, titulo, descripcion }: { tipoFijo?: 'E
                 <Pill tone={TONO_ESTADO[i.estado]}>{i.estado}</Pill>
               </div>
               <p className="text-sm text-gray-600 mb-2">{i.descripcion}</p>
+              {i.replacementOrderId&&<Link to={`/administracion/ordenes/${i.replacementOrderId}`} className="text-brand">Orden de reemplazo {i.replacementOrderId}</Link>}
               {isAdmin && i.estado !== 'RESOLVED' && i.estado !== 'REJECTED' && (
                 <div className="flex gap-2">
                   {i.estado === 'REGISTERED' && (
@@ -119,10 +129,10 @@ export function IncidentInbox({ tipoFijo, titulo, descripcion }: { tipoFijo?: 'E
                   )}
                   <button
                     disabled={procesando === i.id}
-                    onClick={() => procesar(i.id, 'RESOLVED')}
+                    onClick={() => i.tipo==='EXCHANGE'?setExchange(i.id):procesar(i.id, 'RESOLVED')}
                     className="text-xs text-ok hover:underline"
                   >
-                    Resolver
+                    {i.tipo==='EXCHANGE'?'Seleccionar reemplazo':'Resolver'}
                   </button>
                   <button
                     disabled={procesando === i.id}
@@ -133,6 +143,20 @@ export function IncidentInbox({ tipoFijo, titulo, descripcion }: { tipoFijo?: 'E
                   </button>
                 </div>
               )}
+              {exchange===i.id&&<div className="border rounded p-3 mt-3 space-y-3">
+                <p>Se devolverá la orden completa y se creará una nueva orden vinculada para pagar el reemplazo. El reembolso de la compra original se procesa por separado.</p>
+                <form className="flex gap-2" onSubmit={async e=>{e.preventDefault();try{setProducts(await httpCatalogRepository.search(query));setProduct('')}catch(e){notificar(e instanceof Error?e.message:'No se pudo buscar','falla')}}}>
+                  <label>Buscar reemplazo<input className="border rounded p-2 block" value={query} onChange={e=>setQuery(e.target.value)}/></label><button>Buscar</button>
+                </form>
+                <label className="block">Producto de reemplazo<select className="border rounded p-2 block w-full" value={product} onChange={e=>setProduct(e.target.value)}><option value="">Selecciona un producto</option>{products.map(p=><option value={p.id} key={p.id}>{p.nombre} · Q {p.precio.final.toFixed(2)}</option>)}</select></label>
+                <label className="block">Cantidad de reemplazo<input type="number" min={1} max={100000} className="border rounded p-2 block" value={quantity} onChange={e=>setQuantity(Number(e.target.value))}/></label>
+                <button disabled={!product||quantity<1||procesando!==null} onClick={async()=>{
+                  setProcesando(i.id)
+                  try{await manejarRespuesta(await apiFetch(`/api/incidents/${i.id}/exchange`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({productId:Number(product),quantity})}));setExchange(null);await cargar();notificar('Cambio registrado y orden de reemplazo creada.','ok')}
+                  catch(e){notificar(e instanceof Error?e.message:'No se pudo procesar el cambio','falla')}finally{setProcesando(null)}
+                }}>Confirmar cambio y crear orden</button>
+                <button onClick={()=>setExchange(null)}>Cancelar</button>
+              </div>}
             </div>
           ))}
         </div>

@@ -65,6 +65,7 @@ export const NAV_SECTIONS: NavSection[] = [
     titulo: 'Operaciones',
     items: [
       { label: 'Órdenes', path: '/administracion/ordenes', estado: 'activo', icon: ClipboardList },
+      { label: 'Venta asistida', path: '/administracion/ventas/nueva', estado: 'activo', icon: ShoppingCart },
       { label: 'Incidencias', path: '/administracion/incidencias', estado: 'activo', icon: AlertTriangle },
       { label: 'Devoluciones', path: '/administracion/devoluciones', estado: 'activo', icon: Undo2 },
       { label: 'Catálogo y promociones', path: '/administracion/catalogo', estado: 'activo', icon: Tag },

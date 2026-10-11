@@ -8,6 +8,8 @@ import { Pill } from '../../../../shared/components/Pill'
 import { useNotify } from '../../../../shared/notifications/NotificationContext'
 import { httpClientesRepository } from '../api/clientesRepository.http'
 import type { ClienteDetalle } from '../types'
+import { apiFetch } from '../../../../shared/api/apiFetch'
+import { manejarRespuesta } from '../../../../shared/api/httpErrors'
 
 function formatQ(valor: number): string {
   return `Q ${valor.toFixed(2)}`
@@ -136,6 +138,12 @@ export function ClienteDetallePage() {
                 <dd className="text-ink">{cliente.taxId}</dd>
               </div>
             </dl>
+            {canEdit && <Link to={`/administracion/clientes/${id}/venta`} className="block text-brand mb-3">Continuar carrito / crear venta asistida</Link>}
+            {session?.roles.includes('ADMIN')&&<Button variant="secondary" disabled={guardando} onClick={async()=>{
+              setGuardando(true)
+              try{await manejarRespuesta(await apiFetch(`/api/customers/${cliente.id}/active`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({active:cliente.active===false})}));setCliente(await httpClientesRepository.detalle(cliente.id));notificar('Estado de la cuenta actualizado.','ok')}
+              catch(e){notificar(e instanceof Error?e.message:'No se pudo cambiar el estado','falla')}finally{setGuardando(false)}
+            }}>{cliente.active===false?'Activar cuenta':'Desactivar cuenta'}</Button>}
             {canEdit && <Button variant="secondary" onClick={() => setEditando(true)}>
               Editar datos
             </Button>}

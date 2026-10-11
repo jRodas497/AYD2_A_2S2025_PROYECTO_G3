@@ -14,6 +14,7 @@ interface BackendIncidentOverview {
   orderTotal: number
   createdAt: string
   resolvedAt: string | null
+  replacementOrderId?: number | null
 }
 
 function mapear(i: BackendIncidentOverview): IncidenciaGlobal {
@@ -28,6 +29,7 @@ function mapear(i: BackendIncidentOverview): IncidenciaGlobal {
     totalOrden: i.orderTotal,
     creadaEn: i.createdAt,
     resueltaEn: i.resolvedAt,
+    ...(i.replacementOrderId===undefined?{}:{replacementOrderId:i.replacementOrderId}),
   }
 }
 

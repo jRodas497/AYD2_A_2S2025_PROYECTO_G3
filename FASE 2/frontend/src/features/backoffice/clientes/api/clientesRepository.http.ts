@@ -9,6 +9,7 @@ interface BackendCustomer {
   phone: string | null
   taxId: string
   address: string | null
+  active?: boolean
 }
 
 interface BackendOrderOverview {
@@ -35,7 +36,7 @@ interface BackendHistory {
 }
 
 function mapearResumen(c: BackendCustomer): ClienteResumen {
-  return { id: String(c.id), nombre: c.fullName, email: c.email ?? '', telefono: c.phone ?? '' }
+  return { id: String(c.id), nombre: c.fullName, email: c.email ?? '', telefono: c.phone ?? '', ...(c.active===undefined?{}:{active:c.active}) }
 }
 
 export const httpClientesRepository = {

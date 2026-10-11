@@ -1,6 +1,8 @@
 import { CatalogAdminPage } from '../features/backoffice/catalogo/CatalogAdminPage'
 import { ErpPage } from '../features/backoffice/erp/ErpPage'
 import { UsuariosPage } from '../features/backoffice/usuarios/UsuariosPage'
+import { VentaAsistidaPage } from '../features/backoffice/ventas/VentaAsistidaPage'
+import { RecuperarCuentaPage } from '../features/cliente/pages/RecuperarCuentaPage'
 import { CustomerGate } from '../shared/auth/CustomerGate'
 import { staffHome } from '../shared/auth/accessPolicy'
 import { useAuth } from '../shared/context/AuthContext'
@@ -45,6 +47,7 @@ export function AppRouter() {
     <Routes>
       <Route path="/" element={<Navigate to="/catalogo" replace />} />
       <Route path="/ingresar" element={<CustomerLoginPage />} />
+      <Route path="/recuperar" element={<RecuperarCuentaPage />} />
       <Route path="/catalogo" element={<CatalogListPage />} />
       <Route path="/productos/:id" element={<ProductDetailPage />} />
       <Route path="/promociones" element={<PromocionesPage />} />
@@ -70,6 +73,8 @@ export function AppRouter() {
       <Route path="/administracion/seguimiento" element={<StaffGate><SeguimientoPage /></StaffGate>} />
       <Route path="/administracion/clientes" element={<StaffGate><ClientesPage /></StaffGate>} />
       <Route path="/administracion/clientes/:id" element={<StaffGate><ClienteDetallePage /></StaffGate>} />
+      <Route path="/administracion/clientes/:id/venta" element={<StaffGate><VentaAsistidaPage /></StaffGate>} />
+      <Route path="/administracion/ventas/nueva" element={<StaffGate><VentaAsistidaPage /></StaffGate>} />
       <Route path="/administracion/auditoria" element={<StaffGate><AuditoriaPage /></StaffGate>} />
       <Route path="/administracion/reportes" element={<StaffGate><ReportesPage /></StaffGate>} />
       <Route path="/administracion/usuarios" element={<StaffGate><UsuariosPage /></StaffGate>} />
