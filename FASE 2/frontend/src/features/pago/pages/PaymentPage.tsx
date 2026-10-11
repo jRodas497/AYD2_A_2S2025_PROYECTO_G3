@@ -58,8 +58,11 @@ export function PaymentPage() {
 
   useEffect(() => {
     const creditCustomer = basePath ? orden?.customerId : customer?.id
-    if (creditCustomer) apiFetch(`/api/customers/${creditCustomer}/credit`).then(r => manejarRespuesta<CreditAccount>(r)).then(setCredit).catch(() => setCredit(null))
-  }, [customer?.id, orden?.customerId, basePath])
+    if (creditCustomer) apiFetch(`/api/customers/${creditCustomer}/credit`).then(r => manejarRespuesta<CreditAccount>(r)).then(result=>{
+      setCredit(result)
+      if(orden?.paymentPreference==='CREDIT'&&result.eligible&&Number(result.available)>=orden.total)setMetodo('credito')
+    }).catch(() => setCredit(null))
+  }, [customer?.id, orden?.customerId, orden?.paymentPreference, orden?.total, basePath])
 
   if (cargando) return <p className="text-sm text-gray-400">Cargando…</p>
   if (error) return <p className="text-sm text-falla">{error}</p>
@@ -133,6 +136,11 @@ export function PaymentPage() {
       )
     } catch (err) {
       notificar(err instanceof Error ? err.message : 'No se pudo procesar el pago', 'falla')
+      if(metodo==='credito'){
+        setRechazoMotivo(err instanceof Error?err.message:'El crédito no pudo aprobarse. Puedes continuar con PayKlik.')
+        setMetodo('tarjeta')
+        try{setCredit(await manejarRespuesta<CreditAccount>(await apiFetch(`/api/customers/${orden.customerId}/credit`)))}catch{setCredit(null)}
+      }
       setEnviando(false)
       return
     }

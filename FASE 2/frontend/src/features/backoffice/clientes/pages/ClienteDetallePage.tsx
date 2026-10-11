@@ -10,6 +10,7 @@ import { httpClientesRepository } from '../api/clientesRepository.http'
 import type { ClienteDetalle } from '../types'
 import { apiFetch } from '../../../../shared/api/apiFetch'
 import { manejarRespuesta } from '../../../../shared/api/httpErrors'
+import { CreditAssessmentPanel } from '../../../credito/CreditAssessmentPanel'
 
 function formatQ(valor: number): string {
   return `Q ${valor.toFixed(2)}`
@@ -174,6 +175,7 @@ export function ClienteDetallePage() {
         )}
       </div>
 
+      <CreditAssessmentPanel customerId={cliente.id} />
       <div className="bg-white border border-linea rounded p-4">
         <h2 className="text-sm font-medium text-ink mb-3">Incidencias</h2>
         {cliente.incidencias.length === 0 ? (

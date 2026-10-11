@@ -22,10 +22,12 @@ export interface Order {
   creadaEn: string
   enProcesoDesde?: string
   trackingNumber?: string
+  paymentPreference?: 'CARD'|'CREDIT'|'TRANSFER'|'WALLET'
 }
 
 export interface CrearOrdenInput {
   channel?: string
+  paymentMethod?: 'CARD'|'CREDIT'
   customerId: string
   items: CartItem[]
   pickupLocationId?: number

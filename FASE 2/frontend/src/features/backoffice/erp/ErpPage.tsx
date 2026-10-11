@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { apiFetch, downloadFile } from '../../../shared/api/apiFetch'
 import { manejarRespuesta } from '../../../shared/api/httpErrors'
 import { Button } from '../../../shared/components/Button'
+import { ErpCustomerHistoryPanel } from './ErpCustomerHistoryPanel'
 interface Batch { id: number; file_name: string; status: string; order_count: number; total_amount: number; created_at: string; attempts: number; last_error: string | null }
 interface Sale { orderId: number; customer: string; total: number; invoiceCui: string; channel: string }
 export function ErpPage() {
@@ -42,5 +43,6 @@ export function ErpPage() {
     {selected !== null && <div className="bg-white border rounded p-4 mt-4"><h2 className="font-medium mb-3">Ventas del lote {selected}</h2>
       {sales.map(s => <p key={s.orderId} className="text-sm py-2 border-b">{s.orderId < 0 ? 'Ajuste de devolución' : 'Orden'} {Math.abs(s.orderId)} · {s.customer} · {s.channel} · Q {Number(s.total).toFixed(2)} · {s.invoiceCui}</p>)}
     </div>}
+    <ErpCustomerHistoryPanel />
   </div>
 }

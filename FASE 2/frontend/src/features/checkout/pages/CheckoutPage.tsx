@@ -7,6 +7,7 @@ import { Button } from '../../../shared/components/Button'
 import { useCarrito } from '../../carrito/hooks/useCarrito'
 import { useCustomer } from '../../../shared/context/CustomerContext'
 import { httpOrderRepository } from '../../orden/api/orderRepository.http'
+import { CheckoutPaymentChoice } from '../../credito/CheckoutPaymentChoice'
 
 function formatQ(valor: number): string {
   return `Q ${valor.toFixed(2)}`
@@ -23,6 +24,7 @@ export function CheckoutPage() {
   const [direccionEntrega, setDireccionEntrega] = useState('')
   const [confirmando, setConfirmando] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [paymentMethod,setPaymentMethod]=useState<'CARD'|'CREDIT'>('CARD')
 
   if (!customer) return <Navigate to="/ingresar" replace />
   const customerId = customer.id
@@ -48,12 +50,13 @@ export function CheckoutPage() {
       const orden = await httpOrderRepository.createOrder({
         customerId,
         channel: localStorage.getItem('sgo-channel') ?? 'WEB',
+        paymentMethod,
         items: cart.items,
         direccionEntrega: pickup ? 'Retiro en tienda' : direccionEntrega.trim(),
         pickupLocationId: pickup ? Number(storeId) : undefined,
       })
       resetearCarritoLocal()
-      navigate(`/ordenes/${orden.id}`)
+      navigate(paymentMethod==='CREDIT'?`/ordenes/${orden.id}/pago`:`/ordenes/${orden.id}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo confirmar la compra')
       setConfirmando(false)
@@ -86,6 +89,7 @@ export function CheckoutPage() {
         </div>
       </div>
 
+      <CheckoutPaymentChoice customerId={customerId} total={total} value={paymentMethod} onChange={setPaymentMethod}/>
       <Button onClick={handleConfirmar} disabled={confirmando || (pickup ? !storeId : !direccionEntrega.trim())}>
         {confirmando ? 'Confirmando…' : 'Confirmar compra'}
       </Button>

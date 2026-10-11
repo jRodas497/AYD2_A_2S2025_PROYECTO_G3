@@ -17,6 +17,7 @@ interface BackendOrder {
 }
 
 interface BackendOrderDetail {
+  paymentPreference?: Order['paymentPreference']
   items?: Order['items']
   deliveryAddress?: string
   orderId: number
@@ -56,7 +57,7 @@ export const httpOrderRepository: OrderRepository = {
       await fetch('/api/orders/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerId: Number(input.customerId), deliveryAddress: input.direccionEntrega, pickupLocationId: input.pickupLocationId, channel: input.channel }),
+        body: JSON.stringify({ customerId: Number(input.customerId), deliveryAddress: input.direccionEntrega, pickupLocationId: input.pickupLocationId, channel: input.channel, ...(input.paymentMethod?{paymentMethod:input.paymentMethod}:{}) }),
       }),
     )
     const orden: Order = {
@@ -87,6 +88,7 @@ export const httpOrderRepository: OrderRepository = {
         estado: mapearEstado(detalle.status),
         creadaEn: detalle.createdAt ?? '',
         trackingNumber: detalle.trackingNumber ?? undefined,
+        ...(detalle.paymentPreference?{paymentPreference:detalle.paymentPreference}:{}),
       }
     } catch (e) {
       if (e instanceof NotFoundError) return null
