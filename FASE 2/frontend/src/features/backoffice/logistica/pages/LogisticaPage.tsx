@@ -1,3 +1,4 @@
+import { locationRequest, TRANSFER_LABEL, type Transfer } from '../../ubicaciones/locationApi'
 import { useAuth } from '../../../../shared/context/AuthContext'
 import { hasPermission } from '../../../../shared/auth/accessPolicy'
 import { useEffect, useState } from 'react'
@@ -15,6 +16,7 @@ function formatFecha(iso: string): string {
 export function LogisticaPage() {
   const { session } = useAuth()
   const canEdit = hasPermission(session?.roles ?? [], 'editShipments')
+  const [traslados,setTraslados]=useState<Transfer[]>([])
   const [envios, setEnvios] = useState<Shipment[]>([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -25,7 +27,8 @@ export function LogisticaPage() {
     setCargando(true)
     setError(null)
     try {
-      setEnvios(await httpShipmentsRepository.byStatus('GUIDE_REQUESTED', 100))
+      const [shipments, transfers] = await Promise.all([httpShipmentsRepository.byStatus('GUIDE_REQUESTED', 100), locationRequest<Transfer[]>('/api/inventory/transfers')])
+      setEnvios(shipments);setTraslados(transfers.filter(t=>t.status==='PENDING'||t.status==='IN_TRANSIT'))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudieron cargar las alertas de logística')
     } finally {
@@ -54,16 +57,17 @@ export function LogisticaPage() {
     <div>
       <h1 className="text-2xl font-semibold text-ink mb-1">Logística</h1>
       <p className="text-sm text-gray-500 mb-6">
-        Envíos ya asignados que se quedaron sin número de guía tras agotar los reintentos automáticos con
-        LogiExpress (CDU-04, E1). Requieren asignación manual de transporte.
+        Envíos pendientes de guía y traslados necesarios para reunir la mercancía. Puedes reintentar con LogiExpress o asignar un transporte alternativo desde el seguimiento.
       </p>
 
+      <Button variant="secondary" disabled={cargando} onClick={()=>void cargar()}>Actualizar logística</Button>
+      {traslados.length>0&&<section className="bg-white border rounded p-4 my-4"><h2 className="font-semibold">Traslados en curso</h2>{traslados.map(t=><p className="py-1 text-sm" key={t.id}>#{t.id} · {t.source_code} → {t.destination_code} · {TRANSFER_LABEL[t.status]}{t.order_id&&` · Orden ${t.order_id}`}</p>)}<Link className="text-brand underline" to="/administracion/traslados">Gestionar traslados</Link></section>}
       {cargando ? (
         <p className="text-sm text-gray-400">Cargando alertas…</p>
       ) : error ? (
         <p className="text-sm text-falla">{error}</p>
       ) : envios.length === 0 ? (
-        <p className="text-sm text-gray-400">Sin alertas: todos los envíos asignados ya tienen guía.</p>
+        <p className="text-sm text-gray-400">No hay envíos pendientes de guía.</p>
       ) : (
         <div className="bg-white border border-linea rounded divide-y divide-linea">
           {envios.map((envio) => (

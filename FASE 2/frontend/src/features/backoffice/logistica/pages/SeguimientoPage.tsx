@@ -1,3 +1,5 @@
+import { ManualTransportForm } from '../ManualTransportForm'
+import { locationRequest, type Location } from '../../ubicaciones/locationApi'
 import { useAuth } from '../../../../shared/context/AuthContext'
 import { hasPermission } from '../../../../shared/auth/accessPolicy'
 import { apiFetch } from '../../../../shared/api/apiFetch'
@@ -24,6 +26,8 @@ export function SeguimientoPage() {
   const [error, setError] = useState<string | null>(null)
   const [nuevoEstado, setNuevoEstado] = useState('IN_TRANSIT')
   const [actualizando, setActualizando] = useState(false)
+  const [locations, setLocations] = useState<Location[]>([])
+  useEffect(() => { void locationRequest<Location[]>('/api/inventory/locations').then(setLocations).catch(e => notificar(e.message, 'falla')) }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const [nuevoOrigen, setNuevoOrigen] = useState('')
   const [reasignando, setReasignando] = useState(false)
   const { notificar } = useNotify()
@@ -71,7 +75,7 @@ export function SeguimientoPage() {
     if (!envio || actualizando) return
     setActualizando(true)
     try {
-      await manejarRespuesta(await apiFetch(`/api/shipments/${envio.id}/${envio.transportista === 'PICKUP' ? 'tracking' : 'simulate-tracking'}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: nuevoEstado, detail: 'Actualización registrada por Logística' }) }))
+      await manejarRespuesta(await apiFetch(`/api/shipments/${envio.id}/${envio.transportista !== 'LOGIEXPRESS' ? 'tracking' : 'simulate-tracking'}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: nuevoEstado, detail: 'Actualización registrada por Logística' }) }))
       await buscar(orderId)
       notificar('Estado de entrega actualizado.', 'ok')
     } catch (e) { notificar(e instanceof Error ? e.message : 'No se pudo actualizar', 'falla') }
@@ -119,7 +123,7 @@ export function SeguimientoPage() {
               </div>
               <div>
                 <dt className="text-xs text-gray-400">Transportista</dt>
-                <dd className="text-ink">{envio.transportista}</dd>
+                <dd className="text-ink">{envio.carrierName ?? envio.transportista}</dd>
               </div>
               <div>
                 <dt className="text-xs text-gray-400">Guía</dt>
@@ -147,6 +151,8 @@ export function SeguimientoPage() {
             </div>
           </div>
 
+          {envio.transportista === 'MANUAL' && <p className="bg-white border rounded p-3">Conductor: {envio.driverName} · Placa: {envio.vehiclePlate} · Motivo: {envio.transportReason}</p>}
+          {canEdit && envio.transportista !== 'PICKUP' && !['DELIVERED','IN_TRANSIT'].includes(envio.estado) && <ManualTransportForm shipmentId={envio.id} onSaved={() => buscar(orderId)} />}
           {canEdit && <>          <div className="bg-white border border-linea rounded p-4">
             <label htmlFor="tracking-state" className="block font-medium mb-2">Actualizar entrega</label>
             <select id="tracking-state" value={nuevoEstado} onChange={e => setNuevoEstado(e.target.value)} className="border rounded p-2 mr-3">
@@ -164,10 +170,12 @@ export function SeguimientoPage() {
               <input
                 value={nuevoOrigen}
                 onChange={(e) => setNuevoOrigen(e.target.value)}
-                placeholder="Código de ubicación, ej. CD1 o T-014"
+                list="shipment-locations"
+                placeholder="Selecciona el código de ubicación"
                 className="flex-1 border border-linea rounded px-3 py-2 text-sm"
               />
-              <Button variant="secondary" disabled={reasignando || !nuevoOrigen.trim()} onClick={reasignarOrigen}>
+              <datalist id="shipment-locations">{locations.map(l=><option key={l.id} value={l.code}>{l.name}</option>)}</datalist>
+              <Button variant="secondary" disabled={reasignando || !nuevoOrigen.trim() || ['DELIVERED', 'IN_TRANSIT', 'FAILED'].includes(envio.estado)} onClick={reasignarOrigen}>
                 {reasignando ? 'Reasignando…' : 'Reasignar'}
               </Button>
             </div>

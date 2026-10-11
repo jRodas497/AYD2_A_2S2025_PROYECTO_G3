@@ -1,8 +1,9 @@
+import { locationRequest, type Location } from '../../ubicaciones/locationApi'
 import { useAuth } from '../../../../shared/context/AuthContext'
 import { hasPermission } from '../../../../shared/auth/accessPolicy'
 import { apiFetch } from '../../../../shared/api/apiFetch'
 import { manejarRespuesta } from '../../../../shared/api/httpErrors'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '../../../../shared/components/Button'
 import { useNotify } from '../../../../shared/notifications/NotificationContext'
 import { httpCatalogRepository } from '../../../catalogo/api/catalogRepository.http'
@@ -18,6 +19,8 @@ export function InventarioPage() {
   const { session } = useAuth()
   const canEdit = hasPermission(session?.roles ?? [], 'editInventory')
   const scoped = !!session?.roles.some(r=>r==='STORE_MANAGER'||r==='STORE_EMPLOYEE')&&!session.roles.some(r=>r==='ADMIN'||r==='LOGISTICS')
+  const [locations,setLocations]=useState<Location[]>([])
+  useEffect(()=>{void locationRequest<Location[]>('/api/inventory/locations').then(setLocations).catch(e=>notificar(e.message,'falla'))},[]) // eslint-disable-line react-hooks/exhaustive-deps
   const [query, setQuery] = useState('')
   const [resultados, setResultados] = useState<Product[]>([])
   const [buscando, setBuscando] = useState(false)
@@ -45,12 +48,13 @@ export function InventarioPage() {
     setProducto(p)
     setResultados([])
     setQuery('')
-    const [disp, movs] = await Promise.all([
+    try { const [disp, movs] = await Promise.all([
       httpInventoryOpsRepository.availability(Number(p.id)),
       httpInventoryOpsRepository.movements(Number(p.id), 20),
     ])
     setDisponibilidad(disp)
     setMovimientos(movs)
+    } catch(e){setDisponibilidad(null);notificar(e instanceof Error?e.message:'No se pudo cargar el inventario','falla')}
   }
 
   async function recargar() {
@@ -93,7 +97,7 @@ export function InventarioPage() {
     <div>
       <h1 className="text-2xl font-semibold text-ink mb-1">Inventario</h1>
       <p className="text-sm text-gray-500 mb-6">
-        Existencias reales por ubicación (2 centros de distribución y 32 tiendas), movimientos y ajustes por conteo
+        Existencias reales en bodegas, centros de distribución y tiendas, movimientos y ajustes por conteo
         físico.
       </p>
 
@@ -160,10 +164,12 @@ export function InventarioPage() {
                   value={scoped?session?.storeCode??'':locationCode}
                   readOnly={scoped}
                   onChange={(e) => setLocationCode(e.target.value)}
-                  placeholder="CD1, T-014…"
+                  list="inventory-locations"
+                  placeholder="Selecciona el código de ubicación"
                   className="w-full border border-linea rounded px-3 py-2 text-sm"
                 />
               </div>
+              <datalist id="inventory-locations">{locations.map(l=><option key={l.id} value={l.code}>{l.name}</option>)}</datalist>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Tipo</label>
                 <select

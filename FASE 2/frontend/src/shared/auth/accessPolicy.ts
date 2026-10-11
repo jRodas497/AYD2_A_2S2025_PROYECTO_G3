@@ -7,6 +7,7 @@ export const ROLE_LABELS: Record<StaffRole, string> = {
 const support = ['ADMIN', 'FINANCE', 'CALL_CENTER_AGENT', 'STORE_MANAGER', 'STORE_EMPLOYEE'] as const
 export const PERMISSIONS = {
   dashboard: ['ADMIN', 'FINANCE'], orders: STAFF_ROLES, customers: support, incidents: support,
+  locations: ['ADMIN', 'LOGISTICS'], transfers: STAFF_ROLES, editTransfers: ['ADMIN', 'LOGISTICS'],
   inventory: STAFF_ROLES, reservations: STAFF_ROLES, logistics: STAFF_ROLES,
   audit: ['ADMIN', 'FINANCE'], reports: ['ADMIN', 'FINANCE'], erp: ['ADMIN', 'FINANCE'],
   integrations: ['ADMIN', 'FINANCE', 'LOGISTICS'], notifications: STAFF_ROLES,
@@ -23,7 +24,7 @@ export function hasPermission(roles: readonly string[], permission: Permission):
 }
 const ROUTES: Record<string, Permission> = {
   dashboard: 'dashboard', ordenes: 'orders', clientes: 'customers', incidencias: 'incidents', devoluciones: 'incidents',
-  inventario: 'inventory', reservas: 'reservations', logistica: 'logistics', seguimiento: 'logistics',
+  ubicaciones: 'locations', traslados: 'transfers', inventario: 'inventory', reservas: 'reservations', logistica: 'logistics', seguimiento: 'logistics',
   auditoria: 'audit', reportes: 'reports', erp: 'erp', integraciones: 'integrations',
   notificaciones: 'notifications', catalogo: 'catalog', configuracion: 'settings', usuarios: 'users', facturas: 'invoices',
 }

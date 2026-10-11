@@ -17,11 +17,16 @@ interface BackendShipmentView {
   trackingNumber: string | null
   createdAt: string
   updatedAt: string
+  carrierName?: string | null
+  driverName?: string | null
+  vehiclePlate?: string | null
+  transportReason?: string | null
   tracking: BackendTrackingView[]
 }
 
 function mapear(v: BackendShipmentView): Shipment {
   return {
+    ...(v.carrierName !== undefined ? { carrierName: v.carrierName, driverName: v.driverName, vehiclePlate: v.vehiclePlate, transportReason: v.transportReason } : {}),
     id: v.id,
     orderId: v.orderId,
     origenUbicacion: v.originLocation,

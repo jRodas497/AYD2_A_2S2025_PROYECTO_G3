@@ -13,5 +13,9 @@ export interface Shipment {
   numeroGuia: string | null
   creadoEn: string
   actualizadoEn: string
+  carrierName?: string | null
+  driverName?: string | null
+  vehiclePlate?: string | null
+  transportReason?: string | null
   seguimiento: TrackingEvent[]
 }

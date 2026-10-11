@@ -1,3 +1,5 @@
+import { UbicacionesPage } from '../features/backoffice/ubicaciones/UbicacionesPage'
+import { TrasladosPage } from '../features/backoffice/ubicaciones/TrasladosPage'
 import { CatalogAdminPage } from '../features/backoffice/catalogo/CatalogAdminPage'
 import { ErpPage } from '../features/backoffice/erp/ErpPage'
 import { UsuariosPage } from '../features/backoffice/usuarios/UsuariosPage'
@@ -67,6 +69,8 @@ export function AppRouter() {
       <Route path="/administracion/ordenes" element={<StaffGate><OrdenesPage /></StaffGate>} />
       <Route path="/administracion/incidencias" element={<StaffGate><IncidenciasPage /></StaffGate>} />
       <Route path="/administracion/devoluciones" element={<StaffGate><DevolucionesPage /></StaffGate>} />
+      <Route path="/administracion/ubicaciones" element={<StaffGate><UbicacionesPage /></StaffGate>} />
+      <Route path="/administracion/traslados" element={<StaffGate><TrasladosPage /></StaffGate>} />
       <Route path="/administracion/inventario" element={<StaffGate><InventarioPage /></StaffGate>} />
       <Route path="/administracion/reservas" element={<StaffGate><ReservasPage /></StaffGate>} />
       <Route path="/administracion/logistica" element={<StaffGate><LogisticaPage /></StaffGate>} />

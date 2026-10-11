@@ -1,5 +1,6 @@
 import { useAuth } from '../../../shared/context/AuthContext'
 import { hasPermission } from '../../../shared/auth/accessPolicy'
+import { OrderTransfers } from '../OrderTransfers'
 import { OrderIncidents } from '../OrderIncidents'
 import { apiFetch, downloadFile } from '../../../shared/api/apiFetch'
 import { useEffect, useRef, useState } from 'react'
@@ -198,6 +199,7 @@ export function OrderStatusPage() {
 
       <div className="mt-4">
         <RastreadorProceso estado={orden.estado} />
+        <OrderTransfers orderId={orden.id} staff={staffArea} />
       </div>
 
       <div className="bg-white border border-linea rounded p-4 mb-4">

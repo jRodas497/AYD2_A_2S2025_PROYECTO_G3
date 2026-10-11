@@ -69,6 +69,8 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: 'Incidencias', path: '/administracion/incidencias', estado: 'activo', icon: AlertTriangle },
       { label: 'Devoluciones', path: '/administracion/devoluciones', estado: 'activo', icon: Undo2 },
       { label: 'Catálogo y promociones', path: '/administracion/catalogo', estado: 'activo', icon: Tag },
+      { label: 'Ubicaciones', path: '/administracion/ubicaciones', estado: 'activo', icon: MapPin },
+      { label: 'Traslados', path: '/administracion/traslados', estado: 'activo', icon: Truck },
       { label: 'Inventario', path: '/administracion/inventario', estado: 'activo', icon: Boxes },
       { label: 'Reservas', path: '/administracion/reservas', estado: 'activo', icon: BookmarkCheck },
       { label: 'Logística', path: '/administracion/logistica', estado: 'activo', icon: Truck },
