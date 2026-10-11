@@ -4,6 +4,7 @@ import json
 import os
 import sqlite3
 import time
+import threading
 import urllib.request
 import urllib.error
 import urllib.parse
@@ -20,6 +21,7 @@ def db():
     con.execute('create table if not exists records (key text primary key, request text, response text)')
     con.execute('create table if not exists settings (key text primary key, value text)')
     con.execute('create table if not exists customer_history (customer text primary key, history text not null)')
+    con.execute('create table if not exists deliveries (key text primary key, transfer_id integer not null, reference text not null, due real not null, delivered integer not null default 0)')
     return con
 
 
@@ -145,9 +147,44 @@ class Handler(BaseHTTPRequestHandler):
                         where json_extract(records.response,'$.approved')=0 or json_extract(records.response,'$.accepted')=0
                         or json_extract(records.response,'$.rejection') is not null""", (key, json.dumps(body), json.dumps(result)))
             persisted = con.execute('select response from records where key=?', (key,)).fetchone()
+            if PROVIDER == 'logiexpress' and body.get('operation') == 'TRANSFER' and body.get('autoDeliver'):
+                con.execute('insert or ignore into deliveries(key,transfer_id,reference,due) values(?,?,?,?)', (key, body['transferId'], json.loads(persisted[0])['trackingNumber'], time.time()+2))
             con.commit()  # A successful HTTP response must follow the durable idempotency commit.
             self.respond(200, json.loads(persisted[0]))
 
 
+def complete_deliveries():
+    # Durable simulated carrier work: receipt retries survive transport/container outages.
+    while True:
+        try:
+            with db() as con:
+                mode = con.execute("select value from settings where key='mode'").fetchone()
+                pending = [] if mode and mode[0] != 'NORMAL' else con.execute('select key,transfer_id,reference from deliveries where delivered=0 and due<=?', (time.time(),)).fetchall()
+            for key, transfer, reference in pending:
+                body = dict(transferId=transfer, status='DELIVERED', trackingNumber=reference)
+                request = urllib.request.Request(os.environ.get('COMMERCE_URL', 'http://backend:8080') + '/api/providers/logiexpress/transfers/tracking', data=json.dumps(body).encode(), headers={'Content-Type': 'application/json', 'X-Provider-Key': os.environ.get('CARRIER_WEBHOOK_KEY', 'sgologic-local-carrier-key')}, method='POST')
+                try:
+                    with urllib.request.urlopen(request, timeout=5) as response:
+                        response.read()
+                    with db() as con:
+                        con.execute('update deliveries set delivered=1 where key=?', (key,))
+                except urllib.error.HTTPError as error:
+                    # A manual replacement makes this provider's previous job obsolete.
+                    obsolete = error.code == 409 and 'no corresponde' in error.read().decode()
+                    with db() as con:
+                        if obsolete:
+                            con.execute('update deliveries set delivered=1 where key=?', (key,))
+                        else:
+                            con.execute('update deliveries set due=? where key=?', (time.time()+5, key))
+                except (OSError, ValueError):
+                    with db() as con:
+                        con.execute('update deliveries set due=? where key=?', (time.time()+5, key))
+        except (OSError, sqlite3.Error):
+            pass
+        time.sleep(1)
+
+
 if __name__ == '__main__':
+    if PROVIDER == 'logiexpress':
+        threading.Thread(target=complete_deliveries, daemon=True).start()
     ThreadingHTTPServer(('0.0.0.0', 8090), Handler).serve_forever()
