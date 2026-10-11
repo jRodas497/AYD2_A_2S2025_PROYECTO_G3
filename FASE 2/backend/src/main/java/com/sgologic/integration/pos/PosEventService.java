@@ -77,11 +77,11 @@ public class PosEventService {
             return 0;
         }
         List<Long> stores = jdbc.queryForList(
-                "select id from inventory.location where type_id = 2 order by id", Long.class);
+                "select id from inventory.location where type_id = 2 and active order by id", Long.class);
         Map<Long, Integer> network = new java.util.HashMap<>();
         jdbc.query(
-                "select product_id, sum(on_hand - reserved) as available from inventory.stock "
-                        + "where product_id = any (?) group by product_id",
+                "select product_id, sum(on_hand - reserved) as available from inventory.stock s join inventory.location l on l.id=s.location_id "
+                        + "where l.active and product_id = any (?) group by product_id",
                 rs -> {
                     network.put(rs.getLong("product_id"), rs.getInt("available"));
                 },

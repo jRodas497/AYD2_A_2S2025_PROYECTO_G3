@@ -13,6 +13,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 /** Full-order returns: inventory restoration, idempotent refund and ERP accounting adjustment. */
 @Service
 public class RefundService implements OutboxHandler {
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.sgologic.inventory.StockTransferService transfers;
     private final JdbcTemplate jdbc;
     private final OutboxService outbox;
     private final ProviderHttp providers;
@@ -27,13 +29,26 @@ public class RefundService implements OutboxHandler {
         jdbc.update("update payments.credit_charge set return_pending=true where order_id=?",order.getId());
         Long id=jdbc.queryForObject("insert into payments.refund(order_id,amount) values(?,?) returning id",Long.class,order.getId(),order.getTotal());
         boolean shipped=jdbc.queryForObject("select exists(select 1 from logistics.shipment where order_id=?)",Boolean.class,order.getId());
-        var lines=jdbc.queryForList("select id,location_id,product_id,quantity from inventory.reservation where order_id=? and status_id=2 order by id for update",order.getId());
+        transfers.cancelPendingOrder(order.getId());
+        var lines=jdbc.queryForList("select r.id,r.location_id,r.product_id,r.quantity,t.status as transfer_status from inventory.reservation r left join inventory.stock_transfer t on t.id=r.transfer_id where r.order_id=? and r.status_id=2 order by r.id for update of r",order.getId());
         for(var line:lines) {
+            if("IN_TRANSIT".equals(line.get("transfer_status"))){
+                jdbc.update("update inventory.reservation set status_id=3,closed_at=now() where id=?",line.get("id"));
+                continue; // Receipt later restores these units at the actual destination.
+            }
             int qty=((Number)line.get("quantity")).intValue();
             Long location=((Number)line.get("location_id")).longValue();
             Long product=((Number)line.get("product_id")).longValue();
             if(shipped) {
-                jdbc.update("update inventory.stock set on_hand=on_hand+?,updated_at=now() where location_id=? and product_id=?",qty,location,product);
+                var active=jdbc.queryForList("select id from inventory.location where id=? and active for share",Long.class,location);
+                if(active.isEmpty()) {
+                    var receiving=jdbc.queryForList("select id from inventory.location where active order by case type_id when 1 then 0 when 3 then 1 else 2 end,id limit 1 for share",Long.class);
+                    if(receiving.isEmpty())throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,"no hay ubicación activa para recibir la devolución");
+                    Long previous=location;location=receiving.get(0);
+                    jdbc.update("update inventory.reservation set location_id=? where id=?",location,line.get("id"));
+                    audit.recordSystem("DEVOLUCION_UBICACION_REASIGNADA","order",order.getId(),order.getId(),null,Map.of("origenCerrado",previous,"recepcion",location,"producto",product));
+                }
+                jdbc.update("insert into inventory.stock(location_id,product_id,on_hand) values(?,?,?) on conflict(location_id,product_id) do update set on_hand=stock.on_hand+excluded.on_hand,updated_at=now()",location,product,qty);
                 jdbc.update("insert into inventory.stock_movement(location_id,product_id,type_id,quantity,reason,order_id) values(?,?,1,?,'Devolución recibida',?)",location,product,qty,order.getId());
             } else jdbc.update("update inventory.stock set reserved=reserved-?,updated_at=now() where location_id=? and product_id=?",qty,location,product);
             jdbc.update("update inventory.reservation set status_id=3,closed_at=now() where id=?",line.get("id"));

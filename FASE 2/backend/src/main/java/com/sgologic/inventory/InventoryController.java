@@ -23,7 +23,7 @@ public class InventoryController {
 
     @GetMapping("/locations")
     public java.util.List<java.util.Map<String,Object>> locations() {
-        return jdbc.queryForList("select id,code,name,type_id from inventory.location order by id");
+        return jdbc.queryForList("select id,code,name,type_id,address from inventory.location where active order by id");
     }
 
     @GetMapping("/products/{productId}/availability")
@@ -33,7 +33,7 @@ public class InventoryController {
                 select l.code, l.name, s.on_hand - s.reserved as available
                 from inventory.stock s
                 join inventory.location l on l.id = s.location_id
-                where s.product_id = ?
+                where s.product_id = ? and l.active
                 order by available desc
                 """,
                 (rs, rowNum) -> new LocationAvailability(

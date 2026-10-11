@@ -86,6 +86,7 @@ public class UserController {
         lockAdministration();
         AppUser user = load(id);
         protectLastAdministrator(user, body.active());
+        if(body.active())validateStore(user.getStoreId());
         if (user.isActive() && !body.active()) user.setAuthVersion(user.getAuthVersion() + 1);
         user.setActive(body.active());
         auditUser(body.active() ? "USUARIO_ACTIVADO" : "USUARIO_DESHABILITADO", user);
@@ -134,7 +135,7 @@ public class UserController {
     }
 
     private void validateStore(Long id) {
-        if (id != null && jdbc.queryForObject("select count(*) from inventory.location where id=? and type_id=2", Integer.class, id) == 0)
+        if (id != null && jdbc.queryForList("select id from inventory.location where id=? and type_id=2 and active for share", Long.class, id).isEmpty())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "la ubicación debe ser una tienda válida");
     }
 

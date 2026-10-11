@@ -5,7 +5,7 @@ import com.sgologic.common.ReferenceValue;
 /** inventory.location_type. Ids fijos, ver FASE 2/db/README.md. */
 public enum LocationType implements ReferenceValue {
     DISTRIBUTION_CENTER((short) 1),
-    STORE((short) 2);
+    STORE((short) 2), WAREHOUSE((short) 3);
 
     private final short id;
 

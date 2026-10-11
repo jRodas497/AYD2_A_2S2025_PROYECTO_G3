@@ -35,9 +35,9 @@ public class InventoryReservationService {
                 select s.location_id,s.on_hand-s.reserved as available
                 from inventory.stock s
                 join inventory.location l on l.id = s.location_id
-                where s.product_id = ? and s.on_hand - s.reserved > 0
-                order by l.type_id asc, s.location_id asc
-                for update of s
+                where s.product_id = ? and s.on_hand - s.reserved > 0 and l.active
+                order by case l.type_id when 1 then 0 when 3 then 1 else 2 end, s.location_id asc
+                for update of s for share of l
                 """,
                 productId);
 
@@ -76,6 +76,8 @@ public class InventoryReservationService {
 
     @Transactional
     public Reservation reserveAtLocation(Long orderId,Long productId,int quantity,int ttlMinutes,Long locationId) {
+        var locations=jdbc.queryForList("select id from inventory.location where id=? and active for share",Long.class,locationId);
+        if(locations.isEmpty())throw new InsufficientStockException(productId,quantity);
         int changed=jdbc.update("update inventory.stock set reserved=reserved+?,updated_at=now() where location_id=? and product_id=? and on_hand-reserved>=?",quantity,locationId,productId,quantity);
         if(changed!=1) throw new InsufficientStockException(productId,quantity);
         Reservation r=new Reservation();r.setOrderId(orderId);r.setProductId(productId);r.setLocationId(locationId);r.setQuantity(quantity);r.setStatus(ReservationStatus.ACTIVE);r.setExpiresAt(OffsetDateTime.now().plusMinutes(ttlMinutes));

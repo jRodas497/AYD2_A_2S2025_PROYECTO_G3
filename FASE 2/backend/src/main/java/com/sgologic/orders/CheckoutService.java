@@ -74,7 +74,7 @@ public class CheckoutService {
     @Transactional
     public PurchaseOrder checkout(Long customerId,String deliveryAddress,Long pickupLocationId,Channel channel,com.sgologic.payments.PaymentMethod paymentMethod) {
         if(pickupLocationId!=null) {
-            var locations=jdbc.queryForList("select code,name from inventory.location where id=? and type_id=2",pickupLocationId);
+            var locations=jdbc.queryForList("select code,name from inventory.location where id=? and type_id=2 and active for share",pickupLocationId);
             if(locations.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"tienda de retiro inválida");
             deliveryAddress="Retiro en tienda " + locations.get(0).get("code") + ": " + locations.get(0).get("name");
         }

@@ -43,7 +43,9 @@ public class ShipmentController {
     public ShipmentView dispatchOrder(@PathVariable Long orderId) {
         storeAccess.requireOrder(orderId);
         try {
-            return view(dispatch.dispatch(orderId));
+            Shipment shipment=dispatch.dispatch(orderId);
+            if(shipment==null)throw new ResponseStatusException(HttpStatus.CONFLICT,"el despacho espera la recepción de los traslados de consolidación");
+            return view(shipment);
         } catch (ProviderUnavailableException e) {
             // El despacho sí se hizo; lo que falló fue la guía, y se reintenta solo.
             return view(dispatch.ofOrder(orderId));
@@ -92,6 +94,16 @@ public class ShipmentController {
         return view(dispatch.reassign(id, body.locationCode()));
     }
 
+    @PostMapping("/shipments/{id}/transport")
+    public ShipmentView transport(@PathVariable Long id,@Valid @RequestBody ManualTransport body){
+        storeAccess.requireShipment(id);return view(dispatch.assignTransport(id,body));
+    }
+    public record ManualTransport(@NotBlank @jakarta.validation.constraints.Size(max=120) String carrierName,
+        @NotBlank @jakarta.validation.constraints.Size(max=120) String driverName,
+        @NotBlank @jakarta.validation.constraints.Size(max=30) String vehiclePlate,
+        @NotBlank @jakarta.validation.constraints.Size(max=100) String reference,
+        @NotBlank @jakarta.validation.constraints.Size(max=300) String reason){}
+
     private ShipmentView view(Shipment shipment) {
         List<TrackingView> tracking = dispatch.trackingOf(shipment.getId()).stream()
                 .map(e -> new TrackingView(e.getStatus().code(), e.getDetail(), e.getOccurredAt()))
@@ -105,7 +117,7 @@ public class ShipmentController {
                 shipment.getTrackingNumber(),
                 shipment.getCreatedAt(),
                 shipment.getUpdatedAt(),
-                tracking);
+                tracking,shipment.getCarrierName(),shipment.getDriverName(),shipment.getVehiclePlate(),shipment.getTransportReason());
     }
 
     private static ShipmentStatus parse(String status) {
@@ -137,6 +149,6 @@ public class ShipmentController {
             String trackingNumber,
             OffsetDateTime createdAt,
             OffsetDateTime updatedAt,
-            List<TrackingView> tracking) {
+            List<TrackingView> tracking, String carrierName,String driverName,String vehiclePlate,String transportReason) {
     }
 }

@@ -104,23 +104,6 @@ public class ReservationLifecycleService {
         }
     }
 
-    /** Transfer the reserved merchandise to the selected origin before a single shipment leaves. */
-    @Transactional
-    public List<ReservedLine> consolidate(Long orderId, Long originId, List<ReservedLine> lines) {
-        for (ReservedLine line : lines) {
-            if (line.locationId().equals(originId)) continue;
-            int moved = jdbc.update("update inventory.stock set on_hand=on_hand-?,reserved=reserved-?,updated_at=now() where location_id=? and product_id=? and reserved>=? and on_hand>=?",
-                    line.quantity(),line.quantity(),line.locationId(),line.productId(),line.quantity(),line.quantity());
-            if(moved!=1) throw new IllegalStateException("no se pudo consolidar la reserva " + line.reservationId());
-            jdbc.update("insert into inventory.stock(location_id,product_id,on_hand,reserved) values(?,?,?,?) on conflict(location_id,product_id) do update set on_hand=stock.on_hand+excluded.on_hand,reserved=stock.reserved+excluded.reserved,updated_at=now()",
-                    originId,line.productId(),line.quantity(),line.quantity());
-            recordMovement(line.locationId(),line.productId(),MovementType.OUT,line.quantity(),"Traslado al origen de despacho " + originId,orderId);
-            recordMovement(originId,line.productId(),MovementType.IN,line.quantity(),"Recepción de traslado desde " + line.locationCode(),orderId);
-            jdbc.update("update inventory.reservation set location_id=? where id=?",originId,line.reservationId());
-        }
-        return confirmedLines(orderId);
-    }
-
     /**
      * Saca del inventario la mercancía ya reservada de la orden: baja las existencias del punto
      * de origen y deja el movimiento de salida. Solo se llama una vez por orden, dentro de la

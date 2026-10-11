@@ -57,6 +57,7 @@ class DispatchServiceTest {
     private SettingsService settings;
     private JdbcTemplate jdbc;
     private TransactionTemplate tx;
+    private com.sgologic.inventory.StockTransferService transfers;
     private DispatchService service;
 
     /** Simula la fila del envío: lo que `save` guarda es lo que `findById` devuelve después. */
@@ -65,6 +66,7 @@ class DispatchServiceTest {
     @BeforeEach
     @SuppressWarnings("unchecked")
     void setUp() {
+        transfers = mock(com.sgologic.inventory.StockTransferService.class);
         shipments = mock(ShipmentRepository.class);
         trackingEvents = mock(TrackingEventRepository.class);
         orders = mock(PurchaseOrderRepository.class);
@@ -105,7 +107,7 @@ class DispatchServiceTest {
         when(shipments.findByIdForUpdate(900L)).thenAnswer(inv -> Optional.ofNullable(savedShipment));
 
         service = new DispatchService(shipments, trackingEvents, orders, reservations, posEvents, notifications,
-                logiexpress, breakers, audit, settings, jdbc, tx, mock(com.sgologic.integration.OutboxService.class));
+                logiexpress, breakers, audit, settings, jdbc, tx, mock(com.sgologic.integration.OutboxService.class), transfers);
     }
 
     private PurchaseOrder invoicedOrder(Long id) {
@@ -143,6 +145,36 @@ class DispatchServiceTest {
     }
 
     @Test
+    void espera_la_recepcion_de_traslados_antes_de_consumir_stock_o_crear_envio() {
+        PurchaseOrder order=invoicedOrder(8L);
+        when(orders.findByIdForUpdate(8L)).thenReturn(Optional.of(order));
+        var lines=List.of(new ReservedLine(1L,5L,"CD1",LocationType.DISTRIBUTION_CENTER,100L,2),
+                         new ReservedLine(2L,6L,"B1",LocationType.WAREHOUSE,101L,1));
+        when(reservations.ensureReservedForDispatch(8L,20)).thenReturn(lines);
+        when(transfers.consolidate(8L,5L,lines)).thenReturn(true);
+        assertThat(service.dispatch(8L)).isNull();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.INVOICED);
+        verify(reservations,never()).consume(any(),any());
+        verify(shipments,never()).save(any());
+        verify(logiexpress,never()).requestGuide(any(),any(),any());
+    }
+
+    @Test
+    void un_rastreo_tardio_del_proveedor_no_modifica_el_transporte_manual() {
+        Shipment shipment=new Shipment();shipment.setId(8L);shipment.setOrderId(8L);
+        shipment.setCarrier(Carrier.MANUAL);shipment.setTrackingNumber("MANUAL-8");
+        shipment.setStatus(ShipmentStatus.GUIDE_ISSUED);
+        when(shipments.findById(8L)).thenReturn(Optional.of(shipment));
+        when(shipments.findByIdForUpdate(8L)).thenReturn(Optional.of(shipment));
+        when(orders.findByIdForUpdate(8L)).thenReturn(Optional.of(invoicedOrder(8L)));
+        assertThatThrownBy(()->service.applyProviderTracking(8L,ShipmentStatus.DELIVERED,"tardío","LX-OLD"))
+            .isInstanceOf(ResponseStatusException.class).hasMessageContaining("transportista o guía vigente");
+        assertThat(shipment.getStatus()).isEqualTo(ShipmentStatus.GUIDE_ISSUED);
+        assertThat(shipment.getTrackingNumber()).isEqualTo("MANUAL-8");
+        verify(trackingEvents,never()).save(any());
+    }
+
+    @Test
     void no_despacha_una_orden_que_todavia_no_esta_facturada() {
         PurchaseOrder order = invoicedOrder(2L);
         order.setStatus(OrderStatus.PAID);
@@ -176,6 +208,7 @@ class DispatchServiceTest {
         shipment.setOrderId(4L);
         shipment.setOriginLocationId(5L);
         shipment.setStatus(ShipmentStatus.ASSIGNED);
+        when(orders.findByIdForUpdate(4L)).thenReturn(Optional.of(invoicedOrder(4L)));
         when(shipments.findById(901L)).thenReturn(Optional.of(shipment));
         when(shipments.findByIdForUpdate(901L)).thenReturn(Optional.of(shipment));
         when(jdbc.queryForObject(anyString(), eq(String.class), any()))

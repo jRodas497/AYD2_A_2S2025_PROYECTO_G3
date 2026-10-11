@@ -28,6 +28,9 @@ public class Location {
     @Column(nullable = false)
     private String name;
 
+    @Column(nullable=false) private String address = "";
+    @Column(nullable=false) private boolean active = true;
+
     @Column(name = "type_id", nullable = false)
     @Convert(converter = LocationTypeConverter.class)
     private LocationType type;

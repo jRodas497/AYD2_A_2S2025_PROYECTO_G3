@@ -44,6 +44,10 @@ public class Shipment {
 
     @Column(name = "tracking_number", unique = true)
     private String trackingNumber;
+    @Column(name="carrier_name") private String carrierName;
+    @Column(name="driver_name") private String driverName;
+    @Column(name="vehicle_plate") private String vehiclePlate;
+    @Column(name="transport_reason") private String transportReason;
 
     @Column(name = "created_at", insertable = false, updatable = false)
     private OffsetDateTime createdAt;

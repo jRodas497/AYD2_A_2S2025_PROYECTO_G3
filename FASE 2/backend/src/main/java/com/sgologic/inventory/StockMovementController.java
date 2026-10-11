@@ -54,7 +54,7 @@ public class StockMovementController {
     public Movement register(@Valid @RequestBody NewMovement body) {
         storeAccess.requireLocation(body.locationCode());
         List<Map<String, Object>> location = jdbc.queryForList(
-                "select id, type_id from inventory.location where code = ?", body.locationCode());
+                "select id, type_id from inventory.location where code = ? and active for share", body.locationCode());
         if (location.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "ubicación no encontrada: " + body.locationCode());
         }
@@ -127,7 +127,7 @@ public class StockMovementController {
     public Adjustment adjust(@Valid @RequestBody NewAdjustment body) {
         storeAccess.requireLocation(body.locationCode());
         List<Map<String, Object>> location = jdbc.queryForList(
-                "select id, type_id from inventory.location where code = ?", body.locationCode());
+                "select id, type_id from inventory.location where code = ? and active for share", body.locationCode());
         if (location.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "ubicación no encontrada: " + body.locationCode());
         }

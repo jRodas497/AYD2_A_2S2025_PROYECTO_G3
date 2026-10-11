@@ -43,6 +43,7 @@ public class DispatchService {
 
     private static final Logger log = LoggerFactory.getLogger(DispatchService.class);
 
+    private final com.sgologic.inventory.StockTransferService transfers;
     private final ShipmentRepository shipments;
     private final TrackingEventRepository trackingEvents;
     private final PurchaseOrderRepository orders;
@@ -69,7 +70,7 @@ public class DispatchService {
             AuditService audit,
             SettingsService settings,
             JdbcTemplate jdbc,
-            TransactionTemplate tx, com.sgologic.integration.OutboxService outbox) {
+            TransactionTemplate tx, com.sgologic.integration.OutboxService outbox, com.sgologic.inventory.StockTransferService transfers) {
         this.shipments = shipments;
         this.trackingEvents = trackingEvents;
         this.orders = orders;
@@ -83,6 +84,7 @@ public class DispatchService {
         this.jdbc = jdbc;
         this.tx = tx;
         this.outbox = outbox;
+        this.transfers = transfers;
     }
 
     /**
@@ -91,7 +93,7 @@ public class DispatchService {
      */
     public Shipment dispatch(Long orderId) {
         Long shipmentId = tx.execute(status -> prepare(orderId));
-        return requestGuide(shipmentId);
+        return shipmentId==null ? null : requestGuide(shipmentId);
     }
 
     private Long prepare(Long orderId) {
@@ -123,11 +125,7 @@ public class DispatchService {
         }
 
         ReservedLine origin = chooseOrigin(lines);
-        if(lines.stream().anyMatch(line -> !line.locationId().equals(origin.locationId()))) {
-            notifyStores(orderId,lines,"traslado para consolidación del despacho");
-            lines=reservations.consolidate(orderId,origin.locationId(),lines);
-            audit.recordSystem("DESPACHO_CONSOLIDADO","order",orderId,orderId,order.getChannel(),Map.of("origen",origin.locationCode()));
-        }
+        if(transfers.consolidate(orderId,origin.locationId(),lines)) return null;
         reservations.consume(orderId, lines);
 
         Shipment shipment = new Shipment();
@@ -164,6 +162,7 @@ public class DispatchService {
             return shipment;
         }
 
+        if(shipment.getCarrier()==Carrier.MANUAL) return shipment;
         if(shipment.getCarrier()==Carrier.PICKUP) return tx.execute(status -> applyGuide(shipmentId,"PICKUP-"+shipmentId));
         CircuitBreaker breaker = breakers.of(Provider.LOGIEXPRESS);
         if (!breaker.allowsRequest()) {
@@ -179,7 +178,8 @@ public class DispatchService {
                     shipmentId, request.originCode(), request.deliveryAddress());
             breaker.recordSuccess();
             return tx.execute(status -> {
-                Shipment current=loadShipmentForUpdate(shipmentId);
+                Shipment current=lockShipmentAndOrder(shipmentId);
+                if(current.getCarrier()==Carrier.MANUAL)return current;
                 if(!locationCodeOf(current.getOriginLocationId()).equals(request.originCode()))
                     throw new ProviderUnavailableException(Provider.LOGIEXPRESS,0,false,"el origen cambió; se requiere una guía nueva");
                 return applyGuide(shipmentId,guide.trackingNumber());
@@ -197,7 +197,7 @@ public class DispatchService {
      */
     public void alertLogistics(Long orderId, String lastError) {
         tx.executeWithoutResult(status -> {
-            shipments.findFirstByOrderIdOrderByIdDesc(orderId).ifPresent(shipment -> {
+            shipments.findFirstByOrderIdOrderByIdDesc(orderId).filter(s->s.getTrackingNumber()==null && s.getCarrier()==Carrier.LOGIEXPRESS).ifPresent(shipment -> {
                 trackingEvents.save(new TrackingEvent(shipment.getId(), ShipmentStatus.GUIDE_REQUESTED,
                         "Sin guía tras agotar los reintentos: requiere asignación manual de transporte"));
                 audit.recordSystem("GUIA_ESCALADA", "shipment", shipment.getId(), orderId, null,
@@ -221,7 +221,7 @@ public class DispatchService {
      */
     public Shipment reassign(Long shipmentId, String locationCode) {
         boolean guideWasIssued = Boolean.TRUE.equals(tx.execute(status -> {
-            Shipment shipment = loadShipmentForUpdate(shipmentId);
+            Shipment shipment = lockShipmentAndOrder(shipmentId);
             PurchaseOrder order=orders.findByIdForUpdate(shipment.getOrderId()).orElseThrow();
             requireOpen(order);
             if (shipment.getStatus() != ShipmentStatus.ASSIGNED
@@ -245,7 +245,7 @@ public class DispatchService {
                     "Punto de despacho reasignado a " + locationCode));
 
             boolean hadGuide = shipment.getTrackingNumber() != null;
-            if (hadGuide) {
+            if (hadGuide && shipment.getCarrier()!=Carrier.MANUAL) {
                 trackingEvents.save(new TrackingEvent(shipmentId, ShipmentStatus.GUIDE_REQUESTED,
                         "Guía " + shipment.getTrackingNumber() + " anulada: cambió el punto de despacho"));
                 shipment.setTrackingNumber(null);
@@ -255,9 +255,9 @@ public class DispatchService {
             notifyStores(shipment.getOrderId(), before, "reasignación: devolución al origen anterior");
             notifyStores(shipment.getOrderId(), after, "reasignación: salida del nuevo origen");
             audit.recordSystem("DESPACHO_REASIGNADO", "shipment", shipmentId, shipment.getOrderId(), null,
-                    Map.of("nuevoOrigen", locationCode, "guiaAnulada", hadGuide));
-            if(hadGuide) queueGuide(shipmentId,shipment.getOrderId());
-            return hadGuide;
+                    Map.of("nuevoOrigen", locationCode, "guiaAnulada", hadGuide && shipment.getCarrier()!=Carrier.MANUAL));
+            if(hadGuide && shipment.getCarrier()!=Carrier.MANUAL) queueGuide(shipmentId,shipment.getOrderId());
+            return hadGuide && shipment.getCarrier()!=Carrier.MANUAL;
         }));
 
         if (guideWasIssued) {
@@ -277,8 +277,7 @@ public class DispatchService {
      */
     public Shipment applyTrackingUpdate(Long shipmentId, ShipmentStatus status, String detail) {
         return tx.execute(tstatus -> {
-            Shipment shipment = loadShipmentForUpdate(shipmentId);
-            orders.findByIdForUpdate(shipment.getOrderId()).orElseThrow();
+            Shipment shipment = lockShipmentAndOrder(shipmentId);
             if (shipment.getStatus() == status) return shipment;
             if (shipment.getStatus() == ShipmentStatus.DELIVERED) throw new ResponseStatusException(HttpStatus.CONFLICT,"el envío ya fue entregado");
             if ((status == ShipmentStatus.IN_TRANSIT || status == ShipmentStatus.DELIVERED) && shipment.getTrackingNumber()==null)
@@ -359,7 +358,7 @@ public class DispatchService {
     }
 
     private GuideRequest markGuideRequested(Long shipmentId) {
-        Shipment shipment = loadShipmentForUpdate(shipmentId);
+        Shipment shipment = lockShipmentAndOrder(shipmentId);
         if (shipment.getStatus() == ShipmentStatus.ASSIGNED) {
             shipment.setStatus(ShipmentStatus.GUIDE_REQUESTED);
             shipment.setUpdatedAt(OffsetDateTime.now());
@@ -373,7 +372,7 @@ public class DispatchService {
     }
 
     private Shipment applyGuide(Long shipmentId, String trackingNumber) {
-        Shipment shipment = loadShipmentForUpdate(shipmentId);
+        Shipment shipment = lockShipmentAndOrder(shipmentId);
         requireOpen(orders.findByIdForUpdate(shipment.getOrderId()).orElseThrow());
         if(shipment.getTrackingNumber()!=null) return shipment;
         shipment.setTrackingNumber(trackingNumber);
@@ -390,7 +389,7 @@ public class DispatchService {
     }
 
     private void recordGuideFailure(Long shipmentId, String error) {
-        Shipment shipment = loadShipmentForUpdate(shipmentId);
+        Shipment shipment = lockShipmentAndOrder(shipmentId);
         if(shipment.getTrackingNumber()!=null) return;
         trackingEvents.save(new TrackingEvent(shipmentId, ShipmentStatus.GUIDE_REQUESTED,
                 "LogiExpress no emitió la guía: " + error));
@@ -408,11 +407,43 @@ public class DispatchService {
 
     private Long locationIdOf(String code) {
         List<Long> found = jdbc.queryForList(
-                "select id from inventory.location where code = ?", Long.class, code);
+                "select id from inventory.location where code = ? and active for share", Long.class, code);
         if (found.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "ubicación no encontrada: " + code);
         }
         return found.get(0);
+    }
+
+    private Shipment lockShipmentAndOrder(Long id) {
+        Shipment snapshot=loadShipment(id);
+        orders.findByIdForUpdate(snapshot.getOrderId()).orElseThrow();
+        return loadShipmentForUpdate(id);
+    }
+
+    public Shipment assignTransport(Long id, ShipmentController.ManualTransport body) {
+        return tx.execute(status->{
+            Shipment shipment=lockShipmentAndOrder(id);
+            requireOpen(orders.findByIdForUpdate(shipment.getOrderId()).orElseThrow());
+            if(shipment.getCarrier()==Carrier.PICKUP || shipment.getStatus()==ShipmentStatus.DELIVERED || shipment.getStatus()==ShipmentStatus.IN_TRANSIT)
+                throw new ResponseStatusException(HttpStatus.CONFLICT,"el transporte solo se asigna antes de salir o para recuperar una entrega fallida; el retiro en tienda no usa transportista");
+            shipment.setCarrier(Carrier.MANUAL);shipment.setCarrierName(body.carrierName().trim());
+            shipment.setDriverName(body.driverName().trim());shipment.setVehiclePlate(body.vehiclePlate().trim());
+            shipment.setTransportReason(body.reason().trim());shipment.setTrackingNumber(body.reference().trim());
+            shipment.setStatus(ShipmentStatus.GUIDE_ISSUED);shipment.setUpdatedAt(OffsetDateTime.now());
+            trackingEvents.save(new TrackingEvent(id,ShipmentStatus.GUIDE_ISSUED,"Transporte alternativo: "+body.carrierName()+" · "+body.reference()));
+            audit.record(AuditService.currentActor(),"TRANSPORTE_ASIGNADO","shipment",id,shipment.getOrderId(),null,
+                Map.of("transportista",body.carrierName(),"conductor",body.driverName(),"placa",body.vehiclePlate(),"motivo",body.reason()));
+            notifications.queueForOrder(shipment.getOrderId(),"Tu orden "+shipment.getOrderId()+" se enviará con "+body.carrierName()+". Referencia: "+body.reference());
+            return shipment;
+        });
+    }
+    public Shipment applyProviderTracking(Long id,ShipmentStatus state,String detail,String reference){
+        return tx.execute(status->{
+            Shipment shipment=lockShipmentAndOrder(id);
+            if(shipment.getCarrier()!=Carrier.LOGIEXPRESS || (reference!=null && !reference.equals(shipment.getTrackingNumber())))
+                throw new ResponseStatusException(HttpStatus.CONFLICT,"el rastreo no corresponde al transportista o guía vigente");
+            return applyTrackingUpdate(id,state,detail);
+        });
     }
 
     private Shipment loadShipmentForUpdate(Long id) {
