@@ -40,11 +40,14 @@ public class SettingController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "parámetro no encontrado: " + key));
         try {
             java.math.BigDecimal value=new java.math.BigDecimal(body.value());
-            if(value.signum()<=0 || value.compareTo(java.math.BigDecimal.valueOf(1000000))>0) throw new NumberFormatException();
-            if(!key.equals("credit.limit") && value.stripTrailingZeros().scale()>0) throw new NumberFormatException();
+            boolean allowsZero=key.startsWith("credit.maximum_")||key.equals("credit.minimum_purchase_amount");
+            if(value.signum()<0 || (!allowsZero&&value.signum()==0) || value.compareTo(java.math.BigDecimal.valueOf(1000000))>0) throw new NumberFormatException();
+            if(!key.equals("credit.limit")&&!key.equals("credit.minimum_purchase_amount") && value.stripTrailingZeros().scale()>0) throw new NumberFormatException();
+            if((key.equals("credit.limit")||key.equals("credit.minimum_purchase_amount"))&&value.stripTrailingZeros().scale()>2)throw new NumberFormatException();
             if(key.equals("payment.timeout_ms") && value.compareTo(java.math.BigDecimal.valueOf(5000))>0) throw new NumberFormatException();
         } catch(NumberFormatException e) { throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"valor positivo requerido; los intervalos deben ser enteros y el timeout no debe superar 5000 ms"); }
-        setting.setValue(body.value());
+        // Canonical values keep integer settings parseable even when a form sends "0.0".
+        setting.setValue(new java.math.BigDecimal(body.value()).stripTrailingZeros().toPlainString());
         return settings.save(setting);
     }
 

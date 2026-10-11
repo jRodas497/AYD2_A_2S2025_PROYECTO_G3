@@ -23,6 +23,8 @@ public class RefundService implements OutboxHandler {
         this.jdbc=jdbc;this.outbox=outbox;this.providers=providers;this.tx=tx;this.audit=audit;this.pos=pos;
     }
     public void queue(PurchaseOrder order) {
+        lockCustomer(order.getCustomerId());
+        jdbc.update("update payments.credit_charge set return_pending=true where order_id=?",order.getId());
         Long id=jdbc.queryForObject("insert into payments.refund(order_id,amount) values(?,?) returning id",Long.class,order.getId(),order.getTotal());
         boolean shipped=jdbc.queryForObject("select exists(select 1 from logistics.shipment where order_id=?)",Boolean.class,order.getId());
         var lines=jdbc.queryForList("select id,location_id,product_id,quantity from inventory.reservation where order_id=? and status_id=2 order by id for update",order.getId());
@@ -43,26 +45,43 @@ public class RefundService implements OutboxHandler {
     @Override public String eventType() { return "RefundRequested"; }
     @Override public void handle(OutboxEvent event) {
         Long id=event.longValue("refundId");
-        var refund=jdbc.queryForMap("select * from payments.refund where id=?",id);
-        if(((Number)refund.get("status_id")).intValue()==2) return;
-        Long order=((Number)refund.get("order_id")).longValue();
-        var credit=jdbc.queryForList("select paid_at,repayment_reference from payments.credit_charge where order_id=?",order);
-        if(!credit.isEmpty() && "PENDING".equals(credit.get(0).get("repayment_reference")))
-            throw new IllegalStateException("abono en proceso; se espera el resultado antes del reembolso");
-        String reference="CREDIT-VOID-"+id;
-        if(credit.isEmpty() || credit.get(0).get("paid_at")!=null) {
-            var response=providers.execute(Provider.PAYKLIK,"refund-"+id,Map.of("operation","REFUND","orderId",order,"amount",refund.get("amount")),5000,PayKlikClient.ChargeResponse.class);
-            if(!response.approved()) throw new IllegalStateException(response.failureReason());
-            reference=response.providerReference();
-        }
-        final String providerRef=reference;
-        tx.executeWithoutResult(status -> {
-            jdbc.queryForObject("select id from payments.refund where id=? for update",Long.class,id);
-            int updated=jdbc.update("update payments.refund set status_id=2,provider_reference=?,refunded_at=now() where id=? and status_id<>2",providerRef,id);
-            if(updated==0) return;
-            jdbc.update("update payments.credit_charge set voided_at=now() where order_id=?",order);
-            audit.recordSystem("REEMBOLSO_APROBADO","refund",id,order,null,Map.of("monto",refund.get("amount"),"referencia",providerRef));
+        var refund=tx.execute(status -> {
+            Long customer=jdbc.queryForObject("select o.customer_id from payments.refund r join orders.purchase_order o on o.id=r.order_id where r.id=?",Long.class,id);
+            lockCustomer(customer);
+            var current=jdbc.queryForMap("select * from payments.refund where id=? for update",id);
+            if(((Number)current.get("status_id")).intValue()==2)return null;
+            Long order=((Number)current.get("order_id")).longValue();
+            var credit=jdbc.queryForList("select paid_at,repayment_reference from payments.credit_charge where order_id=? for update",order);
+            jdbc.update("update payments.credit_charge set return_pending=true where order_id=?",order);
+            if(!credit.isEmpty()&&"PENDING".equals(credit.get(0).get("repayment_reference"))) {
+                // The repayment result publishes a new refund event; no retry budget is spent waiting.
+                jdbc.update("update payments.refund set waiting_for_repayment=true,status_id=1 where id=?",id);
+                return null;
+            }
+            if(!credit.isEmpty()&&credit.get(0).get("paid_at")==null){complete(id,order,"CREDIT-VOID-"+id,current.get("amount"));return null;}
+            current.put("customer_id",customer);return current;
         });
+        if(refund==null)return;
+        Long order=((Number)refund.get("order_id")).longValue();
+        var response=providers.execute(Provider.PAYKLIK,"refund-"+id,Map.of("operation","REFUND","orderId",order,"amount",refund.get("amount")),5000,PayKlikClient.ChargeResponse.class);
+        if(!response.approved())throw new IllegalStateException(response.failureReason());
+        tx.executeWithoutResult(status -> {
+            lockCustomer(((Number)refund.get("customer_id")).longValue());
+            jdbc.queryForObject("select id from payments.refund where id=? for update",Long.class,id);
+            complete(id,order,response.providerReference(),refund.get("amount"));
+        });
+    }
+    private void lockCustomer(Long customer){jdbc.queryForObject("select id from customers.customer where id=? for update",Long.class,customer);}
+    private void complete(Long id,Long order,String reference,Object amount) {
+        int updated=jdbc.update("update payments.refund set status_id=2,provider_reference=?,refunded_at=now(),waiting_for_repayment=false where id=? and status_id<>2",reference,id);
+        if(updated==0)return;
+        jdbc.update("update payments.credit_charge set voided_at=now(),return_pending=true where order_id=?",order);
+        audit.recordSystem("REEMBOLSO_APROBADO","refund",id,order,null,Map.of("monto",amount,"referencia",reference));
+    }
+    /** Caller holds the customer lock shared by refunds and repayment transitions. */
+    public void resumeAfterRepayment(Long order) {
+        var ids=jdbc.queryForList("update payments.refund set waiting_for_repayment=false,status_id=1 where order_id=? and status_id<>2 and (waiting_for_repayment or status_id=3) returning id",Long.class,order);
+        for(Long id:ids)outbox.publishForOrder(order,eventType(),Map.of("refundId",id));
     }
     @Override public void onRetriesExhausted(OutboxEvent event,String error) {
         jdbc.update("update payments.refund set status_id=3 where id=? and status_id<>2",event.longValue("refundId"));

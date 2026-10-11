@@ -34,7 +34,7 @@ public class OrderController {
         if(auth!=null && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"))) {
             if(!body.customerId().equals(Long.valueOf(String.valueOf(auth.getDetails())))) throw new ResponseStatusException(HttpStatus.FORBIDDEN,"cliente ajeno");
         }
-        return checkoutService.checkout(body.customerId(), body.deliveryAddress(),body.pickupLocationId(),body.channel());
+        return checkoutService.checkout(body.customerId(), body.deliveryAddress(),body.pickupLocationId(),body.channel(),body.paymentMethod());
     }
 
     /** RC01: estado de la orden en menos de 5 segundos. */
@@ -55,6 +55,6 @@ public class OrderController {
         return orderQueryService.search(status, customerId, channel, q, limit);
     }
 
-    public record CheckoutRequest(@NotNull Long customerId, @NotBlank String deliveryAddress, Long pickupLocationId, Channel channel) {
+    public record CheckoutRequest(@NotNull Long customerId, @NotBlank String deliveryAddress, Long pickupLocationId, Channel channel,com.sgologic.payments.PaymentMethod paymentMethod) {
     }
 }

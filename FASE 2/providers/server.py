@@ -6,6 +6,7 @@ import sqlite3
 import time
 import urllib.request
 import urllib.error
+import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -18,6 +19,7 @@ def db():
     con = sqlite3.connect(DATA / 'provider.sqlite', timeout=30)
     con.execute('create table if not exists records (key text primary key, request text, response text)')
     con.execute('create table if not exists settings (key text primary key, value text)')
+    con.execute('create table if not exists customer_history (customer text primary key, history text not null)')
     return con
 
 
@@ -41,6 +43,17 @@ class Handler(BaseHTTPRequestHandler):
         with db() as con:
             row = con.execute("select value from settings where key='mode'").fetchone()
             mode = row[0] if row else 'NORMAL'
+            parsed = urllib.parse.urlparse(self.path)
+            if parsed.path == '/history' and PROVIDER == 'erp':
+                if mode == 'DOWN': return self.respond(503, {'message': 'ERP no disponible'})
+                if mode == 'SLOW':
+                    time.sleep(6)
+                    return self.respond(504, {'message': 'ERP excedió el tiempo de espera'})
+                if mode == 'REJECT': return self.respond(422, {'message': 'consulta ERP rechazada'})
+                customer = urllib.parse.parse_qs(parsed.query).get('customer', [''])[0]
+                row = con.execute('select history from customer_history where customer=?', (customer,)).fetchone()
+                empty = dict(deliveredOrders=0, purchasedAmount=0, latePayments=0, overduePayments=0, returns=0, confirmedIncidents=0, declinedPayments=0)
+                return self.respond(200, json.loads(row[0]) if row else empty)
             if self.path == '/health':
                 return self.respond(200, {'provider': PROVIDER, 'mode': mode})
             if self.path == '/records':
@@ -67,6 +80,16 @@ class Handler(BaseHTTPRequestHandler):
                 con.execute("insert into settings values ('mode', ?) on conflict(key) do update set value=excluded.value", (mode,))
                 con.commit()
                 return self.respond(200, {'mode': mode})
+            if self.path == '/history' and PROVIDER == 'erp':
+                row = con.execute("select value from settings where key='mode'").fetchone()
+                if row and row[0] != 'NORMAL': return self.respond(503, {'message': 'ERP no disponible'})
+                history = body.get('history', {})
+                keys = ['deliveredOrders', 'latePayments', 'overduePayments', 'returns', 'confirmedIncidents', 'declinedPayments']
+                if not body.get('customer') or any(type(history.get(k)) is not int or history[k] < 0 for k in keys) or not isinstance(history.get('purchasedAmount'), (int, float)) or history['purchasedAmount'] < 0:
+                    return self.respond(400, {'message': 'historial ERP inválido'})
+                con.execute('insert into customer_history values (?,?) on conflict(customer) do update set history=excluded.history', (body['customer'], json.dumps(history)))
+                con.commit()
+                return self.respond(200, {'accepted': True})
             if self.path == '/tracking' and PROVIDER == 'logiexpress':
                 row = con.execute("select value from settings where key='mode'").fetchone()
                 if row and row[0] != 'NORMAL':

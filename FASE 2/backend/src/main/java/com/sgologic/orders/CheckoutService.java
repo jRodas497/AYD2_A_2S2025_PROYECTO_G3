@@ -68,6 +68,11 @@ public class CheckoutService {
 
     @Transactional
     public PurchaseOrder checkout(Long customerId, String deliveryAddress, Long pickupLocationId, Channel channel) {
+        return checkout(customerId,deliveryAddress,pickupLocationId,channel,com.sgologic.payments.PaymentMethod.CARD);
+    }
+
+    @Transactional
+    public PurchaseOrder checkout(Long customerId,String deliveryAddress,Long pickupLocationId,Channel channel,com.sgologic.payments.PaymentMethod paymentMethod) {
         if(pickupLocationId!=null) {
             var locations=jdbc.queryForList("select code,name from inventory.location where id=? and type_id=2",pickupLocationId);
             if(locations.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"tienda de retiro inválida");
@@ -82,7 +87,7 @@ public class CheckoutService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "el cliente no tiene un carrito activo"));
         if(channel!=null) cart.setLastChannel(channel);
 
-        List<CartItem> items = cartItems.findById_Cart(cart.getId());
+        List<CartItem> items = cartItems.findById_Cart(cart.getId()).stream().sorted(java.util.Comparator.comparing(i->i.getId().getProduct())).toList();
         if (items.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "el carrito está vacío");
         }
@@ -104,6 +109,7 @@ public class CheckoutService {
         order.setTotal(total);
         order.setDeliveryAddress(deliveryAddress);
         order.setPickupLocationId(pickupLocationId);
+        order.setPaymentPreference(paymentMethod==null?"CARD":paymentMethod.name());
         order = orders.save(order);
 
         int ttlMinutes = settings.reservationTtlMinutes();

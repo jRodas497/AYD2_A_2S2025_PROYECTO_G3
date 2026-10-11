@@ -13,6 +13,6 @@ public class RefundController {
 
     @GetMapping("/api/orders/{id}/refunds")
     public List<Map<String,Object>> list(@PathVariable Long id) {
-        return jdbc.queryForList("select id,amount,case status_id when 1 then 'PENDING' when 2 then 'REFUNDED' else 'FAILED' end as status,provider_reference,refunded_at from payments.refund where order_id=? order by id desc",id);
+        return jdbc.queryForList("select id,amount,case status_id when 1 then 'PENDING' when 2 then 'REFUNDED' else 'FAILED' end as status,provider_reference,refunded_at,waiting_for_repayment from payments.refund where order_id=? order by id desc",id);
     }
 }

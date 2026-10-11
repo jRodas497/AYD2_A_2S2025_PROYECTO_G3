@@ -18,5 +18,6 @@ public record OrderOverview(
         String shipmentStatus,
         String trackingNumber,
         String deliveryAddress,
-        java.util.List<java.util.Map<String,Object>> items) {
+        java.util.List<java.util.Map<String,Object>> items,
+        String paymentPreference) {
 }

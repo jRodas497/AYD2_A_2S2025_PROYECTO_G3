@@ -51,4 +51,6 @@ public class PurchaseOrder {
     private OffsetDateTime updatedAt = OffsetDateTime.now();
     @jakarta.persistence.Column(name="pickup_location_id")
     private Long pickupLocationId;
+    @Column(name="payment_preference",nullable=false)
+    private String paymentPreference="CARD";
 }

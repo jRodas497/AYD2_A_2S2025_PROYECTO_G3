@@ -92,11 +92,20 @@ public class PaymentService {
     /** Cobro pedido por el cliente desde el checkout. */
     public PaymentOutcome pay(Long orderId, PaymentMethod method, String cardToken, String cardLast4) {
         if (method == PaymentMethod.CREDIT) {
-            return tx.execute(status -> {
+            var candidate=orders.findById(orderId).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"orden no encontrada"));
+            credit.refreshHistory(candidate.getCustomerId());
+            PaymentOutcome outcome=tx.execute(status -> {
+                var requested=load(orderId);
+                if(requested.getStatus()!=OrderStatus.PENDING_PAYMENT&&requested.getStatus()!=OrderStatus.PAYMENT_FAILED)
+                    throw new ResponseStatusException(HttpStatus.CONFLICT,"la orden no admite una nueva solicitud de crédito");
+                String rejected=credit.authorize(requested);
+                if(rejected!=null)return new PaymentOutcome(orderId,0,"DECLINED",requested.getStatus().code(),null,0,rejected);
                 OrderSnapshot snapshot = start(orderId, method, false);
                 String reference = credit.purchase(load(orderId));
                 return settle(snapshot, method, null, null, new ChargeOutcome(PaymentResult.APPROVED, reference, null, 0, false), false);
             });
+            if(outcome.result().equals("DECLINED"))throw new ResponseStatusException(HttpStatus.CONFLICT,outcome.message());
+            return outcome;
         }
         OrderSnapshot order = tx.execute(status -> {
             OrderSnapshot snapshot = start(orderId, method, false);

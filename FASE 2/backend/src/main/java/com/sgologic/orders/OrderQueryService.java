@@ -18,7 +18,8 @@ public class OrderQueryService {
                     + "last_payment_result, payment_attempts, invoice_status, shipment_status, tracking_number, "
                     + "(select delivery_address from orders.purchase_order o where o.id=order_overview.order_id) as delivery_address, "
                     + "(select coalesce(jsonb_agg(jsonb_build_object('productId',p.id,'nombre',p.name,'sku',p.sku,'cantidad',oi.quantity,'precioUnitario',oi.unit_price)), '[]'::jsonb) "
-                    + "from orders.order_item oi join catalog.product p on p.id=oi.product_id where oi.order_id=order_overview.order_id) as items";
+                    + "from orders.order_item oi join catalog.product p on p.id=oi.product_id where oi.order_id=order_overview.order_id) as items, "
+                    + "(select payment_preference from orders.purchase_order o where o.id=order_overview.order_id) as payment_preference";
 
     private final JdbcTemplate jdbc;
 
@@ -93,6 +94,6 @@ public class OrderQueryService {
                 rs.getString("shipment_status"),
                 rs.getString("tracking_number"),
                 rs.getString("delivery_address"),
-                parseItems(rs.getString("items")));
+                parseItems(rs.getString("items")),rs.getString("payment_preference"));
     }
 }
