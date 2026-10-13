@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Stops real Compose containers; always restores them. Run in an isolated demo stack."""
-from prueba_fase2 import api, wait_for
+from prueba_fase2 import api, wait_for, opaque_token
 from pathlib import Path
 import subprocess
 import time
 import uuid
+import os
 
-COMPOSE = str(Path(__file__).resolve().parents[1] / 'docker-compose.yml')
+COMPOSE = os.environ.get('QA_COMPOSE_FILE', str(Path(__file__).resolve().parents[1] / 'docker-compose.yml'))
 
 def docker(*args):
     subprocess.run(['docker','compose','-f',COMPOSE,*args],check=True,stdout=subprocess.DEVNULL)
@@ -24,7 +25,7 @@ def main():
     def buy():
         api(f'/customers/{cid}/cart/items','POST',{'productId':product,'quantity':1,'channel':'WEB'},token)
         oid=api('/orders/checkout','POST',{'customerId':cid,'deliveryAddress':'QA recuperación Docker'},token)['id']
-        api(f'/orders/{oid}/payments','POST',{'method':'CARD','cardToken':'tok_'+uuid.uuid4().hex,'cardLast4':'4242'},token)
+        api(f'/orders/{oid}/payments','POST',{'method':'CARD','cardToken':opaque_token(),'cardLast4':'4242'},token)
         return oid
     def dispatched(oid):
         return wait_for(f'/orders/{oid}',lambda order:bool(order['trackingNumber']),token,seconds=180)

@@ -4,10 +4,15 @@ Sistema de Gestión de Órdenes y Logística Omnicanal (SGO-Logic) para **MegaSt
 
 El repositorio está dividido por fase del curso:
 
+La verificación automática de **FASE 3** se ejecuta desde la raíz con `python "FASE 3/verificar.py"`.
+Incluye unitarias, integración, E2E, cinco pruebas de carga y cinco de estrés, seguridad y caídas reales,
+con reportes y un entorno Docker aislado. [Guía, matriz y manuales](FASE%203/README.md).
+
 ```
 .
 ├── FASE 1/    Definición de arquitectura (DDA, ADRs, diagramas, prototipo)
-└── FASE 2/    Implementación (backend Java, frontend React, base de datos)
+├── FASE 2/    Implementación (backend Java, frontend React, base de datos)
+└── FASE 3/    Testeo automático, carga, estrés, trazabilidad y manuales
 ```
 
 ## FASE 1 — Definición de arquitectura
@@ -98,7 +103,7 @@ Queda en `http://localhost:5173` y Vite reenvía `/api` a `http://localhost:8080
 ### Pruebas
 
 ```bash
-# backend, 33 pruebas unitarias, desde FASE 2/backend (no requiere Maven instalado)
+# backend, 60 pruebas unitarias, desde FASE 2/backend (no requiere Maven instalado)
 docker run --rm -v "$PWD":/app -v sgologic-m2:/root/.m2 -w /app maven:3.9-eclipse-temurin-21 mvn -B test
 
 # frontend, desde FASE 2/frontend (no requiere Node 22 instalado)

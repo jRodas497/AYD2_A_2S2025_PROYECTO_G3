@@ -2,6 +2,7 @@ import { apiFetch as fetch } from '../../../shared/api/apiFetch'
 import type { PaymentRepository } from './paymentRepository'
 import type { DatosTarjeta, MetodoPago, PaymentAttempt, ResultadoCobro } from '../types'
 import { NotFoundError, manejarRespuesta } from '../../../shared/api/httpErrors'
+import { generarTokenSimulado } from '../../../shared/api/paymentToken'
 
 const MAX_INTENTOS_FALLIDOS = 3
 
@@ -39,13 +40,6 @@ interface BackendPaymentAttempt {
   failureReason: string | null
   latencyMs: number
   attemptedAt: string
-}
-
-function generarTokenSimulado(): string {
-  // No existe un widget real de PayKlik en este entorno de demo: se simula el límite que tendría
-  // uno real, que nunca entrega el número de tarjeta al comercio, solo un token opaco. El backend
-  // rechaza con 400 cualquier valor que parezca un número de tarjeta.
-  return `tok_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`
 }
 
 export const httpPaymentRepository: PaymentRepository = {

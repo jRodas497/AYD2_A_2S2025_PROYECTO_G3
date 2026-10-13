@@ -61,70 +61,32 @@ jobs:
         run: npm run build
 
   e2e:
-    name: End-to-end (Docker + Playwright)
+    name: Fase 3 (integración, carga, estrés, fallas y E2E)
     needs: [backend, frontend]
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-
-      - name: Levantar el stack (docker compose)
-        working-directory: FASE 2
-        run: docker compose up -d --build --wait --wait-timeout 180
-
-      - name: Esperar a que el backend y el frontend respondan
-        run: |
-          for i in $(seq 1 60); do
-            if curl -sf http://localhost:8081/api/products > /dev/null; then
-              echo "arriba"
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "el stack no respondió a tiempo" >&2
-          exit 1
-
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
           cache-dependency-path: "FASE 2/frontend/package-lock.json"
-
-      - name: npm ci
-        working-directory: FASE 2/frontend
-        run: npm ci
-
-      - name: Instalar navegadores de Playwright
-        working-directory: FASE 2/frontend
-        run: npx playwright install --with-deps chromium
-
-      - name: Integración y operaciones con proveedores reales
-        run: |
-          python3 "FASE 2/pruebas/prueba_fase2.py"
-          python3 "FASE 2/pruebas/prueba_operaciones.py"
-          python3 "FASE 2/pruebas/prueba_seguridad.py"
-          python3 "FASE 2/pruebas/prueba_pendientes.py"
-
-      - name: Playwright
-        working-directory: FASE 2/frontend
-        run: npx playwright test
-
-      - name: Logs del stack (si algo falló)
-        if: failure()
-        working-directory: FASE 2
-        run: docker compose logs
-
-      - name: Subir el reporte de Playwright (si algo falló)
-        if: failure()
+      - name: Flujo automático y verificación de mínimos por categoría
+        run: python "FASE 3/verificar.py"
+      - name: Evidencia de pruebas (éxito o fallo)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
-          path: FASE 2/frontend/playwright-report/
-          retention-days: 7
-
-      - name: Apagar el stack
-        if: always()
-        working-directory: FASE 2
-        run: docker compose down -v
+          name: fase3-pruebas
+          path: |
+            FASE 3/resultados/
+            FASE 2/frontend/test-results/
+          retention-days: 14
+          if-no-files-found: error
 
   deploy:
     name: Deploy a Render

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """New operations against real providers: isolated products/customers, no destructive reset."""
-from prueba_fase2 import api, wait_for
+from prueba_fase2 import api, wait_for, opaque_token
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 import uuid
@@ -25,7 +25,7 @@ def main():
         api(f'/customers/{cid}/cart/items','POST',{'productId':pid,'quantity':1,'channel':'WEB'},jwt)
         return api('/orders/checkout','POST',{'customerId':cid,'deliveryAddress':'Retiro','pickupLocationId':store['id'],'channel':'CALL_CENTER'},jwt)['id']
     def pay(oid,method='CARD'):
-        result=api(f'/orders/{oid}/payments','POST',{'method':method,'cardToken':'tok_'+uuid.uuid4().hex,'cardLast4':'4242'},token)
+        result=api(f'/orders/{oid}/payments','POST',{'method':method,'cardToken':opaque_token(),'cardLast4':'4242'},token)
         assert result['result']=='APPROVED',result
         detail=wait_for(f'/orders/{oid}',lambda o:bool(o['trackingNumber']),token)
         ship=api(f'/orders/{oid}/shipment',token=token)
@@ -100,7 +100,7 @@ def main():
         api('/simulation/payklik','PUT',{'mode':'REJECT'},admin)
         try:
             for _ in range(3):
-                assert api(f'/orders/{rejected}/payments','POST',{'method':'CARD','cardToken':'tok_'+uuid.uuid4().hex,'cardLast4':'4242'},token)['result']=='DECLINED'
+                assert api(f'/orders/{rejected}/payments','POST',{'method':'CARD','cardToken':opaque_token(),'cardLast4':'4242'},token)['result']=='DECLINED'
             api(f'/orders/{rejected}/payments','POST',{'method':'CARD','cardToken':'tok_fourth','cardLast4':'4242'},token,expected=409)
         finally:
             api('/simulation/payklik','PUT',{'mode':'NORMAL'},admin)

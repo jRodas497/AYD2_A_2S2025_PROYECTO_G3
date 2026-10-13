@@ -77,7 +77,7 @@ test('recuperación por correo, cambio de contraseña y revocación de cuenta fu
     await expect(page.getByRole('status')).toContainText('Si existe una cuenta activa')
     let link = ''
     await expect.poll(() => {
-      const records = JSON.parse(execFileSync('docker', ['compose', '-f', '../docker-compose.yml', 'exec', '-T', 'messaging', 'python', '-c', "import urllib.request;print(urllib.request.urlopen('http://localhost:8090/records').read().decode())"], { encoding: 'utf8' }))
+      const records = JSON.parse(execFileSync('docker', ['compose', '-f', process.env.QA_COMPOSE_FILE ?? '../docker-compose.yml', 'exec', '-T', 'messaging', 'python', '-c', "import urllib.request;print(urllib.request.urlopen('http://localhost:8090/records').read().decode())"], { encoding: 'utf8' }))
       const message = records.find((r: { request: { recipient: string } }) => r.request.recipient === email)
       link = message?.request.message.match(/https?:\/\/\S+\/recuperar\?token=[a-zA-Z0-9-]+/)?.[0] ?? ''
       return Boolean(link)

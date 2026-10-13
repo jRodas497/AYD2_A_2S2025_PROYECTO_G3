@@ -1,5 +1,10 @@
 # Pruebas de los escenarios de calidad
 
+Para ejecutar automáticamente todas las categorías, las regresiones y las caídas reales en un
+entorno aislado, desde la raíz: `python "FASE 3/verificar.py"`.
+La [documentación de Fase 3](../../FASE%203/README.md) contiene el plan, matriz, manuales y evidencia actual.
+Los resultados históricos que siguen corresponden a la corrida de Fase 2 indicada en su fecha.
+
 Evidencia ejecutable de los criterios que la hoja de calificación pide verificar "mediante prueba
 concurrente" y "con métrica de rendimiento". Los tres scripts usan solo la librería estándar de
 Python y corren contra el sistema levantado con `docker compose up -d`.

@@ -1,0 +1,29 @@
+# Fase 3: verificación automática de SGO-Logic
+
+Desde la raíz del repositorio, en PowerShell, bash o una terminal del IDE:
+
+```text
+python "FASE 3/verificar.py"
+```
+
+Requiere Docker funcionando con contenedores Linux, Compose v2, Python 3.10+ y Node 22+. No requiere Maven, Java ni paquetes Python instalados. El comando instala las dependencias bloqueadas en `package-lock.json` y Chromium, compila, ejecuta todas las categorías y simulaciones, guarda evidencia y elimina únicamente su entorno temporal. La primera ejecución descarga imágenes y dependencias.
+
+La aplicación probada es la de `FASE 2/`. Los proveedores PayKlik, SAT, LogiExpress, ERP, POS y mensajería son procesos HTTP independientes con persistencia, además de PostgreSQL y Kafka reales. Las pruebas de integración y de navegador no reemplazan la API por respuestas falsas.
+
+El resultado completo solo es aprobado si todas las etapas pasan, cada categoría tiene al menos cinco casos ejecutados y no existen casos omitidos, fallidos o pendientes en los reportes. El proceso termina con código 0 al aprobar y 1 al fallar; los E2E se ejecutan sin reintentos para hacer visibles las fallas intermitentes.
+
+## Documentación y evidencia
+
+- [Plan y criterios de aceptación](PLAN-PRUEBAS.md).
+- [Matriz de requisitos y casos](MATRIZ-TRAZABILIDAD.md).
+- [Manual técnico del testeo](MANUAL-TECNICO.md).
+- [Manual de usuario y demostración](MANUAL-USUARIO.md).
+- [Resultados de la ejecución validada](EVIDENCIA.md).
+
+Cada ejecución crea `resultados/<fecha UTC>-<id>/`. El archivo `resultados/ultimo.json` indica la ubicación y el resultado más reciente. Se generan reportes JUnit XML, métricas JSON con percentiles y muestras de CPU/memoria, logs por etapa, reporte HTML de Playwright y hashes SHA-256 de los artefactos. Los archivos voluminosos y datos de clientes de prueba quedan ignorados por Git; la evidencia resumida se conserva en Markdown. GitHub Actions publica los artefactos completos durante 14 días, incluso si falla la suite.
+
+## Alcance
+
+El trabajo cubre el testeo y las correcciones necesarias para ejecutar la aplicación según sus contratos. El PDF `Proyecto Fase 3.pdf`, páginas 6, 7 y 9, exige cinco pruebas por cada categoría: unitarias, integración, E2E, estrés y carga. El plan incluye la nueva regla de crédito descrita en la página 5 y la regresión de los flujos de las fases anteriores.
+
+Despliegues, nuevas arquitecturas, releases, participación académica y modificaciones por feedback de revisiones permanecen fuera del alcance solicitado. El repositorio no contiene una rúbrica independiente de ese PDF; la matriz identifica los criterios verificables del documento disponible. El resultado de pruebas no acredita por sí solo los entregables excluidos.

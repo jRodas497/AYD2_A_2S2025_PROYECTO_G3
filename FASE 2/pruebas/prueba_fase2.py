@@ -11,6 +11,11 @@ import uuid
 BASE = os.environ.get('SGO_URL', 'http://localhost:8081')
 
 
+def opaque_token(prefix='tok_'):
+    """Opaque test identifier with UUID entropy and no accidental card-number runs."""
+    return prefix + uuid.uuid4().hex.translate(str.maketrans('0123456789', 'ghijklmnop'))
+
+
 def api(path, method='GET', data=None, token=None, expected=None):
     headers = {'Content-Type': 'application/json'}
     if token:
@@ -59,7 +64,7 @@ def main():
         return api('/orders/checkout', 'POST', {'customerId': customer, 'deliveryAddress': 'Zona 10, prueba automatizada'}, token)['id']
 
     def pay(order):
-        return api(f'/orders/{order}/payments', 'POST', {'method': 'CARD', 'cardToken': 'tok_' + uuid.uuid4().hex, 'cardLast4': '4242'}, token)
+        return api(f'/orders/{order}/payments', 'POST', {'method': 'CARD', 'cardToken': opaque_token(), 'cardLast4': '4242'}, token)
 
     def dispatched(order):
         return wait_for(f'/orders/{order}', lambda o: bool(o['trackingNumber']), token)
