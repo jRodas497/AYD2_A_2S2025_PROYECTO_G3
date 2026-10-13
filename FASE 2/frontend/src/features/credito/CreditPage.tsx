@@ -3,6 +3,7 @@ import { Navigate, Link } from 'react-router-dom'
 import { useCustomer } from '../../shared/context/CustomerContext'
 import { apiFetch } from '../../shared/api/apiFetch'
 import { manejarRespuesta } from '../../shared/api/httpErrors'
+import { generarTokenSimulado } from '../../shared/api/paymentToken'
 import { Button } from '../../shared/components/Button'
 export interface CreditAccount { eligible: boolean; limit: number; used: number; available: number; termDays: number; reason: string; deliveredOrders: number; purchasedAmount?:number; erpAvailable?:boolean }
 interface Application { id:number;order_id:number;status:string;reason:string;amount:number;created_at:string }
@@ -32,7 +33,7 @@ export function CreditPage() {
     if (!customer || pending !== null) return
     const digits=card.replace(/\D/g,'')
     if(digits.length!==16 || !/^\d{3,4}$/.test(cvv)) { setError('Ingresa una tarjeta de 16 dígitos y un CVV válido.'); return }
-    const cardToken=`tok_credit_${digits.slice(-4)}_${crypto.randomUUID()}`
+    const cardToken=generarTokenSimulado(`tok_credit_${digits.slice(-4)}_`)
     setCard(''); setCvv(''); setMessage(null)
     setPending(id)
     try {
