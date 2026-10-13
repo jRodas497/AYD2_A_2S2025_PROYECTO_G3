@@ -1,0 +1,2 @@
+# Linux containers must receive executable shell scripts with LF on Windows too.
+*.sh text eol=lf
