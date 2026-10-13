@@ -10,12 +10,13 @@ export default defineConfig({
   // fuerza rechazos o caídas afectaría a otra corriendo en paralelo, así que los archivos van en serie.
   workers: 1,
   retries: process.env.CI ? 1 : 0,
-  reporter: 'list',
+  reporter: [['list'], ['html', { open: 'never' }], ['junit']],
   timeout: 45_000,
   use: {
     baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:8081',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
   },
   projects: [
     {

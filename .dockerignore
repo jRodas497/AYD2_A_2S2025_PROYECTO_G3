@@ -4,6 +4,8 @@
 # ninguno de los dos Dockerfile necesita.
 
 .git
+FASE 3
+.idea
 
 # Frontend: lo mismo que tenía FASE 2/frontend/.dockerignore, con el prefijo de la ruta nueva.
 FASE 2/frontend/node_modules

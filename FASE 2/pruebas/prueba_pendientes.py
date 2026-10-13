@@ -6,14 +6,15 @@ import re
 import subprocess
 import time
 import uuid
+import os
 from pathlib import Path
-from prueba_fase2 import api, wait_for
+from prueba_fase2 import api, wait_for, opaque_token
 
-COMPOSE=str(Path(__file__).resolve().parents[1]/"docker-compose.yml")
+COMPOSE=os.environ.get('QA_COMPOSE_FILE', str(Path(__file__).resolve().parents[1]/"docker-compose.yml"))
 
 
 def sql(query):
-    return subprocess.check_output(['docker','exec','sgologic-db','psql','-U','sgologic','-d','sgologic','-At','-v','ON_ERROR_STOP=1','-c',query],text=True).strip()
+    return subprocess.check_output(['docker','exec',os.environ.get('SGO_DB_CONTAINER','sgologic-db'),'psql','-U','sgologic','-d','sgologic','-At','-v','ON_ERROR_STOP=1','-c',query],text=True).strip()
 
 
 def provider_records(provider):
@@ -42,7 +43,7 @@ def main():
         for pid in products:api(f'/customers/{cid}/cart/items','POST',{'productId':pid,'quantity':1,'channel':'WEB'},token)
         return api('/orders/checkout','POST',{'customerId':cid,'deliveryAddress':'QA cierre','pickupLocationId':pickup,'channel':'CALL_CENTER'},token)['id']
     def pay(oid,token,method='CARD'):
-        api(f'/orders/{oid}/payments','POST',{'method':method,'cardToken':'tok_'+uuid.uuid4().hex,'cardLast4':'4242'},token)
+        api(f'/orders/{oid}/payments','POST',{'method':method,'cardToken':opaque_token(),'cardLast4':'4242'},token)
         wait_for(f'/orders/{oid}',lambda o:bool(o['trackingNumber']),token)
         return api(f'/orders/{oid}/shipment',token=token)
     try:
@@ -53,7 +54,7 @@ def main():
         mode('payklik','DOWN')
         subprocess.run(['docker','compose','-f',COMPOSE,'stop','kafka'],check=True,stdout=subprocess.DEVNULL)
         try:
-            outcome=api(f'/orders/{order}/payments','POST',{'method':'CARD','cardToken':'tok_temporal_'+uuid.uuid4().hex,'cardLast4':'4242'},token)
+            outcome=api(f'/orders/{order}/payments','POST',{'method':'CARD','cardToken':opaque_token('tok_temporal_'),'cardLast4':'4242'},token)
             assert outcome['orderStatus']=='PAYMENT_IN_PROGRESS',outcome
             assert sql(f'select min(status_id) from inventory.reservation where order_id={order}')=='1'
             sql(f"update inventory.reservation set created_at=now()-interval '2 minutes', expires_at=now()-interval '1 minute' where order_id={order} and status_id=1")
@@ -122,7 +123,7 @@ def main():
         charge=api(f'/customers/{cc}/credit/charges',token=ct)[0]
         mode('payklik','DOWN')
         try:
-            assert api(f"/customers/{cc}/credit/charges/{charge['id']}/repay",'POST',{'cardToken':'tok_replay_'+uuid.uuid4().hex},ct)['queued']
+            assert api(f"/customers/{cc}/credit/charges/{charge['id']}/repay",'POST',{'cardToken':opaque_token('tok_replay_')},ct)['queued']
             print('CHECK: waiting for all eight real Kafka repayment retries to reach the dead-letter queue',flush=True)
             rows=wait_for('/integration/outbox?status=FAILED&limit=500',lambda r:any(e['eventType']=='CreditRepaymentRequested' and e['aggregateId']==charge['id'] for e in r),admin,seconds=210)
             failed=next(e for e in rows if e['eventType']=='CreditRepaymentRequested' and e['aggregateId']==charge['id'])

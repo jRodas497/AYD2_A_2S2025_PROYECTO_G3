@@ -29,7 +29,7 @@ TOKEN = None
 
 def sql(consulta):
     salida = subprocess.run(
-        ["docker", "exec", "-e", "PGPASSWORD=" + os.environ.get("DB_APP_PASSWORD", "sgologic_app_dev"), "sgologic-db",
+        ["docker", "exec", "-e", "PGPASSWORD=" + os.environ.get("DB_APP_PASSWORD", "sgologic_app_dev"), os.environ.get("SGO_DB_CONTAINER", "sgologic-db"),
          "psql", "-h", "127.0.0.1", "-U", "sgologic_app", "-d", "sgologic", "-tAc", consulta],
         capture_output=True, text=True, check=True)
     return salida.stdout.strip()
@@ -83,6 +83,8 @@ def main():
         "where k.customer_id = c.id and k.status_id in (1,2)) order by c.id desc limit %d" % a.clientes).split()]
 
     disponible_antes = http("GET", f"{B}/api/inventory/products/{a.producto}/availability")[1]["totalAvailable"]
+    if len(libres) != a.clientes or len(libres) * a.cantidad <= disponible_antes:
+        raise RuntimeError("La fixture debe incluir todos los clientes solicitados y demanda superior al stock")
     for c in libres:
         http("POST", f"{B}/api/customers/{c}/cart/items",
              {"productId": a.producto, "quantity": a.cantidad, "channel": "WEB"})
@@ -117,6 +119,7 @@ def main():
     disponible_despues = http("GET", f"{B}/api/inventory/products/{a.producto}/availability")[1]["totalAvailable"]
 
     checks = [
+        ("Hubo aceptaciones y rechazos", f"{len(exitos)} / {len(rechazos)}", bool(exitos) and bool(rechazos)),
         ("Checkouts aceptados (201)", len(exitos), None),
         ("Checkouts rechazados por falta de stock (409)", len(rechazos), None),
         ("Otras respuestas (deberían ser 0)", len(otros), len(otros) == 0),

@@ -26,7 +26,7 @@ TOKEN = None
 
 def sql(consulta):
     return subprocess.run(
-        ["docker", "exec", "-e", "PGPASSWORD=" + os.environ.get("DB_APP_PASSWORD", "sgologic_app_dev"), "sgologic-db",
+        ["docker", "exec", "-e", "PGPASSWORD=" + os.environ.get("DB_APP_PASSWORD", "sgologic_app_dev"), os.environ.get("SGO_DB_CONTAINER", "sgologic-db"),
          "psql", "-h", "127.0.0.1", "-U", "sgologic_app", "-d", "sgologic", "-tAc", consulta],
         capture_output=True, text=True, check=True).stdout.strip()
 
@@ -76,6 +76,8 @@ def main():
                        {"method": "CARD", "cardToken": "tok_volumen", "cardLast4": "4242"})
         return orden["id"], pago.get("result", f"pago {s}")
 
+    if len(clientes) != a.clientes:
+        raise RuntimeError(f"Se requieren {a.clientes} clientes; solo hay {len(clientes)} disponibles")
     inicio = time.perf_counter()
     with ThreadPoolExecutor(max_workers=len(clientes)) as pool:
         resultados = list(pool.map(comprar, enumerate(clientes)))
