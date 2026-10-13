@@ -148,7 +148,7 @@ La carpeta "Simulación de terceros" de Postman tiene cada escenario con su "vue
 
 ### Pruebas unitarias
 
-Backend, 33 pruebas con JUnit y Mockito. Desde `backend/`, sin instalar Maven:
+Backend, 60 pruebas con JUnit y Mockito, incluyendo la evaluación de crédito de Fase 3. Desde `backend/`, sin instalar Maven:
 
 ```
 docker run --rm -v "$PWD":/app -v sgologic-m2:/root/.m2 -w /app maven:3.9-eclipse-temurin-21 mvn -B test

@@ -51,6 +51,10 @@ docker run --rm -v "$PWD":/app -v /app/node_modules -w /app node:22 sh -c "npm c
 
 ### Pruebas end-to-end (Playwright)
 
+La aceptación completa de Fase 3 se ejecuta desde la raíz con `python "FASE 3/verificar.py"`;
+prepara un stack aislado, ejecuta esta suite sin reintentos y guarda reportes HTML/JUnit.
+Ver [plan y manuales](../../FASE%203/README.md).
+
 Abren un navegador real contra la aplicación completa (frontend + backend + Postgres), nunca
 contra mocks. Primero hay que levantar el stack desde `FASE 2/` (`docker compose up -d --build`) y
 tener algunas órdenes de prueba (`./db/scripts/cargar-datos-de-prueba.sh`, ver
