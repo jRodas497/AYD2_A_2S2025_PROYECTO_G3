@@ -27,7 +27,9 @@ La arquitectura combina tres ideas, que ya estaban decididas en los ADR de las f
 
 ![Diagrama de despliegue implementado](../../FASE%202/image/Diagrama-Despliegue-Implementado-SGO-Logic-Fase2.png)
 
-Los diagramas de la vista objetivo (microservicios independientes detrás de un API Gateway) están en `FASE 2/DDA/` y se conservan como propuesta de evolución. No es lo que corre hoy: el sistema implementado es el monolito modular de arriba.
+Los diagramas de la vista objetivo (microservicios independientes detrás de un API Gateway, sobre Kubernetes) se conservan como propuesta de evolución, en `FASE 2/DDA/` y en [esta carpeta](image/vista-objetivo/). No es lo que corre hoy: el sistema implementado es el monolito modular de arriba.
+
+Las decisiones y vistas que agregó esta fase están en [FASE 3/DDA](../DDA/README.md): el [ADR-0010](../DDA/ADR/0010-evaluacion-de-credito-propio.md) del crédito, el [ADR-0011](../DDA/ADR/0011-cicd-y-despliegue-en-la-nube.md) del CI/CD y el despliegue, los [drivers y escenarios de calidad](../DDA/drivers-y-escenarios-fase3.md) y los [diagramas](../DDA/diagramas-fase3.md) de componentes, secuencia, pipeline y despliegue en la nube.
 
 ## Backend
 
