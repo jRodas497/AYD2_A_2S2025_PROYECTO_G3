@@ -180,6 +180,12 @@ Aquí llegan las solicitudes de cambio y devolución que registran los clientes 
 
 ![Devoluciones](capturas/24-admin-devoluciones.png)
 
+### Catálogo y promociones
+
+Aquí se crean y editan los productos y las promociones.
+
+![Catálogo y promociones](capturas/25-admin-catalogo.png)
+
 ### Inventario, ubicaciones y traslados
 
 «Inventario» muestra el stock por ubicación y permite registrar movimientos y ajustes. «Ubicaciones» lista las tiendas y los centros de distribución, y «Traslados» registra el movimiento de mercadería entre ellos.
@@ -225,6 +231,10 @@ Aquí llegan las solicitudes de cambio y devolución que registran los clientes 
 ![Facturas](capturas/36-admin-facturas.png)
 
 ![Integraciones](capturas/38-admin-integraciones.png)
+
+«Notificaciones» lista los avisos enviados a los clientes y su estado.
+
+![Notificaciones enviadas](capturas/39-admin-notificaciones.png)
 
 ### Configuración y reglas del crédito
 
