@@ -1,4 +1,4 @@
-# Manual técnico del testeo
+# Guía técnica de las pruebas
 
 ## Requisitos
 

@@ -14,17 +14,28 @@ El resultado completo solo es aprobado si todas las etapas pasan, cada categorí
 
 ## Documentación y evidencia
 
+Los dos manuales del sistema, que pide el enunciado:
+
+- [Manual técnico](DOCUMENTACION/Manual_Tecnico_SGO-Logic.md): arquitectura, componentes, crédito, despliegue, CI/CD y pruebas.
+- [Manual de usuario](DOCUMENTACION/Manual_Usuario_SGO-Logic.md): cómo usar la tienda y la administración.
+
+Lo específico del testeo:
+
 - [Plan y criterios de aceptación](PLAN-PRUEBAS.md).
 - [Matriz de requisitos y casos](MATRIZ-TRAZABILIDAD.md).
-- [Manual técnico del testeo](MANUAL-TECNICO.md).
-- [Manual de usuario y demostración](MANUAL-USUARIO.md).
+- [Guía técnica de las pruebas](GUIA-TECNICA-PRUEBAS.md).
+- [Guía para ejecutar y demostrar las pruebas](GUIA-DEMO-PRUEBAS.md).
 - [Resultados de la ejecución validada](EVIDENCIA.md).
-- [Manual técnico del sistema](DOCUMENTACION/Manual_Tecnico_SGO-Logic.md): arquitectura, componentes y despliegue de SGO-Logic. No es el mismo documento que `MANUAL-TECNICO.md`, que explica solo el testeo.
 
 Cada ejecución crea `resultados/<fecha UTC>-<id>/`. El archivo `resultados/ultimo.json` indica la ubicación y el resultado más reciente. Se generan reportes JUnit XML, métricas JSON con percentiles y muestras de CPU/memoria, logs por etapa, reporte HTML de Playwright y hashes SHA-256 de los artefactos. Los archivos voluminosos y datos de clientes de prueba quedan ignorados por Git; la evidencia resumida se conserva en Markdown. GitHub Actions publica los artefactos completos durante 14 días, incluso si falla la suite.
 
 ## Alcance
 
-El trabajo cubre el testeo y las correcciones necesarias para ejecutar la aplicación según sus contratos. El PDF `Proyecto Fase 3.pdf`, páginas 6, 7 y 9, exige cinco pruebas por cada categoría: unitarias, integración, E2E, estrés y carga. El plan incluye la nueva regla de crédito descrita en la página 5 y la regresión de los flujos de las fases anteriores.
+Esta carpeta cubre la verificación automática y las correcciones necesarias para ejecutar la aplicación según sus contratos. El enunciado (`Proyecto Fase 3.pdf`) exige cinco pruebas por cada categoría —unitarias, integración, E2E, estrés y carga— y la regresión de los flujos de las fases anteriores, además de la nueva regla de crédito.
 
-Despliegues, nuevas arquitecturas, releases, participación académica y modificaciones por feedback de revisiones permanecen fuera del alcance solicitado. El repositorio no contiene una rúbrica independiente de ese PDF; la matriz identifica los criterios verificables del documento disponible. El resultado de pruebas no acredita por sí solo los entregables excluidos.
+El resto de lo que pide la fase vive en otros lugares del repositorio:
+
+- El código del sistema, con la evaluación de crédito, está en `FASE 2/`.
+- El CI/CD y el despliegue a la nube están en `.github/workflows/ci.yml`, `render.yaml` y [DEPLOY-RENDER.md](../DEPLOY-RENDER.md).
+- Los manuales están en `DOCUMENTACION/`.
+- La bitácora del trabajo por fecha está en [BITACORA.md](../BITACORA.md).

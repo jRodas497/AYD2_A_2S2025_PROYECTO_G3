@@ -72,7 +72,9 @@ Tercer Sprint Planning (21 de septiembre), y el sprint de implementación real: 
 
 **12 de octubre.** Se construyó la verificación automática de la Fase 3: pruebas unitarias y de integración de crédito, escenarios E2E, carga y estrés en un entorno Docker aislado, tokens simulados corregidos con pruebas de regresión y la integración al CI. Se documentaron el plan, la matriz de trazabilidad, los manuales y la evidencia de 242 pruebas.
 
-**13 de octubre.** Se agregó el manual técnico del sistema en `FASE 3/DOCUMENTACION/`. El despliegue del backend en Render quedó fallando en el health check porque la base de Neon no tenía las migraciones nuevas; se aplicaron a mano con `aplicar-migraciones-nube.sh` (versiones 1 a 21) y queda pendiente confirmar el redeploy.
+**13 de octubre.** Se agregó el manual técnico del sistema en `FASE 3/DOCUMENTACION/`. El despliegue del backend en Render quedó fallando en el health check porque la base de Neon no tenía las migraciones nuevas; se aplicaron a mano con `aplicar-migraciones-nube.sh` (versiones 1 a 21).
+
+**14 de octubre.** El job de deploy del CI pasó a ser la única vía a producción: Render ya no despliega solo cada commit (`autoDeployTrigger: off`), y el job aplica las migraciones pendientes, dispara el deploy y espera a que el backend responda. Se reescribió el manual técnico para que describa lo implementado (monolito modular con Kafka y crédito propio, en lugar de microservicios y Kubernetes) y se agregó el manual de usuario en `FASE 3/DOCUMENTACION/`. Las guías de las pruebas se renombraron para no confundirse con los manuales.
 
 ## Lo que queda pendiente
 
