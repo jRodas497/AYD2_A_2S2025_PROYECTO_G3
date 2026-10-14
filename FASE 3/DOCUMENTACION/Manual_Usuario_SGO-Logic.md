@@ -45,7 +45,7 @@ El catálogo y las promociones se pueden ver sin cuenta. El carrito, el pago, tu
 
 ### Buscar y elegir productos
 
-«Catálogo» muestra los productos con su precio. Pulsa uno para ver su detalle.
+«Catálogo» muestra los productos con su precio. Los que tienen una promoción vigente muestran el precio original tachado y el precio con descuento. Puedes buscar por nombre y filtrar por categoría. Pulsa un producto para ver su detalle.
 
 ![Catálogo de productos](capturas/03-catalogo.png)
 
@@ -53,7 +53,9 @@ En el detalle ves el nombre, el código, el precio y un indicador de disponibili
 
 ![Detalle de un producto](capturas/04-detalle-producto.png)
 
-«Promociones» reúne los productos con un descuento vigente. Si no hay ninguno, la pantalla lo dice.
+«Promociones» lista las promociones vigentes, con su descripción y el porcentaje de descuento. Si no hay ninguna, la pantalla lo dice.
+
+![Promociones vigentes](capturas/05-promociones.png)
 
 ### Carrito
 
@@ -182,7 +184,7 @@ Aquí llegan las solicitudes de cambio y devolución que registran los clientes 
 
 ### Catálogo y promociones
 
-Aquí se crean y editan los productos y las promociones.
+Aquí se administra el catálogo: se crean y editan los productos, y se pueden activar o desactivar.
 
 ![Catálogo y promociones](capturas/25-admin-catalogo.png)
 
