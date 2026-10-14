@@ -69,13 +69,16 @@ Es un atajo sobre `docker compose up -d --build` (que sigue funcionando igual si
 además revisa `RESET_SEED` en `.env` (plantilla en `FASE 2/.env.example`) para decidir si borra
 la base y la recrea desde las migraciones antes de levantar todo, o deja los datos como están.
 
-Levanta tres contenedores:
+Levanta estos servicios (los tres primeros son los que se usan a diario; el resto es lo que la Fase 2 sumó):
 
-| Contenedor | Qué es | Dirección |
+| Servicio | Qué es | Dirección |
 |---|---|---|
-| `sgologic-db` | PostgreSQL 16. La primera vez corre las migraciones V1 a V8: esquemas, datos de prueba, el usuario `admin` y la configuración | `127.0.0.1:5432` |
+| `sgologic-db` | PostgreSQL 16 | `127.0.0.1:5432` |
+| `migrate` | Corre una vez las migraciones `FASE 2/db/migrations/V1` a `V21` (esquemas, datos de prueba, usuario `admin`, configuración) y termina | — |
+| `kafka` | Broker de mensajes para la integración asíncrona | interno |
 | `sgologic-backend` | Java 21 + Spring Boot. Espera a que la base esté sana | `http://127.0.0.1:8080` |
 | `sgologic-frontend` | La aplicación compilada, servida con nginx, que reenvía `/api` al backend | `http://localhost:8081` |
+| `payklik`, `sat`, `logiexpress`, `messaging`, `pos`, `erp` | Los seis proveedores externos simulados, cada uno como proceso HTTP propio | interno |
 
 Abrir `http://localhost:8081`: la tienda está en la raíz y el backoffice en `/administracion`. El backend no tiene página en la raíz; su API está documentada en [`FASE 2/backend/API.md`](FASE%202/backend/API.md).
 
@@ -103,7 +106,7 @@ Queda en `http://localhost:5173` y Vite reenvía `/api` a `http://localhost:8080
 ### Pruebas
 
 ```bash
-# backend, 60 pruebas unitarias, desde FASE 2/backend (no requiere Maven instalado)
+# backend, pruebas unitarias, desde FASE 2/backend (no requiere Maven instalado)
 docker run --rm -v "$PWD":/app -v sgologic-m2:/root/.m2 -w /app maven:3.9-eclipse-temurin-21 mvn -B test
 
 # frontend, desde FASE 2/frontend (no requiere Node 22 instalado)
@@ -117,6 +120,7 @@ python3 pruebas/prueba_flujo_volumen.py
 
 ## Documentación adicional
 
+- Verificación automática de la Fase 3 (plan de pruebas, matriz, manuales y evidencia): [`FASE 3/README.md`](FASE%203/README.md)
 - Despliegue en Render y CI de cada commit en la rama de trabajo: [`DEPLOY-RENDER.md`](DEPLOY-RENDER.md)
 - Bitácora de desarrollo del proyecto, con fechas y evidencia de commits: [`BITACORA.md`](BITACORA.md)
 - Guía completa de instalación, despliegue, pruebas y demostración de fallas: [`FASE 2/README.md`](FASE%202/README.md)

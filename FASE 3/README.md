@@ -19,6 +19,7 @@ El resultado completo solo es aprobado si todas las etapas pasan, cada categorí
 - [Manual técnico del testeo](MANUAL-TECNICO.md).
 - [Manual de usuario y demostración](MANUAL-USUARIO.md).
 - [Resultados de la ejecución validada](EVIDENCIA.md).
+- [Manual técnico del sistema](DOCUMENTACION/Manual_Tecnico_SGO-Logic.md): arquitectura, componentes y despliegue de SGO-Logic. No es el mismo documento que `MANUAL-TECNICO.md`, que explica solo el testeo.
 
 Cada ejecución crea `resultados/<fecha UTC>-<id>/`. El archivo `resultados/ultimo.json` indica la ubicación y el resultado más reciente. Se generan reportes JUnit XML, métricas JSON con percentiles y muestras de CPU/memoria, logs por etapa, reporte HTML de Playwright y hashes SHA-256 de los artefactos. Los archivos voluminosos y datos de clientes de prueba quedan ignorados por Git; la evidencia resumida se conserva en Markdown. GitHub Actions publica los artefactos completos durante 14 días, incluso si falla la suite.
 

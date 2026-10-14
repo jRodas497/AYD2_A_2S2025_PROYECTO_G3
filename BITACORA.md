@@ -1,6 +1,6 @@
 # Bitácora de desarrollo — SGO-Logic
 
-Registro cronológico del trabajo real del Grupo 3 en las dos fases del proyecto, reconstruido a partir del historial de `git log` (autor, fecha y mensaje de cada commit), no de notas tomadas durante el desarrollo — el equipo no llevó una bitácora al día. Donde no hay commit no hay entrada: no se inventa actividad de un día sin evidencia en el historial.
+Registro cronológico del trabajo real del Grupo 3 en las tres fases del proyecto, reconstruido a partir del historial de `git log` (autor, fecha y mensaje de cada commit), no de notas tomadas durante el desarrollo — el equipo no llevó una bitácora al día. Donde no hay commit no hay entrada: no se inventa actividad de un día sin evidencia en el historial.
 
 ## Fase 1 — Definición de arquitectura (15 – 27 de agosto de 2026)
 
@@ -61,6 +61,18 @@ Tercer Sprint Planning (21 de septiembre), y el sprint de implementación real: 
 **30 de septiembre.** Se dockerizó el frontend (compilado y servido con nginx, que reenvía `/api` al backend), así que `docker compose up -d --build` levanta el sistema completo en tres contenedores. La lista de personal (`GET /api/users`) pasó a exigir rol ADMIN, porque exponía quién tiene acceso y con qué roles. Se agregaron 22 pruebas a los repositorios HTTP del backoffice (el frontend queda con 87). Se actualizaron los README con el frontend en Docker, la versión de Node que exigen las pruebas (22) y cómo correr las pruebas sin instalar Maven ni Node, y se documentaron en `FASE 2/backend/API.md` los endpoints nuevos del backoffice.
 
 **2 y 3 de octubre.** Segunda auditoría, cruzando cada endpoint del backend contra cada llamada real del frontend: el carrito del cliente todavía decía que para quitar un producto o bajar la cantidad había que llamar a servicio al cliente, aunque el backend ya tenía `PUT`/`DELETE` para eso; el perfil del cliente seguía en placeholder; no había forma de ver la factura ni el XML de una orden; y tres capacidades reales del backend (salud de las integraciones, avisos fallidos, facturas rechazadas) no tenían ninguna pantalla. Se corrigieron las cuatro y se agregaron las tres pantallas nuevas. Verificando esto en vivo (no solo leyendo el código) salieron dos defectos reales más: mandar `email: ''` en vez de `null` revienta la restricción `unique` de la base en cuanto hay un segundo cliente sin correo, y varios formularios tenían una `<label>` sin asociar a su `<input>` (sin `htmlFor`/`id`), lo que es un hueco de accesibilidad real además de impedir que las pruebas los encontraran. Se agregó Playwright (`FASE 2/frontend/e2e/`) con 6 pruebas de punta a punta contra el stack completo en Docker, no contra mocks: el flujo de compra completo, el carrito, el perfil, y que las 13 pantallas del backoffice carguen con datos reales. El detalle completo está en [`PENDIENTES-BACKOFFICE.txt`](PENDIENTES-BACKOFFICE.txt).
+
+## Fase 3 — Despliegue, crédito, integraciones y pruebas (7 – 14 de octubre de 2026)
+
+**7 de octubre.** Se preparó el despliegue en Render: el puerto sale de una variable de entorno y `DATABASE_URL` se traduce a las propiedades de Spring. Se agregó el blueprint `render.yaml`, el script para aplicar las migraciones a una base administrada y el workflow de CI en GitHub Actions (pruebas del backend, del frontend y el stack completo en Docker).
+
+**8 de octubre.** La base de Render se cambió por Neon, y el archivo de intercambio con el ERP puede subirse a Cloudflare R2 porque el disco de Render no persiste. Se agregó el login y registro real de cliente, con 5 cuentas de demo (antes había un solo "Cliente invitado" compartido), `iniciar.sh` con `RESET_SEED` y `DATOS_SEED.md`. Los Dockerfile se movieron a la raíz porque Render no resolvía la ruta con espacio de `FASE 2`. Después del merge, el frontend dejó de apuntar al nombre interno del backend y usa su URL pública (`BACKEND_URL`), porque un servicio gratuito de Render no recibe tráfico por la red privada.
+
+**10 de octubre.** Se integró el resto del backend de la Fase 2: Kafka, los seis proveedores externos dockerizados, evaluación y checkout de crédito, devoluciones, conciliación con el ERP, permisos por rol, reservas con stock repartido, ubicaciones, traslados y transporte alternativo (migraciones V10 a V21). Se agregaron las pantallas correspondientes y pruebas de compra, permisos, concurrencia y caídas de proveedores.
+
+**12 de octubre.** Se construyó la verificación automática de la Fase 3: pruebas unitarias y de integración de crédito, escenarios E2E, carga y estrés en un entorno Docker aislado, tokens simulados corregidos con pruebas de regresión y la integración al CI. Se documentaron el plan, la matriz de trazabilidad, los manuales y la evidencia de 242 pruebas.
+
+**13 de octubre.** Se agregó el manual técnico del sistema en `FASE 3/DOCUMENTACION/`. El despliegue del backend en Render quedó fallando en el health check porque la base de Neon no tenía las migraciones nuevas; se aplicaron a mano con `aplicar-migraciones-nube.sh` (versiones 1 a 21) y queda pendiente confirmar el redeploy.
 
 ## Lo que queda pendiente
 
