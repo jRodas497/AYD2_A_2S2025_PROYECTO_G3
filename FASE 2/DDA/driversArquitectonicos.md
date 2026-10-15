@@ -1,5 +1,8 @@
 # **Drivers Arquitectónicos**
 
+> **Actualización de la Fase 3.** La Fase 3 agrega drivers funcionales y de calidad para el crédito propio y el despliegue continuo, con sus escenarios, en [drivers-y-escenarios-fase3.md](../../FASE%203/DDA/drivers-y-escenarios-fase3.md).
+
+
 ## **Drivers Arquitectónicos: Requerimientos Funcionales**
 
 | ID | Driver funcional | Descripción | Impacto arquitectónico |

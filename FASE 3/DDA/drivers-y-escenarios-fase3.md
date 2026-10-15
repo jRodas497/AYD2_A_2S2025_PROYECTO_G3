@@ -99,8 +99,16 @@ Lo que la Fase 3 agrega a los drivers de las fases anteriores ([FASE 1](../../FA
 |---|---|
 | Evaluación de crédito propio con historial del ERP en una proyección local | [ADR-0010](ADR/0010-evaluacion-de-credito-propio.md) |
 | CI/CD con gate de pruebas y despliegue en Render, Neon y R2 | [ADR-0011](ADR/0011-cicd-y-despliegue-en-la-nube.md) |
+| Kafka como broker, con el outbox como puente | [ADR-0012](ADR/0012-kafka-como-broker-con-el-outbox-como-puente.md) |
 | Un solo contenedor de aplicación | [ADR-0009](../../FASE%202/DDA/ADR/0009-alcance-de-despliegue-del-mvp.md) |
 | Outbox y Kafka para las integraciones y las notificaciones | [ADR-0007](../../FASE%202/DDA/ADR/0007-outbox-en-la-base-como-broker-del-mvp.md) |
+
+## Casos de uso
+
+| Caso de uso | Drivers |
+|---|---|
+| [CDU-09: comprar a crédito](casos-de-uso/CDU-09-comprar-a-credito.md) | RN-C01 a RN-C04, CC-01 a CC-04 |
+| [CDU-10: abonar el saldo de un crédito](casos-de-uso/CDU-10-abonar-saldo-de-credito.md) | RN-C05, CC-02, CC-04 |
 
 ## Trazabilidad con las pruebas
 

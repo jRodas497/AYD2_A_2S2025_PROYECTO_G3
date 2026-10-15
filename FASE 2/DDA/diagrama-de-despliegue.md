@@ -1,5 +1,8 @@
 # Diagrama de despliegue — SGO-Logic (Fase 2)
 
+> **Actualización de la Fase 3.** Esta vista implementada describe el MVP de la Fase 2, con dos contenedores y sin broker externo. Hoy el `docker-compose.yml` suma Kafka, el servicio `migrate` y los seis proveedores simulados, y en la nube corre en Render, Neon y Cloudflare R2. Las vistas actualizadas están en [FASE 3/DDA](../../FASE%203/DDA/diagramas-fase3.md) y la decisión en el [ADR-0012](../../FASE%203/DDA/ADR/0012-kafka-como-broker-con-el-outbox-como-puente.md).
+
+
 ![Diagrama de despliegue](../image/Diagrama-Despliegue-SGO-Logic-Fase2.png)
 
 [Archivo editable](../DRAWIO/Diagrama-Despliegue-SGO-Logic-Fase2.drawio).
