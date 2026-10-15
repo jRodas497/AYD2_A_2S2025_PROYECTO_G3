@@ -43,7 +43,7 @@ El ADR-0009 ya fijó que todos los componentes corren en un solo contenedor, y e
 ## Consecuencias
 
 **Positivas:**
-- La decisión de crédito es rápida: en la prueba de carga L04, 256 decisiones con 16 en paralelo dieron un p95 de 128 ms, contra un umbral de 2,000 ms (`FASE 3/EVIDENCIA.md`).
+- La decisión de crédito es rápida: en la prueba de carga L04, 256 decisiones con 16 en paralelo dieron un p95 de 10.35 ms, contra un umbral de 2,000 ms (`FASE 3/EVIDENCIA.md`).
 - La orden no se congela. Con el ERP caído, el crédito desaparece como opción y el cliente sigue con PayKlik; está cubierto por los E2E de crédito (E01 a E05).
 - El gasto de crédito de un cliente se serializa, así que compras simultáneas no se evalúan contra el mismo cupo disponible.
 - Cada solicitud, aprobada o rechazada, queda con su motivo y el detalle de la evaluación. Finanzas puede justificarla.

@@ -47,7 +47,7 @@ Lo que la Fase 3 agrega a los drivers de las fases anteriores ([FASE 1](../../FA
 | Artefacto | `CreditService` y la proyección del historial del ERP |
 | Entorno | Operación normal con 16 clientes en paralelo |
 | Respuesta | Evalúa con el historial local y devuelve la decisión |
-| Medida | p95 por debajo de 2,000 ms. Medido: 128 ms (prueba L04) |
+| Medida | p95 por debajo de 2,000 ms. Medido: 10.35 ms (prueba L04) |
 
 **CC-02. ERP caído durante el checkout**
 
@@ -69,7 +69,7 @@ Lo que la Fase 3 agrega a los drivers de las fases anteriores ([FASE 1](../../FA
 | Artefacto | Adaptador de PayKlik, reintentos y outbox |
 | Entorno | Carga por encima de la esperada |
 | Respuesta | Las ventas se recuperan al restaurar al proveedor; la ruta de crédito sigue operativa |
-| Medida | Las 32 ventas se recuperaron en 36 s (prueba S05) |
+| Medida | Las 32 ventas se recuperaron en 39.5 s (prueba S05) |
 
 **CC-03. Compras simultáneas del mismo cliente**
 
