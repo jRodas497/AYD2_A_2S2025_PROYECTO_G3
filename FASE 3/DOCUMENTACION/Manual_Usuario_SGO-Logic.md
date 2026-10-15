@@ -254,4 +254,4 @@ En «Configuración» están los parámetros del sistema. Los del crédito empie
 | El producto ya no está disponible al pagar | La reserva venció; vuelve a agregarlo al carrito |
 | Una orden a crédito fue rechazada | Revisa «Mi crédito» para ver el motivo; puedes continuar con PayKlik |
 
-Para el funcionamiento interno y el despliegue, consulta el [manual técnico](Manual_Tecnico_SGO-Logic.md).
+Para recorrer los procesos completos paso a paso, con diagramas, consulta los [flujos principales](../FLUJOS/README.md). Para el funcionamiento interno y el despliegue, consulta el [manual técnico](Manual_Tecnico_SGO-Logic.md).
