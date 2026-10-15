@@ -87,7 +87,7 @@ ramas `main` ni `release` de git-flow.
 | Criterio | Pts | Evidencia | Estado |
 |---|---|---|---|
 | Actualización y coherencia de diagramas | 10 | Las vistas originales de bloques, componentes y despliegue dibujan la meta de evolución (microservicios, cinco hosts, API Gateway, RabbitMQ). Ahora cada una tiene su **vista implementada**, que coincide con el código y con `docker-compose.yml`: [bloques y componentes](diagrama-de-componentes.md) y [despliegue](diagrama-de-despliegue.md#despliegue-implementado-mvp), con la correspondencia componente → paquete → contenedor. El JPG de bloques, que no estaba en `develop`, se recuperó de la rama `feat/202109114-Farmahosp` | **Cumple** |
-| Cambios justificados según feedback | 6 | Según el equipo, la retroalimentación de la Fase 1 fue sobre los diagramas; se corrigieron y el auxiliar los aprobó. **El repositorio no tiene un documento que lo registre**: el criterio pide *evidencia* de las correcciones, así que conviene un documento corto con qué se observó y qué se cambió | **Evidencia pendiente** |
+| Cambios justificados según feedback | 6 | Según el equipo, la retroalimentación de la Fase 1 fue sobre los diagramas; se corrigieron y el auxiliar los aprobó. El registro de qué se observó y qué se cambió quedó en la Fase 3: [CORRECCIONES-POR-FEEDBACK.md](../../FASE%203/CORRECCIONES-POR-FEEDBACK.md) | **Evidencia agregada en la Fase 3** |
 | Organización modular / capas coherente con el DDA | 2 | Un paquete y un esquema por componente (ADR-0001). Los pasos entre componentes que dependen de un tercero (pago → factura → despacho) avanzan por eventos del outbox; las llamadas directas quedan para lo que tiene que ocurrir en la misma transacción, como reservar stock en el checkout o encolar un aviso | **Cumple** |
 | Uso correcto de frameworks y patrones | 1 | Transactional Outbox, Circuit Breaker, Adapter y reintentos con espera creciente, cada uno implementado y trazado a su ADR (0002, 0004, 0007, 0008) | **Cumple** |
 | Legibilidad y mantenibilidad | 1 | Nombres descriptivos, comentarios que explican el porqué, README por carpeta, colección de Postman que corre completa | **Cumple** |
@@ -101,7 +101,7 @@ Ordenados por puntos en juego:
 | # | Riesgo | Pts en juego | Quién lo resuelve |
 |---|---|---|---|
 | 1 | Scrum de Fase 2: faltan las capturas del Kanban y el burndown | parte de 10 | Todo el equipo |
-| 2 | Sin documento que evidencie las correcciones por retroalimentación de la Fase 1 | 6 | Quien tenga las observaciones del auxiliar |
+| 2 | Evidencia de las correcciones por retroalimentación de la Fase 1: resuelto en la Fase 3, ver [CORRECCIONES-POR-FEEDBACK.md](../../FASE%203/CORRECCIONES-POR-FEEDBACK.md) | 6 | Resuelto |
 
 Las 20 funcionalidades de la sección I quedan en **100%**: cada una tiene CDU expandido, modelo de
 datos, despliegue y código.
@@ -155,7 +155,7 @@ Hecha el 2026-09-23 sobre todo lo anterior. Incluye una instalación desde cero 
 
 | # | Incongruencia | Gravedad | Qué haría falta |
 |---|---|---|---|
-| 13 | **Evidencia del feedback de la Fase 1** (ver sección III) | Media | Un documento con las observaciones del auxiliar y los cambios hechos |
+| 13 | **Evidencia del feedback de la Fase 1** (ver sección III) | Media | Resuelto en la Fase 3: [CORRECCIONES-POR-FEEDBACK.md](../../FASE%203/CORRECCIONES-POR-FEEDBACK.md) |
 | 14 | **Devoluciones hacia el ERP.** El ADR-0003 incluía devoluciones en la sincronización; el MVP solo envía ventas. Tampoco hay canal para que el AS/400 rechace un lote (CDU-07, E1) | Media | Una tabla de ajustes contables por lote (la llave `erp_batch_order.order_id` impide mandar la misma orden dos veces) |
 | 15 | **Reglas de los CDU de la Fase 1 sin implementar**: reembolso y aprobación de Finanzas arriba de USD 500 (CDU-05), recogida en tienda (CDU-04), sugerir alternativa sin existencia (CDU-01, 2a), reidentificación al cambiar de canal (CDU-01, E2) | Baja | Quedan documentadas en `backend/README.md` como fuera del MVP |
 | 16 | **Autenticación parcial.** Hay login con JWT y el frontend lo usa en el backoffice, pero solo protege crear o editar productos, procesar incidencias, cambiar parámetros y gestionar al personal; auditoría, reportes, reintentos y `/api/simulation` son públicos | Media | Extender las reglas de `SecurityConfig` a los endpoints de operación y un perfil que no registre la simulación fuera de la demo |
