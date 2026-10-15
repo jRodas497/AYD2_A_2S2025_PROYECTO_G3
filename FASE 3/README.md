@@ -21,6 +21,8 @@ Los dos manuales del sistema, que pide el enunciado:
 - [Manual técnico](DOCUMENTACION/Manual_Tecnico_SGO-Logic.md): arquitectura, componentes, crédito, despliegue, CI/CD y pruebas.
 - [Manual de usuario](DOCUMENTACION/Manual_Usuario_SGO-Logic.md): cómo usar la tienda y la administración.
 
+Las correcciones por el feedback de las fases 1 y 2, con los commits que lo comprueban: [CORRECCIONES-POR-FEEDBACK.md](CORRECCIONES-POR-FEEDBACK.md).
+
 La arquitectura que agregó la fase (crédito propio y CI/CD con despliegue en la nube): [FASE 3/DDA](DDA/README.md), con dos ADR, los drivers y escenarios de calidad y los diagramas.
 
 Lo específico del testeo:
