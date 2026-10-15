@@ -4,6 +4,9 @@
 **Fecha:** 2026-09-22
 **Decisores:** Quien implementa transacciones e integraciones (Backend 2) — pendiente de ratificación en reunión de equipo
 
+> **Actualización de la Fase 3.** La Fase 3 agregó Kafka como broker de mensajería y dejó al outbox como puente: el relé publica las intenciones en Kafka y los consumidores invocan a los mismos manejadores de esta decisión. Lo anticipaba este mismo ADR («cambia quién los invoca»). Ver [ADR-0012](../../../FASE%203/DDA/ADR/0012-kafka-como-broker-con-el-outbox-como-puente.md). Donde este documento dice «sin broker externo» o «dos contenedores», describe el MVP de la Fase 2.
+
+
 ## Contexto
 
 El ADR-0001 adoptó un estilo orientado a eventos con un broker de mensajería, y el ADR-0002 y el

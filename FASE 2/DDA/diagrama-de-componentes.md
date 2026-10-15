@@ -1,5 +1,8 @@
 # Diagramas de bloques y de componentes — SGO-Logic (Fase 2)
 
+> **Actualización de la Fase 3.** Donde esta tabla dice que el Message Broker es la tabla `integration.outbox`, hoy el outbox es el puente hacia Kafka. El crédito propio vive dentro del componente de pagos. Ver [FASE 3/DDA](../../FASE%203/DDA/diagramas-fase3.md) y el [ADR-0012](../../FASE%203/DDA/ADR/0012-kafka-como-broker-con-el-outbox-como-puente.md).
+
+
 Igual que el [despliegue](diagrama-de-despliegue.md), cada vista existe dos veces: la **objetivo**,
 que es hacia dónde evoluciona la arquitectura, y la **implementada**, que es la que coincide con el
 código del MVP. Para verificar trazabilidad contra el código hay que usar la implementada.

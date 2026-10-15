@@ -1,4 +1,7 @@
 # DDA
+
+> **Actualización de la Fase 3.** El Message Broker ya no es solo la tabla del outbox: hoy es Kafka, con el outbox como puente ([ADR-0012](../../FASE%203/DDA/ADR/0012-kafka-como-broker-con-el-outbox-como-puente.md)). Los drivers y escenarios que agrega la Fase 3 están en [drivers-y-escenarios-fase3.md](../../FASE%203/DDA/drivers-y-escenarios-fase3.md).
+
 # Caso de Accion
 
 ## Contexto Operativo

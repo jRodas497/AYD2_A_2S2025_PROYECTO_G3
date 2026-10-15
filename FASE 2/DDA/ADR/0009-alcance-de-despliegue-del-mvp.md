@@ -4,6 +4,9 @@
 **Fecha:** 2026-09-23
 **Decisores:** Quien implementa transacciones e integraciones (Backend 2) — pendiente de ratificación en reunión de equipo
 
+> **Actualización de la Fase 3.** El `docker-compose.yml` de hoy tiene once servicios: la base, el servicio `migrate`, Kafka, el backend, el frontend y los seis proveedores simulados. Sigue habiendo un solo contenedor de aplicación, que es lo que decide este ADR. Los «dos contenedores» de abajo describen el MVP de la Fase 2. Ver [ADR-0012](../../../FASE%203/DDA/ADR/0012-kafka-como-broker-con-el-outbox-como-puente.md) y [ADR-0011](../../../FASE%203/DDA/ADR/0011-cicd-y-despliegue-en-la-nube.md).
+
+
 ## Contexto
 
 Al auditar el código contra la Fase 1 aparecieron cuatro decisiones de diseño que el MVP no

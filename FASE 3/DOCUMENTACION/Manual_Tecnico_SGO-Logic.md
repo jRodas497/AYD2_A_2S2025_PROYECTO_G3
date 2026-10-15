@@ -21,7 +21,7 @@ La arquitectura combina tres ideas, que ya estaban decididas en los ADR de las f
 
 - **Monolito modular.** Un solo contenedor de aplicación con un módulo por componente de negocio. Se eligió así para el MVP porque simplifica el despliegue y las transacciones; las razones están en el [ADR-0009](../../FASE%202/DDA/ADR/0009-alcance-de-despliegue-del-mvp.md).
 - **Base de datos compartida con un esquema por componente.** La consulta de estado y el inventario se resuelven de forma síncrona contra la base.
-- **Integración asíncrona orientada a eventos.** Todo lo que sale hacia un tercero (cobros abonados, notificaciones, POS, ERP) pasa por el patrón *outbox*: la intención se guarda en la base dentro de la misma transacción de negocio y un relé la publica en Kafka. Detalle en el [ADR-0007](../../FASE%202/DDA/ADR/0007-outbox-en-la-base-como-broker-del-mvp.md).
+- **Integración asíncrona orientada a eventos.** Todo lo que sale hacia un tercero (cobros abonados, notificaciones, POS, ERP) pasa por el patrón *outbox*: la intención se guarda en la base dentro de la misma transacción de negocio y un relé la publica en Kafka. Detalle en el [ADR-0007](../../FASE%202/DDA/ADR/0007-outbox-en-la-base-como-broker-del-mvp.md), que el [ADR-0012](../DDA/ADR/0012-kafka-como-broker-con-el-outbox-como-puente.md) evoluciona al poner a Kafka como broker.
 
 ![Diagrama de componentes implementado](../../FASE%202/image/Diagrama-Componentes-Implementado-SGO-Logic-Fase2.png)
 
@@ -29,7 +29,7 @@ La arquitectura combina tres ideas, que ya estaban decididas en los ADR de las f
 
 Los diagramas de la vista objetivo (microservicios independientes detrás de un API Gateway, sobre Kubernetes) se conservan como propuesta de evolución, en `FASE 2/DDA/` y en [esta carpeta](image/vista-objetivo/). No es lo que corre hoy: el sistema implementado es el monolito modular de arriba.
 
-Las decisiones y vistas que agregó esta fase están en [FASE 3/DDA](../DDA/README.md): el [ADR-0010](../DDA/ADR/0010-evaluacion-de-credito-propio.md) del crédito, el [ADR-0011](../DDA/ADR/0011-cicd-y-despliegue-en-la-nube.md) del CI/CD y el despliegue, los [drivers y escenarios de calidad](../DDA/drivers-y-escenarios-fase3.md) y los [diagramas](../DDA/diagramas-fase3.md) de componentes, secuencia, pipeline y despliegue en la nube.
+Las decisiones y vistas que agregó esta fase están en [FASE 3/DDA](../DDA/README.md): el [ADR-0010](../DDA/ADR/0010-evaluacion-de-credito-propio.md) del crédito, el [ADR-0012](../DDA/ADR/0012-kafka-como-broker-con-el-outbox-como-puente.md) de Kafka, los casos de uso [CDU-09](../DDA/casos-de-uso/CDU-09-comprar-a-credito.md) y [CDU-10](../DDA/casos-de-uso/CDU-10-abonar-saldo-de-credito.md), el [ADR-0011](../DDA/ADR/0011-cicd-y-despliegue-en-la-nube.md) del CI/CD y el despliegue, los [drivers y escenarios de calidad](../DDA/drivers-y-escenarios-fase3.md) y los [diagramas](../DDA/diagramas-fase3.md) de componentes, secuencia, pipeline y despliegue en la nube.
 
 ## Backend
 
@@ -84,6 +84,8 @@ No es elegible quien tenga un saldo vencido, una devolución o cambio en revisi�
 **Cómo se paga.** Cada compra a crédito crea un cargo en `payments.credit_charge` con fecha de vencimiento. El cliente lo abona desde «Mi crédito» con PayKlik; el abono libera el cupo. Si el abono falla, queda el error registrado y se puede reintentar.
 
 ### Mensajería con Kafka
+
+La decisión está en el [ADR-0012](../DDA/ADR/0012-kafka-como-broker-con-el-outbox-como-puente.md).
 
 ```text
 transacción de negocio ──► tabla outbox (misma transacción)

@@ -42,3 +42,25 @@ Formato libre pero descriptivo — no hace falta Conventional Commits estricto p
 Agrega stakeholders ST-05 a ST-08 con evidencia del caso
 Documenta ADR-0001: estrategia de resiliencia de pagos
 ```
+
+## Actualización de la Fase 3
+
+La Fase 3 mantiene el flujo de arriba con estos cambios, que piden el enunciado y el despliegue continuo:
+
+| Tema | Regla de la Fase 3 |
+|---|---|
+| Rama de entregas | Se llama `main` (en las fases anteriores se usó `master` en este documento). Solo recibe cambios desde `develop` |
+| Versiones | Cada entrega es un tag con el formato `v1`, `v2`, `v3`… sobre `main`, con su release en GitHub y su entrada en el [CHANGELOG](../CHANGELOG.md). El enunciado pide mínimo cuatro durante la fase |
+| Mensaje de commit | `carnet: mensaje`, por ejemplo `9516085: se agregó el manual de usuario`. Es la prueba de quién hizo qué |
+| Merges | Un merge de pull request no cuenta como commit de trabajo: lo que cuenta son los commits de la rama |
+| Pruebas antes de integrar | Cada push a `develop` y a las ramas `feature/*`, y cada pull request, corre el CI (`.github/workflows/ci.yml`): pruebas del backend, del frontend y la suite de la Fase 3 |
+| Despliegue | Render despliega un commit de `develop` solo cuando todos los checks del CI pasan. Detalle en [DEPLOY-RENDER.md](../DEPLOY-RENDER.md) y en el [ADR-0011](../FASE%203/DDA/ADR/0011-cicd-y-despliegue-en-la-nube.md) |
+| Migraciones de base | Si una versión agrega una migración, se aplica a Neon con `aplicar-migraciones-nube.sh` antes del deploy |
+
+### Cómo se publica una versión
+
+1. Con `develop` en verde, abrir un pull request `develop` → `main` y mezclarlo.
+2. Agregar la versión al `CHANGELOG.md`.
+3. Crear el release sobre `main`: `gh release create v2 --target main --title "v2: <tema>" --notes-file <notas>`.
+4. Comprobar que la aplicación en Render responde con el despliegue nuevo.
+
