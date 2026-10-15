@@ -74,7 +74,7 @@ Tercer Sprint Planning (21 de septiembre), y el sprint de implementación real: 
 
 **13 de octubre.** Se agregó el manual técnico del sistema en `FASE 3/DOCUMENTACION/`. El despliegue del backend en Render quedó fallando en el health check porque la base de Neon no tenía las migraciones nuevas; se aplicaron a mano con `aplicar-migraciones-nube.sh` (versiones 1 a 21).
 
-**14 de octubre.** Los servicios de Render pasaron a `autoDeployTrigger: checksPass`: Render solo despliega un commit de `develop` cuando todos los checks del CI pasan. Se reescribió el manual técnico para que describa lo implementado (monolito modular con Kafka y crédito propio, en lugar de microservicios y Kubernetes), se agregó el manual de usuario con capturas en `FASE 3/DOCUMENTACION/`, y se documentó la arquitectura de la fase en `FASE 3/DDA/`. Las guías de las pruebas se renombraron para no confundirse con los manuales.
+**14 de octubre.** Los servicios de Render pasaron a `autoDeployTrigger: checksPass`: Render solo despliega un commit de `develop` cuando todos los checks del CI pasan. Se reescribió el manual técnico para que describa lo implementado (monolito modular con Kafka y crédito propio, en lugar de microservicios y Kubernetes), se agregó el manual de usuario con capturas en `FASE 3/DOCUMENTACION/`, y se documentó la arquitectura de la fase en `FASE 3/DDA/`. Las guías de las pruebas se renombraron para no confundirse con los manuales. Se documentaron siete flujos del camino feliz (compra con tarjeta, entrega, devolución, compra a crédito, venta asistida, traslado y consultas del personal) en `FASE 3/FLUJOS/`, con diagramas y capturas tomadas de una ejecución real del sistema completo.
 
 ## Lo que queda pendiente
 

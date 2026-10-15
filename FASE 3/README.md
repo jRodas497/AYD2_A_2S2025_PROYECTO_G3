@@ -14,6 +14,8 @@ El resultado completo solo es aprobado si todas las etapas pasan, cada categorí
 
 ## Documentación y evidencia
 
+Los flujos principales para demostrar y probar el sistema, con diagramas y capturas: [FASE 3/FLUJOS](FLUJOS/README.md).
+
 Los dos manuales del sistema, que pide el enunciado:
 
 - [Manual técnico](DOCUMENTACION/Manual_Tecnico_SGO-Logic.md): arquitectura, componentes, crédito, despliegue, CI/CD y pruebas.
