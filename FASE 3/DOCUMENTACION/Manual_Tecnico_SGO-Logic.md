@@ -1,741 +1,218 @@
 # Manual técnico de SGO-Logic
 
-## Plataforma de comercio electrónico omnicanal basada en microservicios
+Sistema de Gestión de Órdenes y Logística Omnicanal de MegaStore. Este manual describe cómo está construido el sistema tal como corre hoy: arquitectura, componentes, datos, seguridad, despliegue, CI/CD y pruebas. Lo que se propuso en las fases anteriores y todavía no está construido se marca como tal.
 
-**Versión:** 1.0\
-**Fecha:** 13 de octubre de 2026\
-**Tipo de documento:** Manual técnico de arquitectura, despliegue y
-operación
+| | |
+|---|---|
+| Versión del documento | 1.1 |
+| Código | Backend Java 21 con Spring Boot 3.3.4, frontend React 19 con TypeScript y Vite, PostgreSQL 16, Kafka 3.8.1 |
+| Repositorio | Este mismo repositorio. El código vive en `FASE 2/`, las pruebas y la documentación de esta fase en `FASE 3/` |
+| Aplicación en la nube | Render (backend y frontend), Neon (PostgreSQL) y Cloudflare R2 (archivo del ERP) |
 
-------------------------------------------------------------------------
+## Qué resuelve
 
-## Control y alcance del documento
+MegaStore vende por web y en tiendas físicas. SGO-Logic coordina el catálogo, el inventario por ubicación, el carrito, el cobro, la factura, el envío y la atención posterior, y se integra con seis sistemas externos: PayKlik (pagos), SAT (facturación), LogiExpress (envíos), mensajería, POS y el ERP.
 
-  -----------------------------------------------------------------------
-  Campo                               Descripción
-  ----------------------------------- -----------------------------------
-  Sistema                             SGO-Logic
+La Fase 3 sumó una regla de negocio nueva: el crédito propio «Compra ahora, paga en 30 días». En el checkout, el sistema decide primero cómo va a pagar el cliente. Algunos clientes ven el crédito junto a PayKlik y otros solo ven PayKlik, según su historial de compras, devoluciones, incidencias y pagos. La orden nunca queda esperando: termina confirmada o rechazada por la ruta que se haya elegido.
 
-  Propósito                           Coordinar las operaciones de
-                                      comercio electrónico y tiendas
-                                      físicas
+## Estilo arquitectónico
 
-  Estilo principal                    Arquitectura de microservicios
+La arquitectura combina tres ideas, que ya estaban decididas en los ADR de las fases 1 y 2:
 
-  Patrones complementarios            API Gateway, arquitectura orientada
-                                      a eventos, contenedores y nube
+- **Monolito modular.** Un solo contenedor de aplicación con un módulo por componente de negocio. Se eligió así para el MVP porque simplifica el despliegue y las transacciones; las razones están en el [ADR-0009](../../FASE%202/DDA/ADR/0009-alcance-de-despliegue-del-mvp.md).
+- **Base de datos compartida con un esquema por componente.** La consulta de estado y el inventario se resuelven de forma síncrona contra la base.
+- **Integración asíncrona orientada a eventos.** Todo lo que sale hacia un tercero (cobros abonados, notificaciones, POS, ERP) pasa por el patrón *outbox*: la intención se guarda en la base dentro de la misma transacción de negocio y un relé la publica en Kafka. Detalle en el [ADR-0007](../../FASE%202/DDA/ADR/0007-outbox-en-la-base-como-broker-del-mvp.md).
 
-  Tecnologías de referencia           Node.js, Express, React, Docker,
-                                      Kubernetes, Kafka o RabbitMQ
+![Diagrama de componentes implementado](../../FASE%202/image/Diagrama-Componentes-Implementado-SGO-Logic-Fase2.png)
 
-  Integraciones                       PayKlik, SAT, LogiExpress, AS/400 y
-                                      POS
-  -----------------------------------------------------------------------
+![Diagrama de despliegue implementado](../../FASE%202/image/Diagrama-Despliegue-Implementado-SGO-Logic-Fase2.png)
 
-> Este manual documenta la arquitectura representada en el diagrama de
-> despliegue. Kafka/RabbitMQ, proveedores de nube, motores de base de
-> datos y herramientas de CI/CD son opciones de referencia; las
-> elecciones definitivas, versiones, direcciones, credenciales y
-> recursos deben registrarse en la configuración real del proyecto.
+Los diagramas de la vista objetivo (microservicios independientes detrás de un API Gateway, sobre Kubernetes) se conservan como propuesta de evolución, en `FASE 2/DDA/` y en [esta carpeta](image/vista-objetivo/). No es lo que corre hoy: el sistema implementado es el monolito modular de arriba.
 
-## 1. Introducción
+Las decisiones y vistas que agregó esta fase están en [FASE 3/DDA](../DDA/README.md): el [ADR-0010](../DDA/ADR/0010-evaluacion-de-credito-propio.md) del crédito, el [ADR-0011](../DDA/ADR/0011-cicd-y-despliegue-en-la-nube.md) del CI/CD y el despliegue, los [drivers y escenarios de calidad](../DDA/drivers-y-escenarios-fase3.md) y los [diagramas](../DDA/diagramas-fase3.md) de componentes, secuencia, pipeline y despliegue en la nube.
 
-SGO-Logic es una plataforma omnicanal que integra canales digitales y
-físicos, servicios especializados de negocio, mensajería asíncrona,
-bases de datos por dominio e integraciones externas. La arquitectura
-separa responsabilidades para facilitar la evolución independiente de
-los servicios, el escalamiento, la disponibilidad y la trazabilidad de
-las operaciones.
+## Backend
 
-Este documento describe los componentes, las comunicaciones, el
-despliegue, las medidas de seguridad, la observabilidad y los criterios
-de validación técnica.
+Un solo servicio Spring Boot. Cada paquete de `com.sgologic` es un componente:
 
-## 2. Objetivos
+| Paquete | Responsabilidad | Esquema en la base |
+|---|---|---|
+| `catalog` | Productos, categorías y promociones | `catalog` |
+| `customers` | Clientes, cuentas con login, recuperación de cuenta | `customers` |
+| `inventory` | Stock por ubicación, reservas de 20 minutos, movimientos, ubicaciones y traslados | `inventory` |
+| `orders` | Carrito, checkout, órdenes, estados, incidencias, devoluciones y cambios | `orders` |
+| `payments` | Cobro con PayKlik, crédito propio, abonos y reembolsos | `payments` |
+| `invoicing` | Factura electrónica con la SAT | `invoicing` |
+| `logistics` | Envíos, rastreo, retiro en tienda y transporte alternativo | `logistics` |
+| `notifications` | Avisos al cliente | `notifications` |
+| `integration` | Outbox, consumidores de Kafka, POS y ERP | `integration` |
+| `external` | Clientes HTTP de los seis proveedores y almacenamiento del archivo del ERP | — |
+| `audit` | Bitácora de auditoría, trazas y reportes | `audit` |
+| `auth`, `config` | Login, JWT, roles y parámetros del sistema | `config` |
 
-### 2.1 Objetivo general
+La API está documentada en [API.md](../../FASE%202/backend/API.md) y [API-Transacciones.md](../../FASE%202/backend/API-Transacciones.md).
 
-Establecer una referencia técnica para implementar, desplegar, operar,
-probar y mantener SGO-Logic de manera consistente con la arquitectura
-propuesta.
+### Flujo de una compra
 
-### 2.2 Objetivos específicos
+1. El cliente arma el carrito y llega al checkout. El stock se reserva por 20 minutos (parámetro `reservation.ttl_minutes`); un job libera las reservas vencidas cada 30 segundos.
+2. El sistema decide las rutas de pago disponibles: PayKlik para todos y crédito propio solo si el cliente es elegible.
+3. Al pagar, el sistema cobra y confirma la orden. Si hay un doble clic o dos cobros simultáneos para la misma orden, solo uno procede y los demás reciben 409.
+4. Con el pago aprobado, el trabajo posterior (factura, envío, avisos al cliente, evento de POS y lote del ERP) se encola en el outbox. Un fallo de un tercero no deshace la compra: el trabajo queda pendiente y se reintenta.
+5. El cliente sigue la orden en «Mis órdenes» hasta la entrega.
 
--   Documentar las capas de acceso, entrada, microservicios, mensajería,
-    datos e infraestructura.
--   Describir las responsabilidades de los servicios y sus límites.
--   Definir lineamientos para integraciones externas y sistemas
-    heredados.
--   Establecer prácticas de seguridad, disponibilidad, monitoreo y
-    recuperación.
--   Proponer una lista de verificación para la entrega técnica.
+### Crédito propio
 
-## 3. Alcance funcional
+Está en `payments/CreditService` y se alimenta del historial del cliente en el ERP.
 
-El sistema comprende la gestión de órdenes y carrito, inventario y
-reservas, pagos, facturación electrónica, despacho logístico,
-seguimiento de entregas, integración con sistemas heredados y POS,
-notificaciones, incidencias, usuarios, roles, configuración y auditoría.
+**Quién es elegible.** Se evalúa en cada checkout, con criterios que viven en la tabla `config.setting` y que el administrador cambia sin desplegar:
 
-La integración con AS/400 y los POS se realiza desde componentes de
-integración externos. No se contempla modificar internamente esos
-sistemas heredados.
+| Parámetro | Valor inicial |
+|---|---|
+| `credit.minimum_delivered_orders` | 3 compras entregadas |
+| `credit.minimum_purchase_amount` | Q 30 en compras entregadas |
+| `credit.maximum_late_payments` | 0 pagos fuera de plazo |
+| `credit.maximum_confirmed_incidents` | 0 incidencias confirmadas |
+| `credit.maximum_returns` | 0 devoluciones confirmadas |
+| `credit.maximum_declined_payments` | 0 pagos rechazados |
+| `credit.limit` | Q 5,000 de límite |
+| `credit.term_days` | 30 días de plazo |
 
-## 4. Estilos y patrones arquitectónicos
+No es elegible quien tenga un saldo vencido, una devolución o cambio en revisión, o no tenga un historial ERP vigente. Si el ERP no responde y no hay historial reciente, la opción de crédito simplemente no aparece y el cliente sigue con PayKlik.
 
-### 4.1 Microservicios
+**Cómo se decide.** El historial del ERP se refresca en una proyección propia en PostgreSQL y se suma al historial interno. La decisión, aprobada o rechazada, se guarda con el detalle de la evaluación en `payments.credit_application`, se audita y se notifica al cliente. Un candado por cliente serializa el gasto de crédito, de modo que dos compras simultáneas no superen el límite.
 
-La lógica se divide en servicios orientados a dominios de negocio. Cada
-servicio debe tener una responsabilidad definida, contratos explícitos y
-pruebas propias. La independencia de despliegue depende de que los
-servicios no compartan indebidamente sus estructuras internas ni accedan
-directamente a las tablas privadas de otros dominios.
+**Cómo se paga.** Cada compra a crédito crea un cargo en `payments.credit_charge` con fecha de vencimiento. El cliente lo abona desde «Mi crédito» con PayKlik; el abono libera el cupo. Si el abono falla, queda el error registrado y se puede reintentar.
 
-### 4.2 API Gateway
+### Mensajería con Kafka
 
-El API Gateway constituye el punto de entrada lógico a las APIs. Sus
-responsabilidades incluyen:
-
--   Enrutar solicitudes a los servicios correspondientes.
--   Aplicar políticas comunes de autenticación, autorización y límites
-    de solicitudes.
--   Centralizar aspectos transversales de las APIs.
--   Facilitar el registro y la correlación de peticiones.
-
-El frontend debe consumir el API Gateway, no conectarse directamente con
-cada microservicio.
-
-### 4.3 Arquitectura orientada a eventos
-
-Kafka o RabbitMQ se consideran alternativas para el bus de mensajes. Los
-productores publican eventos y los consumidores ejecutan tareas sin
-exigir que todos los pasos se completen dentro de la misma petición
-HTTP.
-
-Ejemplos de eventos que el equipo puede formalizar: `OrderCreated`,
-`PaymentApproved`, `PaymentRejected`, `InvoiceRequested`,
-`ShipmentCreated`, `DeliveryStatusUpdated` e `InventoryUpdated`. Estos
-nombres son ilustrativos; deben aprobarse como contratos reales antes de
-implementarse.
-
-La mensajería debe contemplar confirmaciones, reintentos limitados,
-idempotencia, seguimiento de mensajes fallidos y versiones de los
-esquemas.
-
-### 4.4 Contenedores y orquestación
-
-Docker empaqueta las aplicaciones y sus dependencias. Kubernetes se
-propone para orquestar contenedores, administrar réplicas, ejecutar
-verificaciones de salud y controlar despliegues. Docker Compose puede
-utilizarse para entornos locales o de desarrollo.
-
-### 4.5 Integración con sistemas heredados
-
-El servicio de Integración Legacy encapsula las particularidades de
-AS/400 y los POS. Debe validar formatos, controlar lotes, registrar
-errores y facilitar la recuperación sin propagar detalles del sistema
-legado al resto de los servicios.
-
-## 5. Vista general de la arquitectura
-
-![1](../DOCUMENTACION/image/Arquitectura%20Omnicanal%20SGO-Logic.png)  
-
-
-El esquema es conceptual. Las rutas, protocolos, réplicas, reglas de red
-y topología física deben quedar reflejados en los manifiestos y la
-configuración del entorno.
-
-## 6. Capas y componentes
-
-### 6.1 Canales de acceso
-
-  Componente         Responsabilidad
-  ------------------ ---------------------------------------------------------
-  Cliente web        Acceso a la plataforma desde navegador
-  Aplicación móvil   Operaciones desde iOS o Android
-  Tiendas físicas    Canal presencial de venta
-  POS                Registro e intercambio de operaciones de punto de venta
-
-### 6.2 Capa de entrada
-
-  Componente       Responsabilidad
-  ---------------- ------------------------------------------------------
-  Internet         Conectividad entre clientes y plataforma
-  CDN (opcional)   Distribución de recursos estáticos
-  Load Balancer    Distribución de tráfico entre instancias disponibles
-  API Gateway      Enrutamiento y políticas comunes de API
-
-El balanceador y el Gateway no reemplazan las validaciones de negocio
-que corresponden a cada servicio.
-
-### 6.3 Capa de microservicios
-
-#### Servicio de Órdenes y Carrito
-
-Administra carritos, creación y consulta de órdenes, validación inicial
-y estado del proceso de compra. Coordina con Inventario, Pagos,
-Facturación y Logística mediante contratos de API y eventos.
-
-#### Servicio de Inventario
-
-Gestiona existencias y disponibilidad por ubicación. Debe implementar
-reservas temporales y actualizaciones consistentes para reducir el
-riesgo de sobreventa.
-
-#### Servicio de Pagos
-
-Coordina las solicitudes de pago con PayKlik y registra el resultado y
-la referencia de la transacción. No debe almacenar el número completo de
-tarjeta ni el CVV.
-
-#### Servicio de Facturación
-
-Gestiona la preparación y seguimiento de facturas y la comunicación con
-SAT. Debe registrar los estados, respuestas y rechazos de la
-integración.
-
-#### Servicio de Despacho Logístico
-
-Coordina la preparación de despachos, asignaciones y comunicación con
-LogiExpress. Mantiene la información necesaria para consultar el estado
-de entrega.
-
-#### Servicio de Integración Legacy
-
-Gestiona el intercambio de información con AS/400 y POS, incluyendo
-validación de archivos o mensajes, sincronización, errores y resultados
-de los lotes.
-
-#### Servicio de Notificaciones
-
-Envía notificaciones por los canales configurados, como correo, SMS o
-push. Los fallos de un proveedor no deberían bloquear innecesariamente
-la confirmación de una orden.
-
-#### Servicio de Gestión de Incidencias
-
-Registra y da seguimiento a problemas operativos relacionados con
-órdenes, pagos, inventario, logística o integraciones. Conserva estado,
-responsable, resolución y trazabilidad.
-
-### 6.4 Bus de mensajes / cola de eventos
-
-El bus permite desacoplar tareas que no requieren una respuesta
-inmediata. Se recomienda:
-
--   Definir esquemas y versiones de los eventos.
--   Incluir identificadores de correlación y referencias de negocio.
--   Implementar consumidores idempotentes.
--   Configurar reintentos con espera progresiva.
--   Supervisar la antigüedad y longitud de las colas.
--   Establecer un mecanismo para mensajes que agoten los reintentos.
--   Evitar publicar secretos o información sensible innecesaria.
-
-### 6.5 Capa de datos
-
-  Base de datos      Contenido principal
-  ------------------ -----------------------------------------------
-  BD Órdenes         Órdenes y transacciones del proceso de compra
-  BD Inventario      Existencias, almacenes y reservas
-  BD Pagos           Referencias y resultados de pagos
-  BD Facturación     Facturas y estados de facturación
-  BD Logística       Despachos y seguimiento
-  BD Usuarios        Clientes, usuarios y agentes
-  BD Auditoría       Registros de trazabilidad
-  BD Configuración   Parámetros y roles
-
-La separación del diagrama es lógica; no implica un motor específico.
-Cada servicio debe ser propietario de los datos de su dominio. El acceso
-a datos de otro dominio debe realizarse mediante APIs o eventos
-acordados, no mediante acceso directo a sus tablas privadas.
-
-## 7. Integraciones externas
-
-  -----------------------------------------------------------------------
-  Sistema                 Propósito               Consideraciones
-  ----------------------- ----------------------- -----------------------
-  PayKlik                 Procesamiento de pagos  HTTPS, validación de
-                                                  respuestas, referencias
-                                                  y reintentos
-                                                  controlados
-
-  SAT                     Facturación electrónica Validación documental,
-                                                  seguimiento del envío y
-                                                  tratamiento de rechazos
-
-  LogiExpress             Despacho logístico      Autenticación, tiempos
-                                                  de espera y
-                                                  actualización de
-                                                  estados
-
-  AS/400                  Sistema heredado        Adaptador,
-                                                  sincronización
-                                                  controlada y registro
-                                                  de errores
-
-  POS de tiendas          Operaciones de punto de Validación de eventos y
-                          venta                   sincronización de datos
-
-  Proveedores de          Correo, SMS y push      Límites, reintentos y
-  notificación                                    registro de resultados
-  -----------------------------------------------------------------------
-
-Las credenciales deben almacenarse en un mecanismo seguro, nunca dentro
-del código fuente. Cada integración debe manejar indisponibilidad,
-respuestas inválidas, límites de consumo y operaciones pendientes.
-
-## 8. Flujo principal del negocio
-
-### 8.1 Procesamiento de una orden
-
-1.  El cliente inicia una compra desde web, aplicación móvil, tienda o
-    POS.
-2.  La solicitud llega por HTTPS al balanceador y al API Gateway.
-3.  El Gateway enruta la solicitud al Servicio de Órdenes y Carrito.
-4.  Se valida la información y se consulta la disponibilidad del
-    inventario.
-5.  Se reserva stock temporalmente cuando corresponde.
-6.  El Servicio de Pagos coordina el cobro con PayKlik.
-7.  La orden continúa o se gestiona según el resultado del pago.
-8.  Facturación prepara la información y coordina el envío a SAT.
-9.  Despacho coordina la entrega con LogiExpress.
-10. Los eventos activan tareas asíncronas, incluidas las notificaciones.
-11. Se actualizan los estados y se registran los eventos relevantes para
-    auditoría.
-
-Las transiciones exactas, compensaciones y reglas de cancelación deben
-definirse en los casos de uso y contratos del sistema.
-
-### 8.2 Sincronización con sistemas heredados
-
-1.  El servicio de Integración Legacy inicia la sincronización según la
-    frecuencia acordada.
-2.  Lee o recibe datos en el formato o interfaz disponible.
-3.  Valida estructura, campos obligatorios y consistencia.
-4.  Procesa registros válidos y separa los errores.
-5.  Actualiza la información a través de interfaces autorizadas.
-6.  Registra el resultado y permite reprocesar los registros fallidos.
-
-Como referencia funcional, se ha planteado sincronizar AS/400 cada 30
-minutos. La frecuencia final debe ser configurable y validarse con las
-restricciones del sistema legado.
-
-## 9. Modelo de despliegue
-
-El diagrama muestra cinco nodos lógicos:
-
-  -----------------------------------------------------------------------
-  Nodo                                Función
-  ----------------------------------- -----------------------------------
-  Nodo 1 --- Frontend React           Interfaz de usuario del BackOffice
-                                      y aplicación web
-
-  Nodo 2 --- Microservicios           Ejecución de los servicios de
-                                      negocio
-
-  Nodo 3 --- Bases de datos           Motores de datos y volúmenes
-                                      persistentes
-
-  Nodo 4 --- Message Broker           Kafka o RabbitMQ
-
-  Nodo 5 --- Servicios externos       Conectividad con proveedores y
-                                      plataformas externas
-  -----------------------------------------------------------------------
-
-Estos nodos son una vista lógica; no obligan a utilizar cinco máquinas
-físicas. En Kubernetes pueden corresponder a pods, deployments, stateful
-sets, servicios de red o grupos de nodos.
-
-### 9.1 Docker
-
--   Utilizar imágenes base mantenidas y versiones explícitas.
--   Ejecutar procesos con privilegios mínimos.
--   Mantener secretos fuera de las imágenes.
--   Definir verificaciones de salud.
--   Establecer límites de CPU y memoria.
--   Escanear imágenes y dependencias.
--   Versionar las imágenes publicadas.
-
-### 9.2 Kubernetes
-
-Según las necesidades del entorno, definir:
-
--   `Deployment` para aplicaciones sin estado.
--   `Service` para comunicación interna.
--   `Ingress` o equivalente para entrada HTTP/HTTPS.
--   `ConfigMap` para parámetros no confidenciales.
--   `Secret` o gestor externo para credenciales.
--   `PersistentVolumeClaim` para almacenamiento persistente.
--   `readinessProbe` y `livenessProbe`.
--   Solicitudes y límites de CPU y memoria.
--   Réplicas, políticas de actualización y reglas de red.
-
-Bases de datos y brokers requieren planes específicos de persistencia,
-respaldo, recuperación y actualización. Un contenedor por sí solo no
-garantiza alta disponibilidad.
-
-### 9.3 Entornos
-
--   **Desarrollo:** ejecución local y datos de prueba.
--   **Pruebas/integración:** validación de contratos, servicios e
-    integraciones.
--   **Producción:** infraestructura protegida, secretos administrados,
-    monitoreo, respaldo y control de acceso.
-
-Los datos reales no deben copiarse a entornos no productivos sin
-autorización y controles adecuados.
-
-## 10. Configuración
-
-Los parámetros deben inyectarse mediante variables de entorno o el
-sistema de configuración del despliegue. Ejemplo ilustrativo:
-
-``` dotenv
-NODE_ENV=production
-PORT=3000
-API_BASE_URL=https://api.example.com
-LOG_LEVEL=info
+```text
+transacción de negocio ──► tabla outbox (misma transacción)
+                                  │
+                       relé programado (cada 2 s)
+                                  ▼
+          Kafka: sgologic.orders · .notifications · .pos · .erp
+                                  │
+                      consumidor con reintentos
+                                  ▼
+                       proveedor externo (HTTP)
 ```
 
-Los nombres reales deben adaptarse a cada aplicación. Las contraseñas,
-tokens, claves privadas y credenciales no deben almacenarse en el
-repositorio. Los archivos `.env` locales deben excluirse del control de
-versiones y se debe mantener un archivo de ejemplo sin secretos.
+- El relé (`OutboxDispatcher`) toma hasta 100 intenciones pendientes por tabla con `for update skip locked`, las publica y marca `kafka_published_at`. Nunca llama a un proveedor.
+- Cada consumidor reintenta hasta 8 veces con espera exponencial de 2 s que se duplica hasta 30 s (`@RetryableTopic`, 3 particiones). Agotados los intentos, el mensaje va a su tópico DLT y la fila queda con el último error.
+- Si Kafka se cae, las intenciones se quedan en la base y el relé las publica cuando vuelve. La compra no se pierde.
+- Un circuito por tercero se abre tras 3 fallas seguidas y se queda abierto 20 segundos, para no golpear a un proveedor caído.
 
-## 11. Seguridad
+### Proveedores externos
 
-### 11.1 Comunicaciones y acceso
+Los seis son procesos independientes, hechos con un mismo script (`FASE 2/providers/server.py`) que se configura con la variable `PROVIDER` y guarda su estado en SQLite. El backend los consume por HTTP, por una URL configurable (`PAYKLIK_URL`, `SAT_URL`, `LOGIEXPRESS_URL`, `MESSAGING_URL`, `POS_URL`, `ERP_URL`), detrás de un adaptador. Cambiar a un proveedor real exige tocar solo el adaptador: es la decisión del [ADR-0008](../../FASE%202/DDA/ADR/0008-terceros-simulados-tras-un-adaptador.md).
 
--   Utilizar HTTPS para las comunicaciones externas.
--   Autenticar usuarios y servicios.
--   Aplicar autorización basada en roles y permisos.
--   Restringir puertos y conexiones internas.
--   Proteger las interfaces administrativas.
--   Configurar CORS para los orígenes autorizados.
--   Validar entradas y limitar solicitudes.
+El ERP, además de recibir los lotes de ventas, expone el historial de cada cliente que usa el crédito. El archivo de intercambio se escribe en disco en local y en Cloudflare R2 en la nube, porque el disco de Render no persiste.
 
-### 11.2 Datos y pagos
+## Datos
 
--   No almacenar el número completo de tarjeta ni el CVV.
--   Conservar únicamente referencias y datos necesarios para la
-    operación y auditoría.
--   Proteger datos almacenados y en tránsito según su sensibilidad.
--   Evitar datos personales innecesarios en logs y eventos.
--   Definir políticas de retención y eliminación.
+PostgreSQL 16, una sola base con 11 esquemas (`audit`, `catalog`, `config`, `customers`, `integration`, `inventory`, `invoicing`, `logistics`, `notifications`, `orders`, `payments`). El modelo completo está en `FASE 2/db/README.md` y en el diagrama entidad-relación de `FASE 2/image/`.
 
-### 11.3 Secretos y privilegios
+Las migraciones están en `FASE 2/db/migrations/` (V1 a V21) y se aplican con `FASE 2/db/migrate.sh`. El script es incremental: guarda lo aplicado en `public.schema_migration` y solo corre las versiones que faltan, sin borrar datos. En local lo ejecuta el servicio `migrate` del compose; en la nube, `FASE 2/db/scripts/aplicar-migraciones-nube.sh`, que el CI corre antes de cada deploy.
 
--   Usar un gestor de secretos o mecanismo seguro equivalente.
--   Rotar credenciales según la política operativa.
--   Evitar cuentas compartidas y privilegios excesivos.
--   Separar permisos por entorno.
--   Auditar las acciones administrativas relevantes.
+Hay dos roles de base: `sgologic`, dueño y usado por las migraciones, y `sgologic_app`, de bajo privilegio, que usa el backend en local ([ADR-0006](../../FASE%202/DDA/ADR/0006-rol-de-aplicacion-sin-privilegios-de-superusuario.md)). En la nube, Neon da un solo usuario por base y el backend se conecta con `DATABASE_URL`; es una reducción real del aislamiento, aceptable para una demo.
 
-### 11.4 Auditoría
+Los datos de prueba (12 productos, 34 ubicaciones, 408 filas de stock, clientes, el usuario `admin` y 5 cuentas de demo) salen de las migraciones V2, V7 y V9 y están detallados en [DATOS_SEED.md](../../DATOS_SEED.md).
 
-Para operaciones relevantes, registrar fecha/hora, usuario o servicio
-responsable, acción, resultado, canal de origen e identificadores de
-orden, transacción o correlación. Nunca registrar contraseñas, tokens,
-CVV ni otros secretos.
+## Seguridad
 
-## 12. Disponibilidad y tolerancia a fallos
+- **Dos logins independientes con JWT.** Personal (`POST /api/auth/login`) y cliente (`POST /api/customers/login`). El token se firma con `JWT_SECRET` y dura 8 horas. La revocación de sesiones del personal está en la migración V16.
+- **Roles del personal:** `ADMIN`, `FINANCE`, `LOGISTICS`, `CALL_CENTER_AGENT`, `STORE_MANAGER` y `STORE_EMPLOYEE`. Cada ruta del backoffice declara los roles que la pueden usar en `SecurityConfig`.
+- **Rutas públicas:** el catálogo y las promociones, el registro y login de clientes, la recuperación de contraseña y el webhook de rastreo de LogiExpress (protegido por la clave `CARRIER_WEBHOOK_KEY`).
+- **Tarjetas.** No existe ninguna columna para guardar una tarjeta. Como última barrera, restricciones de la base (migración V4) rechazan cualquier texto o JSON que contenga un número con forma de tarjeta: de 13 a 19 dígitos que pasen la verificación de Luhn.
+- **Auditoría.** Cada acción relevante (compra, crédito, cambios de configuración) queda en `audit` con actor, fecha y canal, y se puede reconstruir la traza de una orden.
+- **Secretos.** Las claves de base, JWT y R2 viajan por variables de entorno y no están en el repositorio. Las de desarrollo local son valores de ejemplo.
 
-### Reintentos y timeouts
+## Frontend
 
-Las llamadas a proveedores deben tener tiempos de espera explícitos y
-reintentos limitados. Se recomienda espera progresiva. No se deben
-repetir indefinidamente operaciones que puedan duplicar pagos u otros
-efectos.
+React 19 con TypeScript y Vite. Un solo build sirve dos aplicaciones: la tienda del cliente, en la raíz (`/`, `/catalogo`, `/carrito`, `/checkout`, `/credito`, `/mis-ordenes`, `/perfil`, `/notificaciones`), y el backoffice del personal, bajo `/administracion`. nginx sirve los archivos compilados y reenvía `/api` al backend. La plantilla está en `FASE 2/frontend/nginx.conf.template` y usa la variable `BACKEND_URL`.
 
-### Idempotencia
+## Ejecución local
 
-Las operaciones que puedan repetirse por reintentos o mensajes
-duplicados deben impedir efectos duplicados. Para órdenes, pagos y
-eventos se deben definir claves de idempotencia o mecanismos
-equivalentes.
+Solo hace falta Docker con Compose v2. Desde `FASE 2/` se levanta todo con `./iniciar.sh` o `docker compose up -d --build`:
 
-### Outbox y mensajes fallidos
+| Servicio | Qué es | Dirección |
+|---|---|---|
+| `db` | PostgreSQL 16 | `127.0.0.1:5432` |
+| `migrate` | Aplica las migraciones y termina | — |
+| `kafka` | Broker `apache/kafka:3.8.1` | interno |
+| `backend` | Spring Boot | `http://127.0.0.1:8080` |
+| `frontend` | nginx con la aplicación compilada | `http://localhost:8081` |
+| `payklik`, `sat`, `logiexpress`, `messaging`, `pos`, `erp` | Los seis proveedores simulados | interno |
 
-Cuando se persiste un cambio de negocio y se publica un evento, el
-patrón Outbox puede reducir el riesgo de que se guarde el cambio sin
-publicar el mensaje. Los mensajes que agoten los reintentos deben quedar
-disponibles para investigación y reprocesamiento controlado.
+`iniciar.sh` lee `RESET_SEED` en `.env` para decidir si borra la base y la recrea desde las migraciones antes de levantar todo. La guía completa está en [FASE 2/README.md](../../FASE%202/README.md).
 
-### Recuperación
+## Despliegue en la nube
 
-Se necesitan copias de seguridad, pruebas de restauración, monitoreo de
-dependencias y procedimientos para recuperar datos y mensajes. Los
-objetivos RTO y RPO deben acordarse con el negocio; este manual no
-presupone valores concretos.
-
-## 13. Observabilidad
+El blueprint [render.yaml](../../render.yaml) levanta dos servicios web con Docker (`Dockerfile.backend` y `Dockerfile.frontend`, en la raíz porque Render no resuelve bien una ruta con espacio). La base es Neon y el archivo del ERP va a Cloudflare R2. Los pasos y las decisiones están en [DEPLOY-RENDER.md](../../DEPLOY-RENDER.md).
 
-El diagrama considera Prometheus, Grafana y una solución de logs como
-ELK. La selección final debe corresponder al entorno real.
+| Variable | Servicio | Para qué |
+|---|---|---|
+| `DATABASE_URL` | backend | Cadena de conexión de Neon |
+| `JWT_SECRET` | backend | Firma de los tokens (la genera Render) |
+| `PORT` | ambos | Puerto de escucha |
+| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` | backend | Archivo del ERP; opcionales |
+| `KAFKA_BOOTSTRAP_SERVERS`, `PAYKLIK_URL`, `SAT_URL`, `LOGIEXPRESS_URL`, `MESSAGING_URL`, `POS_URL`, `ERP_URL` | backend | Kafka y proveedores; sin valor apuntan a los nombres del compose |
+| `CARRIER_WEBHOOK_KEY` | backend | Clave del webhook de rastreo |
+| `BACKEND_URL` | frontend | URL pública del backend, a la que nginx reenvía `/api` |
 
-### 13.1 Logs
+Dos cosas que conviene tener presentes:
 
-Emitir logs estructurados con fecha/hora, nivel, servicio, entorno e
-identificador de correlación. No registrar secretos ni datos personales
-innecesarios.
+- **El frontend usa la URL pública del backend.** Un servicio gratuito de Render no recibe tráfico por la red privada, así que el nombre interno no resuelve. Por eso `BACKEND_URL` es una URL completa con `https://`.
+- **La nube es una vista parcial.** Kafka y los seis proveedores no están desplegados en Render. El catálogo, el login, el carrito y las consultas funcionan; los flujos que dependen de Kafka o de un proveedor simulado solo se demuestran completos con el compose. Es una limitación del plan gratuito, y está dicha en el propio `render.yaml`.
 
-### 13.2 Métricas recomendadas
+Los servicios gratuitos se duermen tras 15 minutos sin tráfico. La primera petición después tarda hasta un par de minutos mientras el backend arranca y puede devolver 502. Conviene abrir la tienda antes de una demostración.
 
--   Solicitudes por segundo y tasa de errores.
--   Latencia de APIs y percentiles.
--   Uso de CPU y memoria.
--   Órdenes procesadas y pendientes.
--   Resultados y duración de pagos.
--   Reservas activas y expiradas.
--   Longitud y antigüedad de colas.
--   Reintentos y mensajes fallidos.
--   Latencia y disponibilidad de integraciones.
--   Fallos y retrasos de sincronización con AS/400 y POS.
+## Integración y despliegue continuos
 
-### 13.3 Trazas y alertas
+`.github/workflows/ci.yml` corre en cada push a `develop` y a las ramas `feature/**`, y en cada pull request hacia `develop`:
 
-Usar identificadores de correlación para relacionar logs de distintos
-servicios. Las alertas deben detectar errores sostenidos, latencia
-elevada, colas acumuladas, proveedores caídos o sincronizaciones
-fallidas. Los umbrales deben calibrarse con pruebas y datos reales.
-
-## 14. Rendimiento y requisitos de calidad
-
-Los objetivos del proyecto deben comprobarse mediante pruebas
-reproducibles.
-
-  -----------------------------------------------------------------------
-  Requisito de referencia Objetivo                Validación
-  ----------------------- ----------------------- -----------------------
-  Consulta de orden o     Menos de 5 segundos     Prueba de carga y
-  estado                                          medición extremo a
-                                                  extremo
-
-  Consulta de auditoría   Menos de 1 segundo      Prueba con volúmenes
-                                                  representativos
+| Job | Qué hace |
+|---|---|
+| `backend` | `mvn test` con JUnit |
+| `frontend` | `tsc`, Vitest, oxlint y build |
+| `e2e` | `python "FASE 3/verificar.py"`: integración, carga, estrés, caídas y E2E sobre el compose completo, y guarda la evidencia como artefacto |
 
-  Disponibilidad          Balanceador y réplicas  Pruebas de caída y
-                          según despliegue        recuperación
+El deploy lo hace Render, y solo cuando esos tres checks pasan: los dos servicios tienen `autoDeployTrigger: checksPass` en `render.yaml`. Si algo falla, Render no despliega y el servicio sigue con la última versión que pasó. El workflow no tiene un job de deploy propio a propósito, porque uno que esperara a Render crearía una espera circular. No hay credenciales de Render ni de la base guardadas en GitHub.
 
-  Escalabilidad           Escalado horizontal     Pruebas de carga y
-                          cuando aplique          aumento de réplicas
-
-  Seguridad               Autenticación,          Pruebas y revisión de
-                          autorización y          configuración
-                          protección de datos     
+Las migraciones no se aplican solas. Si una versión agrega una, hay que correr `aplicar-migraciones-nube.sh` antes de que el backend nuevo arranque; está explicado en [DEPLOY-RENDER.md](../../DEPLOY-RENDER.md).
 
-  Integraciones           Recuperación controlada Pruebas de timeout,
-                          ante fallos externos    desconexión y
-                                                  reintentos
-  -----------------------------------------------------------------------
+## Pruebas
 
-Para evaluar latencia, registrar carga concurrente, tamaño de datos,
-percentil medido y condiciones de prueba. No declarar cumplido un
-requisito sin evidencia.
-
-## 15. CI/CD
-
-GitHub Actions o GitLab CI son alternativas contempladas en el diseño.
-El pipeline concreto depende del repositorio seleccionado.
-
-Flujo recomendado:
-
-1.  Validar formato y calidad del código.
-2.  Ejecutar pruebas unitarias.
-3.  Ejecutar pruebas de integración.
-4.  Revisar dependencias y vulnerabilidades.
-5.  Construir imágenes Docker.
-6.  Etiquetar y publicar artefactos versionados.
-7.  Desplegar en pruebas.
-8.  Ejecutar verificaciones posteriores al despliegue.
-9.  Promover a producción con autorización.
-10. Conservar resultados y registros de la ejecución.
-
-Las credenciales del pipeline deben administrarse mediante secretos del
-proveedor. Cada despliegue debe permitir identificar el código y la
-imagen utilizados y contar con un procedimiento de reversión.
-
-## 16. Estrategia de pruebas
-
--   **Unitarias:** validan reglas de negocio de cada servicio.
--   **Integración:** verifican comunicación con bases de datos, broker y
-    proveedores.
--   **Contrato:** comprueban compatibilidad de APIs y eventos.
--   **Extremo a extremo:** validan flujos completos de compra, pago,
-    facturación, despacho y notificación.
--   **Carga y resiliencia:** miden latencia y errores bajo carga y ante
-    caídas o retrasos.
--   **Seguridad:** revisan autenticación, permisos, entradas, secretos,
-    dependencias y configuración de red.
-
-Los resultados deben guardarse como evidencia de aceptación.
-
-## 17. Operación y mantenimiento
-
-Las tareas de operación deben incluir:
-
--   Revisar alertas, métricas y logs.
--   Verificar salud de servicios y dependencias.
--   Revisar mensajes fallidos y reintentos agotados.
--   Supervisar sincronizaciones de AS/400 y POS.
--   Comprobar respaldos y probar restauraciones.
--   Actualizar imágenes y dependencias vulnerables.
--   Rotar secretos y revisar permisos.
--   Registrar cambios de configuración y despliegues.
--   Documentar incidentes, causa raíz y acciones correctivas.
-
-Los procedimientos deben identificar responsables, criterios de
-escalamiento, pasos de recuperación y comprobaciones posteriores.
-
-## 18. Riesgos y mitigaciones
-
-  -----------------------------------------------------------------------
-  Riesgo                  Impacto                 Mitigación
-  ----------------------- ----------------------- -----------------------
-  Proveedor externo       Retrasos en pagos,      Timeouts, reintentos
-  indisponible            facturación, logística  limitados, colas y
-                          o notificaciones        seguimiento
-
-  Mensajes duplicados     Procesamiento repetido  Idempotencia y
-                                                  deduplicación
-
-  Inventario              Sobreventa o            Reservas, validaciones
-  desactualizado          disponibilidad          y sincronización
-                          incorrecta              
-
-  Fallo con sistemas      Datos inconsistentes    Registro por lote,
-  heredados                                       alertas y
-                                                  reprocesamiento
-
-  Acceso no autorizado    Exposición o            Roles, privilegio
-                          modificación de datos   mínimo y auditoría
-
-  Pérdida de datos        Interrupción operativa  Respaldos y pruebas de
-                                                  restauración
+La verificación automática completa corre con un solo comando desde la raíz:
 
-  Saturación del broker   Retraso en tareas       Monitoreo de colas,
-                          asíncronas              capacidad y alertas
+```text
+python "FASE 3/verificar.py"
+```
 
-  Despliegue defectuoso   Interrupción o          Pruebas, despliegue
-                          regresiones             controlado y reversión
-  -----------------------------------------------------------------------
+La última corrida validada ejecutó 242 casos sin fallos: 182 unitarias (60 del backend y 122 del frontend), 8 de integración, 5 de carga, 5 de estrés y 42 E2E con Chromium, además de las simulaciones de caída de proveedores y Kafka. El enunciado pide al menos 5 por categoría. El plan, la matriz de trazabilidad, la guía técnica y la evidencia están en `FASE 3/`:
 
-## 19. Decisiones pendientes antes de producción
+- [Plan de pruebas](../PLAN-PRUEBAS.md)
+- [Matriz de trazabilidad](../MATRIZ-TRAZABILIDAD.md)
+- [Guía técnica de las pruebas](../GUIA-TECNICA-PRUEBAS.md)
+- [Evidencia de la ejecución](../EVIDENCIA.md)
 
-El equipo debe concretar y documentar:
+## Flujo de trabajo en git
 
--   Selección definitiva de Kafka o RabbitMQ.
--   Motor y versión de cada base de datos.
--   Autenticación, emisión y renovación de tokens.
--   Contratos de APIs y esquemas de eventos.
--   Retención, reintentos y tratamiento de mensajes fallidos.
--   Topología de red, DNS, TLS y reglas de firewall.
--   Proveedor de nube y dimensionamiento de recursos.
--   Réplicas y estrategia de alta disponibilidad.
--   RTO, RPO, frecuencia de respaldos y recuperación.
--   Umbrales de monitoreo y alertas.
--   Estrategia de despliegue y reversión.
--   Responsables de operación y soporte.
--   Presupuesto definitivo de infraestructura.
+Se usa git-flow. `main` guarda lo que se entregó y cada versión lleva un tag `v1`, `v2`, etc. `develop` integra el trabajo del sprint. Cada cambio se hace en una rama `feature/<carnet>-<tema>` creada desde `develop` y vuelve por pull request. El mensaje de cada commit lleva el carnet de quien lo hace: `carnet: mensaje`.
 
-## 20. Lista de verificación para la entrega
+## Operación y problemas conocidos
 
--   [ ] Los componentes del diagrama están identificados y documentados.
--   [ ] Las responsabilidades y contratos de los microservicios están
-    definidos.
--   [ ] El frontend consume el API Gateway.
--   [ ] Las comunicaciones externas utilizan HTTPS.
--   [ ] Las integraciones tienen timeout y manejo de errores.
--   [ ] Las operaciones repetibles cuentan con controles de
-    idempotencia.
--   [ ] Los eventos y sus esquemas están documentados.
--   [ ] Las bases de datos cuentan con persistencia y respaldo.
--   [ ] Los secretos no están incluidos en el repositorio.
--   [ ] Los logs y métricas permiten investigar fallos.
--   [ ] Se ejecutaron pruebas unitarias, de integración y de carga
-    pertinentes.
--   [ ] Se realizaron pruebas de seguridad.
--   [ ] El despliegue es reproducible y dispone de reversión.
--   [ ] Los objetivos de rendimiento se validaron con evidencia.
--   [ ] Existe un procedimiento de recuperación ante fallos.
+| Síntoma | Causa | Qué hacer |
+|---|---|---|
+| 502 al entrar o al iniciar sesión en la nube | El backend gratuito estaba dormido | Esperar un minuto y reintentar |
+| Deploy del backend falla con «Timed out waiting for health check» | El esquema de Neon es anterior al código y `/api/products` da 500 | Aplicar las migraciones con `aplicar-migraciones-nube.sh` y redesplegar |
+| `unknown "backend_url" variable` en el log de nginx | Falta la variable `BACKEND_URL` en el frontend | Definirla en Render y redesplegar |
+| Avisos `localhost:9092 could not be established` en el log de la nube | No hay Kafka desplegado en Render | Esperado en la vista parcial; los eventos quedan pendientes en el outbox |
+| La compra a crédito no aparece como opción | El cliente no cumple los criterios o no hay historial ERP vigente | Revisar «Mi crédito», que explica el motivo |
 
-## 21. Glosario
+## Referencias
 
-  -----------------------------------------------------------------------
-  Término                             Definición
-  ----------------------------------- -----------------------------------
-  API                                 Interfaz para la comunicación entre
-                                      componentes
-
-  API Gateway                         Punto de entrada que enruta
-                                      solicitudes y aplica políticas
-                                      comunes
-
-  BackOffice                          Interfaz administrativa para la
-                                      operación interna
-
-  Broker                              Componente que distribuye mensajes
-                                      entre productores y consumidores
-
-  CI/CD                               Automatización de integración,
-                                      validación y despliegue
-
-  Contenedor                          Paquete ejecutable con una
-                                      aplicación y sus dependencias
-
-  Idempotencia                        Propiedad por la que repetir una
-                                      operación no genera efectos
-                                      adicionales no deseados
-
-  Microservicio                       Servicio independiente orientado a
-                                      una responsabilidad de negocio
-
-  Observabilidad                      Capacidad de comprender el sistema
-                                      mediante logs, métricas y trazas
-
-  Outbox                              Patrón que registra eventos
-                                      pendientes junto con cambios de
-                                      negocio para publicarlos de forma
-                                      confiable
-
-  POS                                 Sistema de punto de venta
-
-  RPO                                 Punto de recuperación: cantidad de
-                                      datos que se acepta poder perder
-
-  RTO                                 Tiempo objetivo para recuperar un
-                                      servicio tras una interrupción  
-
-                                      
-  -----------------------------------------------------------------------  
-
-
-
-
-
-
-# Diagramas Importantes  
-
-## Diagrama de bloques  
-![2](../DOCUMENTACION/image/Arquitectura%20SGO-Logic%20Omnicanal.png)  
-
-## Diagrama de componentes  
-![3](../DOCUMENTACION/image/Arquitectura%20de%20Componentes%20SGO-Logic.png)  
-
-## Diagrama de despliegue  
-![4](../DOCUMENTACION/image/Diagrama%20de%20Despliegue%20de%20Microservicios%20SGO-Logic.png)  
-
-
-## 22. Conclusión
-
-SGO-Logic combina microservicios, API Gateway, mensajería orientada a
-eventos, almacenamiento separado por dominio e integración con sistemas
-externos y heredados. Esta estructura facilita organizar los procesos
-del negocio, desacoplar tareas asíncronas y evolucionar componentes con
-límites claros.
-
-La calidad de la implementación dependerá de contratos consistentes,
-protección de datos y credenciales, mecanismos de recuperación,
-observabilidad y pruebas que demuestren el cumplimiento de los objetivos
-de rendimiento y disponibilidad. El documento debe actualizarse cuando
-se concreten decisiones técnicas o cambie el despliegue real.
+- [README del proyecto](../../README.md) y [bitácora](../../BITACORA.md)
+- [Arquitectura de la Fase 1](../../FASE%201/README.md) y [de la Fase 2](../../FASE%202/DDA/)
+- [Despliegue en Render](../../DEPLOY-RENDER.md)
+- [Manual de usuario](Manual_Usuario_SGO-Logic.md)

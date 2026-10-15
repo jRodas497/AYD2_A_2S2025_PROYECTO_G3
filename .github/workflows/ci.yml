@@ -1,5 +1,11 @@
 name: CI
 
+# El deploy lo hace Render: sus servicios tienen autoDeployTrigger: checksPass (ver render.yaml),
+# así que solo despliegan un commit de develop cuando todos los checks de este workflow pasan.
+# Si backend, frontend o e2e fallan, Render no despliega. Por eso este workflow no tiene un job
+# de deploy propio: agregarlo (y hacerlo esperar a Render) crearía un círculo, porque Render
+# esperaría a que ese job pase y el job esperaría a Render.
+
 # feature/202200389-deploy-render ya se juntó a develop (PR #15): corre en cada push a develop y
 # en cada pull request contra develop, que es el gate real para lo que entra al proyecto. Se deja
 # también el push directo a la rama de trabajo mientras siga abierta, para ver el resultado antes
@@ -87,46 +93,3 @@ jobs:
             FASE 2/frontend/test-results/
           retention-days: 14
           if-no-files-found: error
-
-  deploy:
-    name: Deploy a Render
-    # El "no se debe hacer deploy si las pruebas no pasan" lo da needs: si backend, frontend o
-    # e2e fallan, GitHub Actions ni siquiera intenta este job.
-    needs: [e2e]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/develop' && vars.DEPLOY_RENDER_FULL_STACK == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Reiniciar la base en la nube (si RESET_SEED_CLOUD = true)
-        # Mismo interruptor que RESET_SEED en iniciar.sh, pero sobre Neon de verdad en vez de un
-        # contenedor local: en true, BORRA todos los esquemas de la base y los recrea desde las
-        # migraciones antes de que el nuevo backend arranque. "vars" (no "secrets") porque
-        # true/false no es sensible y sí se puede leer directo en "if". Requiere el secreto
-        # DATABASE_URL del repositorio (Settings > Secrets and variables > Actions) — es una
-        # copia aparte de la que ya está pegada en el dashboard de Render, GitHub Actions no
-        # puede leer esa. Se salta solo si no existe.
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DB_APP_PASSWORD: ${{ secrets.DB_APP_PASSWORD }}
-        if: ${{ vars.RESET_SEED_CLOUD == 'true' && env.DATABASE_URL != '' }}
-        run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
-          "FASE 2/db/scripts/reiniciar-base-nube.sh" "$DATABASE_URL"
-
-      - name: Disparar deploy del backend en Render
-        # El "deploy hook" de cada servicio se crea en Render (Settings > Deploy Hook) y se
-        # guarda como secreto del repositorio. Mientras no exista, este paso se salta en vez de
-        # fallar el pipeline — así el gate de pruebas funciona aunque el deploy aún no esté
-        # configurado. "secrets" no se puede usar directo en "if" (GitHub Actions lo rechaza, ver
-        # contextos disponibles para "if"), por eso pasa primero por una variable de entorno.
-        env:
-          DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}
-        if: ${{ env.DEPLOY_HOOK != '' }}
-        run: curl -fsS -X POST "$DEPLOY_HOOK"
-
-      - name: Disparar deploy del frontend en Render
-        env:
-          DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND }}
-        if: ${{ env.DEPLOY_HOOK != '' }}
-        run: curl -fsS -X POST "$DEPLOY_HOOK"

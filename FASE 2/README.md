@@ -47,13 +47,16 @@ ronda de pruebas siempre del mismo punto); en `false`, o sin `.env`, no toca los
 haya — igual que correr `docker compose up -d --build` directamente, que sigue funcionando igual
 que siempre si no se quiere pasar por el script.
 
-Eso levanta tres contenedores:
+Eso levanta estos servicios:
 
-| Contenedor | Qué es | Puerto |
+| Servicio | Qué es | Puerto |
 |---|---|---|
-| `sgologic-db` | PostgreSQL 16. La primera vez corre las migraciones `db/migrations/V1` a `V9` y siembra 2 centros de distribución, 32 tiendas, 12 productos con su stock, 100 clientes sin cuenta, 5 clientes de demo con cuenta y login (ver "Iniciar sesión" abajo) y el usuario de desarrollo `admin` | `127.0.0.1:5432` |
+| `sgologic-db` | PostgreSQL 16 | `127.0.0.1:5432` |
+| `migrate` | Corre una vez las migraciones `db/migrations/V1` a `V21` y termina. Siembra 2 centros de distribución, 32 tiendas, 12 productos con su stock, 100 clientes sin cuenta, 5 clientes de demo con cuenta y login (ver "Iniciar sesión" abajo) y el usuario de desarrollo `admin` | — |
+| `kafka` | Broker de mensajes de la integración asíncrona | interno |
 | `sgologic-backend` | El backend. Espera a que la base esté sana antes de arrancar | `127.0.0.1:8080` |
 | `sgologic-frontend` | El frontend compilado, servido con nginx. Reenvía `/api` al backend | `127.0.0.1:8081` |
+| `payklik`, `sat`, `logiexpress`, `messaging`, `pos`, `erp` | Los seis proveedores externos simulados, cada uno como proceso HTTP propio | interno |
 
 La aplicación queda en `http://localhost:8081`: la tienda en la raíz (pide iniciar sesión de
 cliente en `/ingresar` para carrito, checkout, "Mis órdenes", perfil y notificaciones — el

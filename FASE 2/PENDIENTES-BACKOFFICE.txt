@@ -3,7 +3,7 @@ PENDIENTES Y DETALLE DEL TRABAJO DE BACKOFFICE (Frontend 1 + Frontend 2 unificad
 
 Este archivo documenta lo que se hizo para conectar el backoffice a datos reales del
 backend y la base de datos (sin mocks), y lo que queda pendiente. Complementa a
-BITACORA.md, que es el registro cronológico de todo el proyecto; este archivo es el
+../BITACORA.md, que es el registro cronológico de todo el proyecto; este archivo es el
 detalle técnico de un solo cambio: cerrar el hueco entre lo que el backend ya podía
 hacer y lo que el frontend en realidad mostraba.
 
@@ -212,7 +212,7 @@ las credenciales, igual que ya se hizo con Neon):
 
 - Base de datos: Neon Postgres en vez del Postgres propio de Render (ese expira a los 30 días,
   Neon no). DATABASE_URL es el interruptor: si existe, el backend se conecta ahí; si no, sigue
-  local. Detalle completo en DEPLOY-RENDER.md (raíz del repo).
+  local. Detalle completo en ../DEPLOY-RENDER.md (raíz del repo).
 - Archivo del ERP (ErpDropClient): puede subir a Cloudflare R2 en vez de escribir al disco del
   contenedor (que no persiste entre deploys de Render). Interruptor: si existe R2_BUCKET, usa
   R2ErpFileStorage; si no, sigue escribiendo local con LocalErpFileStorage, sin cambiar nada. Las
@@ -279,7 +279,7 @@ móvil. Eso sigue pendiente de que alguien del equipo lo revise a ojo.
 
 Tablero Kanban
 ---------------
-Sigue sin poder confirmarse si existe uno activo (ya documentado en BITACORA.md).
+Sigue sin poder confirmarse si existe uno activo (ya documentado en ../BITACORA.md).
 
 Pruebas E2E para los repositorios HTTP nuevos de esta segunda auditoría — CERRADO
 -------------------------------------------------------------------------

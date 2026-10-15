@@ -1,4 +1,4 @@
-# Manual de usuario y demostración de pruebas
+# Guía para ejecutar y demostrar las pruebas
 
 ## Obtener un resultado verificable
 
@@ -14,7 +14,7 @@ Para ver las pruebas de navegador, abrir `playwright-report/index.html` dentro d
 
 ## Demostrar la aplicación con datos de prueba
 
-Si se quiere inspeccionar la aplicación después de las pruebas, ejecutar el mismo comando con `--keep-stack`. La tienda queda en `http://127.0.0.1:18081` y la administración en `/administracion`. El administrador de prueba es `admin` con contraseña `admin123`. Los datos temporales pueden retirarse con el comando de limpieza del [manual técnico](MANUAL-TECNICO.md).
+Si se quiere inspeccionar la aplicación después de las pruebas, ejecutar el mismo comando con `--keep-stack`. La tienda queda en `http://127.0.0.1:18081` y la administración en `/administracion`. El administrador de prueba es `admin` con contraseña `admin123`. Los datos temporales pueden retirarse con el comando de limpieza del [guía técnica](GUIA-TECNICA-PRUEBAS.md).
 
 ### Compra con pago tradicional
 
