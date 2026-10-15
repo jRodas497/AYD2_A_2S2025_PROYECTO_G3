@@ -34,7 +34,7 @@ Lo que la Fase 3 agrega a los drivers de las fases anteriores ([FASE 1](../../FA
 | CC-03 | Consistencia | Dos compras a crédito simultáneas no se evalúan contra el mismo cupo | Gasto de crédito serializado por cliente |
 | CC-04 | Trazabilidad | Toda decisión de crédito se puede justificar | Registro con el detalle de la evaluación |
 | CC-05 | Calidad del producto | Las pruebas cubren las cinco categorías | Al menos 5 casos de unitarias, integración, E2E, carga y estrés |
-| CC-06 | Despliegue | Un cambio roto no llega a producción | Gate de pruebas y health check posterior al deploy |
+| CC-06 | Despliegue | Un cambio roto no llega a producción | Deploy condicionado a que pasen los checks, y health check antes de reemplazar la versión |
 
 ## Escenarios de calidad
 
@@ -87,10 +87,10 @@ Lo que la Fase 3 agrega a los drivers de las fases anteriores ([FASE 1](../../FA
 | Elemento | Descripción |
 |---|---|
 | Fuente | Un integrante que sube un cambio |
-| Estímulo | Las pruebas fallan, o el backend no responde tras desplegar |
+| Estímulo | Las pruebas fallan, o el backend nuevo no responde tras desplegar |
 | Artefacto | `.github/workflows/ci.yml` y `render.yaml` |
 | Entorno | Push a `develop` |
-| Respuesta | El job `deploy` no se ejecuta si las pruebas fallan; si el backend no responde 200 después del deploy, el pipeline falla |
+| Respuesta | Render no despliega si algún check de GitHub Actions falla; si el backend nuevo no responde en el health check, Render conserva la versión anterior |
 | Medida | Ningún commit con pruebas rojas llega a producción, porque Render no despliega por su cuenta |
 
 ## Decisiones arquitectónicas asociadas

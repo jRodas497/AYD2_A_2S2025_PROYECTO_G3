@@ -1,13 +1,11 @@
 #!/bin/bash
 # Equivalente en la nube de reiniciar-base.sh: borra TODOS los esquemas de una base Postgres
-# administrada (Neon, o cualquier otra) y los recrea desde cero con las migraciones. Lo usa el
-# job "deploy" del CI (.github/workflows/ci.yml) cuando la variable de repositorio
-# RESET_SEED_CLOUD está en "true" — mismo interruptor y mismo significado que RESET_SEED en
-# iniciar.sh, pero sobre la base real, no sobre un contenedor local.
+# administrada (Neon, o cualquier otra) y los recrea desde cero con las migraciones. Se corre a
+# mano: DB_APP_PASSWORD=... ./reiniciar-base-nube.sh "<cadena de conexión>".
 #
-# Esto borra todo lo que haya en esa base, no solo lo que sembraron las migraciones. No se
-# recomienda dejarlo en "true" de forma permanente: cada push a la rama que dispara el deploy
-# volvería a borrar lo que se haya probado desde la última vez.
+# Esto borra todo lo que haya en esa base, no solo lo que sembraron las migraciones. Sirve para
+# dejar un punto de partida limpio antes de una demostración, no para usarlo de forma habitual.
+# Para solo agregar migraciones nuevas sin borrar datos, usar aplicar-migraciones-nube.sh.
 set -euo pipefail
 
 if [ -z "${1:-}" ]; then

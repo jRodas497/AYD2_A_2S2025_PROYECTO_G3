@@ -108,7 +108,7 @@ sequenceDiagram
 
 ## Pipeline de CI/CD
 
-`deploy` solo corre si las pruebas pasan ([ADR-0011](ADR/0011-cicd-y-despliegue-en-la-nube.md)). Render no despliega por su cuenta.
+Render despliega solo si los checks pasan ([ADR-0011](ADR/0011-cicd-y-despliegue-en-la-nube.md)).
 
 ```mermaid
 flowchart LR
@@ -118,14 +118,11 @@ flowchart LR
     BE --> E2E
     FE --> E2E
     E2E[Pruebas de Fase 3<br/>integración, carga, estrés,<br/>caídas y E2E en Docker]
-    E2E -- pasan y push a develop --> DEP[deploy]
-    E2E -- fallan --> STOP([El pipeline se detiene<br/>sin deploy])
-    DEP --> MIG[Aplicar migraciones<br/>pendientes a Neon]
-    MIG --> HOOK[Deploy hooks<br/>backend y frontend]
-    HOOK --> R[(Render)]
-    HOOK --> HC{Backend responde 200}
-    HC -- sí --> OK([Deploy completo])
-    HC -- no tras 20 min --> FAIL([El pipeline falla])
+    E2E -- todos los checks pasan --> R[Render<br/>autoDeployTrigger: checksPass]
+    E2E -- algún check falla --> STOP([Render no despliega<br/>y conserva la versión anterior])
+    R --> HC{Health check<br/>/api/products}
+    HC -- responde 200 --> OK([Versión nueva en producción])
+    HC -- no responde --> KEEP([Render conserva la<br/>versión anterior])
 ```
 
 ## Despliegue en la nube

@@ -34,10 +34,9 @@ services:
     runtime: docker
     dockerfilePath: Dockerfile.backend
     dockerContext: .
-    # Sin deploy automático por commit: solo el job deploy de .github/workflows/ci.yml, que corre
-    # después de las pruebas, lanza el deploy (por Deploy Hook). Así no sale a producción nada
-    # que no haya pasado el CI.
-    autoDeployTrigger: off
+    # Despliega un commit de develop solo si pasan los checks de GitHub Actions
+    # (.github/workflows/ci.yml): pruebas del backend, del frontend y de la Fase 3.
+    autoDeployTrigger: checksPass
     plan: free
     region: oregon
     healthCheckPath: /api/products
@@ -83,7 +82,7 @@ services:
     runtime: docker
     dockerfilePath: Dockerfile.frontend
     dockerContext: .
-    autoDeployTrigger: off
+    autoDeployTrigger: checksPass
     plan: free
     region: oregon
     envVars:

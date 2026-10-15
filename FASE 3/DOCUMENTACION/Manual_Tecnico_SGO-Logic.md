@@ -176,9 +176,10 @@ Los servicios gratuitos se duermen tras 15 minutos sin tráfico. La primera peti
 | `backend` | `mvn test` con JUnit |
 | `frontend` | `tsc`, Vitest, oxlint y build |
 | `e2e` | `python "FASE 3/verificar.py"`: integración, carga, estrés, caídas y E2E sobre el compose completo, y guarda la evidencia como artefacto |
-| `deploy` | Solo en push a `develop` y solo si `e2e` pasó: aplica las migraciones pendientes a Neon, dispara el deploy de los dos servicios por Deploy Hook y espera a que el backend responda 200 |
 
-El deploy no ocurre si las pruebas fallan porque `deploy` depende de `e2e` y de los jobs anteriores. Los servicios de Render tienen `autoDeployTrigger: off`, así que no hay otra forma de que un commit llegue a producción. Si falta un secreto, el job falla con un mensaje claro en lugar de saltarse el deploy. Los secretos y variables necesarios están en [DEPLOY-RENDER.md](../../DEPLOY-RENDER.md).
+El deploy lo hace Render, y solo cuando esos tres checks pasan: los dos servicios tienen `autoDeployTrigger: checksPass` en `render.yaml`. Si algo falla, Render no despliega y el servicio sigue con la última versión que pasó. El workflow no tiene un job de deploy propio a propósito, porque uno que esperara a Render crearía una espera circular. No hay credenciales de Render ni de la base guardadas en GitHub.
+
+Las migraciones no se aplican solas. Si una versión agrega una, hay que correr `aplicar-migraciones-nube.sh` antes de que el backend nuevo arranque; está explicado en [DEPLOY-RENDER.md](../../DEPLOY-RENDER.md).
 
 ## Pruebas
 
@@ -204,7 +205,7 @@ Se usa git-flow. `main` guarda lo que se entregó y cada versión lleva un tag `
 | Síntoma | Causa | Qué hacer |
 |---|---|---|
 | 502 al entrar o al iniciar sesión en la nube | El backend gratuito estaba dormido | Esperar un minuto y reintentar |
-| Deploy del backend falla con «Timed out waiting for health check» | El esquema de Neon es anterior al código y `/api/products` da 500 | Aplicar las migraciones (`aplicar-migraciones-nube.sh`); el job de deploy ya lo hace |
+| Deploy del backend falla con «Timed out waiting for health check» | El esquema de Neon es anterior al código y `/api/products` da 500 | Aplicar las migraciones con `aplicar-migraciones-nube.sh` y redesplegar |
 | `unknown "backend_url" variable` en el log de nginx | Falta la variable `BACKEND_URL` en el frontend | Definirla en Render y redesplegar |
 | Avisos `localhost:9092 could not be established` en el log de la nube | No hay Kafka desplegado en Render | Esperado en la vista parcial; los eventos quedan pendientes en el outbox |
 | La compra a crédito no aparece como opción | El cliente no cumple los criterios o no hay historial ERP vigente | Revisar «Mi crédito», que explica el motivo |

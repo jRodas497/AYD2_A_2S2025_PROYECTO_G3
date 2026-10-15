@@ -153,55 +153,47 @@ están pensados para pruebas, no para producción.
 ## CI/CD: de cada commit al deploy real
 
 `.github/workflows/ci.yml` corre en cada push a `develop` y a las ramas `feature/**`, y en cada
-pull request hacia `develop`. Tiene tres etapas:
+pull request hacia `develop`. Tiene tres jobs:
 
-- **Build y pruebas rápidas** (`backend` y `frontend`): JUnit del backend; tsc, Vitest, oxlint y
-  build del frontend.
-- **Pruebas de la Fase 3** (`e2e`, solo si las dos anteriores pasan): integración, carga, estrés,
-  caídas de proveedores y E2E con Playwright, contra el docker-compose completo (ver
-  `FASE 3/README.md`).
-- **Deploy** (`deploy`, solo en un push a `develop` y solo si `e2e` pasó): aplica las migraciones
-  pendientes a Neon, dispara el deploy de los dos servicios de Render y espera a que el backend
-  responda 200.
+- **`backend` y `frontend`**: JUnit del backend; tsc, Vitest, oxlint y build del frontend.
+- **`e2e`** (solo si los dos anteriores pasan): las pruebas de la Fase 3 (integración, carga,
+  estrés, caídas de proveedores y E2E con Playwright) contra el docker-compose completo. Ver
+  `FASE 3/README.md`.
 
-El gate "no hay deploy si las pruebas fallan" lo da `needs: [e2e]` en el job de deploy. Para que
-sea real, los servicios de Render tienen `autoDeployTrigger: off` en `render.yaml`: Render ya no
-despliega por su cuenta cada commit, y la única forma de llegar a producción es este job. Si un
-secreto falta, el job falla con un mensaje claro en vez de saltarse el deploy en silencio.
+El deploy lo hace Render, y solo cuando esos checks pasan. Los dos servicios tienen
+`autoDeployTrigger: checksPass` en `render.yaml`: Render espera a que todos los checks de GitHub
+Actions del commit terminen bien antes de desplegarlo. Si `backend`, `frontend` o `e2e` fallan,
+Render no despliega, y el servicio sigue con la última versión que sí pasó. No hace falta
+configurar secretos en GitHub.
+
+Es la forma que cumple el "no se debe hacer deploy si las pruebas no pasan" sin que GitHub tenga
+que conocer a Render. El workflow no tiene un job de deploy propio a propósito: si lo tuviera y
+esperara a que Render termine, Render esperaría a ese job y los dos quedarían esperándose.
 
 ### Configurar el deploy (una sola vez)
 
 1. **Aplicar el blueprint** (pasos 4-5 de arriba). Si los servicios ya existían, en Render →
-   Blueprints → el blueprint → *Manual sync* para que tome `autoDeployTrigger: off`.
-2. **Copiar el Deploy Hook de cada servicio.** Dashboard de Render → el servicio
-   (`sgologic-backend` o `sgologic-frontend`) → Settings → Deploy Hook.
-3. **Guardar estos secretos en el repositorio** (Settings → Secrets and variables → Actions →
-   *Secrets*):
-   - `RENDER_DEPLOY_HOOK_BACKEND` y `RENDER_DEPLOY_HOOK_FRONTEND`.
-   - `DATABASE_URL`: la misma cadena de Neon que está en Render, copiada aparte (GitHub Actions
-     no puede leer los secretos de Render).
-   - `DB_APP_PASSWORD`: la clave del rol `sgologic_app`; el script de migraciones la asigna en
-     cada corrida.
-4. **Guardar esta variable** (pestaña *Variables*, no es sensible):
-   `DEPLOY_HEALTH_URL` = `https://sgologic-backend.onrender.com/api/products` (o la URL real del
-   backend). Con ella el job espera hasta 20 minutos a que la versión nueva responda 200; sin
-   ella termina apenas dispara los deploys.
+   Blueprints → el blueprint → *Manual sync* para que tome `autoDeployTrigger: checksPass`.
+2. Comprobar en cada servicio, Settings → Build & Deploy → Auto-Deploy, que diga *After CI
+   Checks Pass*.
 
-### Migraciones en cada deploy
+### Migraciones: se aplican a mano cuando cambian
 
-Antes de disparar el deploy, el job corre `FASE 2/db/scripts/aplicar-migraciones-nube.sh`. Es
-incremental: lleva el registro en `public.schema_migration` y solo aplica las versiones que
-faltan, sin borrar datos. Así un backend nuevo no arranca contra un esquema viejo, que fue lo que
-hizo fallar el health check de los deploys del 12 y 13 de octubre.
+Render despliega el código, pero no toca la base. Si una versión nueva agrega una migración en
+`FASE 2/db/migrations/`, hay que aplicarla a Neon **antes** de que el backend nuevo arranque; si
+no, el backend levanta contra un esquema viejo y falla el health check, que fue lo que pasó en
+los deploys del 12 y 13 de octubre. Desde una terminal, con Docker:
 
-### Reiniciar la base de Neon en un deploy (opcional)
+```bash
+DB_APP_PASSWORD="<clave del rol sgologic_app>" ./FASE\ 2/db/scripts/aplicar-migraciones-nube.sh "<cadena de Neon>"
+```
 
-`iniciar.sh` tiene `RESET_SEED` para borrar y recrear la base local antes de levantar el stack
-(ver más arriba). El job `deploy` tiene el mismo interruptor para Neon: `RESET_SEED_CLOUD`, una
-**variable** del repositorio en `true` o `false`.
+El script es incremental: lleva el registro en `public.schema_migration` y solo aplica las
+versiones que faltan, sin borrar datos. Con las migraciones V1 a V21 ya está al día.
 
-**Importante**: en local, `RESET_SEED=true` borra un contenedor propio; aquí borra **la base de
-Neon de verdad**. Si se deja en `true`, cada push a `develop` vuelve a borrar lo que se haya
-probado. Sirve para dejar un punto de partida limpio antes de una demo, y hay que volver a
-ponerla en `false` después. Con `true` corre `reiniciar-base-nube.sh` (borra los esquemas con
-`drop schema ... cascade` y reaplica todas las migraciones) en lugar del script incremental.
+### Reiniciar la base de Neon (opcional)
+
+`FASE 2/db/scripts/reiniciar-base-nube.sh` borra todos los esquemas y los recrea desde las
+migraciones, igual que `RESET_SEED=true` hace en local con `iniciar.sh`. **Borra la base de Neon
+de verdad**; sirve para dejar un punto de partida limpio antes de una demostración, y no para
+usarlo de forma habitual.

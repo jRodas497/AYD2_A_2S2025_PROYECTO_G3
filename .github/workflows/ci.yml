@@ -1,5 +1,11 @@
 name: CI
 
+# El deploy lo hace Render: sus servicios tienen autoDeployTrigger: checksPass (ver render.yaml),
+# así que solo despliegan un commit de develop cuando todos los checks de este workflow pasan.
+# Si backend, frontend o e2e fallan, Render no despliega. Por eso este workflow no tiene un job
+# de deploy propio: agregarlo (y hacerlo esperar a Render) crearía un círculo, porque Render
+# esperaría a que ese job pase y el job esperaría a Render.
+
 # feature/202200389-deploy-render ya se juntó a develop (PR #15): corre en cada push a develop y
 # en cada pull request contra develop, que es el gate real para lo que entra al proyecto. Se deja
 # también el push directo a la rama de trabajo mientras siga abierta, para ver el resultado antes
@@ -87,65 +93,3 @@ jobs:
             FASE 2/frontend/test-results/
           retention-days: 14
           if-no-files-found: error
-
-  deploy:
-    name: Deploy a Render
-    # El "no se debe hacer deploy si las pruebas no pasan" lo da needs: si backend, frontend o
-    # e2e fallan, GitHub Actions ni siquiera intenta este job. Los servicios de Render tienen
-    # autoDeployTrigger: off (ver render.yaml), así que este job es la única forma de que un
-    # commit llegue a producción.
-    needs: [e2e]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-    runs-on: ubuntu-latest
-    env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      DB_APP_PASSWORD: ${{ secrets.DB_APP_PASSWORD }}
-      HOOK_BACKEND: ${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}
-      HOOK_FRONTEND: ${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Verificar secretos del deploy
-        # Si falta alguno el job falla a propósito: un pipeline en verde sin deploy engaña.
-        run: |
-          faltan=""
-          for n in DATABASE_URL DB_APP_PASSWORD HOOK_BACKEND HOOK_FRONTEND; do
-            if [ -z "${!n}" ]; then faltan="$faltan $n"; fi
-          done
-          if [ -n "$faltan" ]; then
-            echo "::error::Faltan secretos del repositorio:$faltan (ver DEPLOY-RENDER.md)"
-            exit 1
-          fi
-
-      - name: Preparar la base en la nube
-        # Con RESET_SEED_CLOUD = true se BORRAN todos los esquemas y se recrean desde las
-        # migraciones (mismo interruptor que RESET_SEED en iniciar.sh, pero sobre Neon). Sin
-        # él, solo se aplican las migraciones que falten: es incremental y no toca los datos.
-        # Va antes del deploy para que el backend nuevo encuentre el esquema que espera.
-        run: |
-          if [ "${{ vars.RESET_SEED_CLOUD }}" = "true" ]; then
-            sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
-            "FASE 2/db/scripts/reiniciar-base-nube.sh" "$DATABASE_URL"
-          else
-            "FASE 2/db/scripts/aplicar-migraciones-nube.sh" "$DATABASE_URL"
-          fi
-
-      - name: Disparar deploy del backend y del frontend en Render
-        run: |
-          curl -fsS -X POST "$HOOK_BACKEND"
-          curl -fsS -X POST "$HOOK_FRONTEND"
-
-      - name: Esperar a que el backend responda
-        # Si se define la variable DEPLOY_HEALTH_URL (p. ej. https://sgologic-backend.onrender.com/api/products),
-        # el job no termina en verde hasta que la versión nueva responda 200. Render tarda en
-        # reemplazar la instancia, por eso se reintenta hasta 20 minutos.
-        if: ${{ vars.DEPLOY_HEALTH_URL != '' }}
-        run: |
-          for i in $(seq 1 40); do
-            codigo=$(curl -s -o /dev/null -m 30 -w "%{http_code}" "${{ vars.DEPLOY_HEALTH_URL }}" || true)
-            echo "intento $i: HTTP $codigo"
-            if [ "$codigo" = "200" ]; then exit 0; fi
-            sleep 30
-          done
-          echo "::error::El backend no respondió 200 después del deploy"
-          exit 1

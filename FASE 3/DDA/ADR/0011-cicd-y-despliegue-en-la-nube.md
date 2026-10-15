@@ -20,10 +20,10 @@ Además hubo un incidente real: los deploys del 12 y 13 de octubre fallaron en e
 ## Decisión
 
 1. **GitHub Actions** con tres etapas en `.github/workflows/ci.yml`: build y pruebas rápidas (backend y frontend), pruebas de la Fase 3 sobre el docker-compose completo, y deploy.
-2. **El deploy depende de las pruebas.** El job `deploy` declara `needs: [e2e]`, que a su vez depende de las anteriores, y solo corre en un push a `develop`. Si algo falla, no se intenta.
-3. **El CI es la única vía a producción.** Los servicios de Render tienen `autoDeployTrigger: off` en `render.yaml`, y el job dispara el deploy con un Deploy Hook por servicio. Si falta un secreto, el job falla; no se salta el deploy en silencio.
-4. **El deploy aplica las migraciones antes de desplegar**, con `aplicar-migraciones-nube.sh`. Es incremental y no toca los datos. Con la variable `RESET_SEED_CLOUD` se puede reiniciar la base antes de una demostración.
-5. **El job espera a que el backend responda 200** (variable `DEPLOY_HEALTH_URL`) antes de terminar en verde, así un deploy que no levanta se ve como una falla del pipeline.
+2. **El deploy lo hace Render y depende de las pruebas.** Los dos servicios tienen `autoDeployTrigger: checksPass` en `render.yaml`: Render despliega un commit de `develop` solo cuando todos los checks de GitHub Actions pasan. Si fallan backend, frontend o la suite de la Fase 3, no hay deploy.
+3. **El workflow no tiene un job de deploy propio.** Si lo tuviera y esperara a que Render termine, Render esperaría a ese job y los dos quedarían esperándose. El deploy queda entonces como una etapa de Render, gobernada por el resultado del CI.
+4. **Las migraciones se aplican a mano** con `aplicar-migraciones-nube.sh` antes de un deploy que agregue una. Es incremental y no toca los datos. Queda documentado en `DEPLOY-RENDER.md`.
+5. **El health check de Render** (`/api/products`) valida que el backend nuevo responde antes de reemplazar al anterior; si no responde, Render conserva la versión que funciona.
 6. **Docker en backend y frontend**: `Dockerfile.backend` y `Dockerfile.frontend` en la raíz, los mismos que usa docker-compose. Una sola fuente para local y nube.
 7. **Servicios gestionados gratuitos para lo que no persiste en Render:** Neon para PostgreSQL y Cloudflare R2 para el archivo del ERP, que no caducan.
 8. **El frontend llega al backend por su URL pública** (`BACKEND_URL`), con un `resolver` en nginx para resolverla en cada petición. El nombre interno no sirve porque el backend gratuito no recibe tráfico privado.
@@ -34,7 +34,7 @@ Además hubo un incidente real: los deploys del 12 y 13 de octubre fallaron en e
 | Alternativa | Ventajas | Desventajas | Por qué se descartó |
 |---|---|---|---|
 | Auto-Deploy de Render por commit | Cero configuración | Despliega aunque las pruebas fallen; ya causó el incidente | Incumple el gate del enunciado |
-| `autoDeployTrigger: checksPass` | El gate lo hace Render sin secretos | El deploy no es una etapa visible del pipeline, y no aplica migraciones | El enunciado pide que Build, Test y Deploy vivan en el pipeline |
+| Un job `deploy` en GitHub que dispara Render con Deploy Hooks | El deploy es una etapa visible en Actions y puede aplicar las migraciones | Exige secretos en GitHub (hooks y cadena de la base) y más piezas que mantener | Se prefirió que Render despliegue por su cuenta, con el gate de `checksPass`, y sin credenciales en GitHub |
 | Postgres de Render | Todo en un solo proveedor | Caduca a los 30 días en el plan gratuito | Neon no expira |
 | Kubernetes en un proveedor de nube | Es la vista objetivo de las fases anteriores | Costo y operación fuera del presupuesto y de la capacidad del equipo | El enunciado pide desplegar con Docker |
 | Llamar al backend por su nombre privado | Sin salir a internet | No funciona con un servicio gratuito | Es el error que se vio en el primer deploy |
@@ -43,13 +43,13 @@ Además hubo un incidente real: los deploys del 12 y 13 de octubre fallaron en e
 
 **Positivas:**
 - Ningún commit llega a producción sin haber pasado la suite de 242 casos.
-- El backend nuevo nunca arranca contra un esquema viejo.
+- No hay credenciales de Render ni de la base guardadas en GitHub.
 - Los mismos Dockerfile sirven en local, en CI y en la nube.
 
 **Negativas / tradeoffs aceptados:**
 - El primer acceso tras un rato de inactividad tarda hasta un par de minutos y puede devolver 502. Conviene abrir la tienda antes de una demostración.
 - El pipeline completo tarda entre 5 y 20 minutos según la carga del runner, por las pruebas sobre el stack completo; el feedback de un cambio no es inmediato.
-- Se necesitan secretos en GitHub (`DATABASE_URL`, `DB_APP_PASSWORD` y los dos Deploy Hooks); sin ellos el deploy falla a propósito.
+- Las migraciones no se aplican solas: quien agregue una debe correr el script antes del deploy. Un olvido hace fallar el health check y Render conserva la versión anterior.
 - Los flujos que dependen de Kafka o de un proveedor simulado no se ven completos en la nube.
 
 ## Drivers que atiende
