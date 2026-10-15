@@ -14,6 +14,8 @@ El resultado completo solo es aprobado si todas las etapas pasan, cada categorí
 
 ## Documentación y evidencia
 
+La organización del trabajo, el reparto entre integrantes, los incidentes y la retrospectiva: [GESTION-DEL-PROYECTO.md](GESTION-DEL-PROYECTO.md).
+
 Los flujos principales para demostrar y probar el sistema, con diagramas y capturas: [FASE 3/FLUJOS](FLUJOS/README.md).
 
 Los dos manuales del sistema, que pide el enunciado:
