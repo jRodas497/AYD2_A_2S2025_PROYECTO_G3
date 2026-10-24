@@ -8,6 +8,8 @@ WORKDIR /app
 COPY ["FASE 2/backend/pom.xml", "."]
 RUN mvn -q -B dependency:go-offline
 COPY ["FASE 2/backend/src", "./src"]
+COPY ["FASE 2/docker-compose.yml", "."]
+
 RUN mvn -q -B verify
 
 FROM eclipse-temurin:21-jre-alpine
@@ -15,3 +17,4 @@ WORKDIR /app
 COPY --from=build /app/target/sgologic-backend.jar app.jar
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
+
